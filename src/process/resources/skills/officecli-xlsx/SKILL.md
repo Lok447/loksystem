@@ -6,30 +6,31 @@ description: "Use this skill any time a .xlsx file is involved -- as input, outp
 
 # OfficeCLI XLSX Skill
 
-## BEFORE YOU START
+## BEFORE YOU START (CRITICAL)
 
-**Install check.** If `officecli --version` fails:
+**If `officecli` is not installed:**
+
+`macOS / Linux`
 
 ```bash
-# macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
+if ! command -v officecli >/dev/null 2>&1; then
+    curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
+fi
 ```
+
+`Windows (PowerShell)`
 
 ```powershell
-# Windows (PowerShell)
-irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex
+if (-not (Get-Command officecli -ErrorAction SilentlyContinue)) {
+    irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex
+}
 ```
 
-If still not found, open a new terminal, then `officecli --version` should report `1.0.63`.
+Verify: `officecli --version`
 
-**Shell quoting (zsh / bash).** Excel paths contain `[]`, and number formats contain `$`. Both are shell metacharacters. Rules:
+If `officecli` is still not found after first install, open a new terminal and run the verify command again.
 
-- ALWAYS quote element paths: `"/Sheet1/row[1]"`, not `/Sheet1/row[1]`.
-- Use **single quotes** for any prop value containing `$`: `numFmt='$#,##0'`.
-- For formulas with cross-sheet `!` references, use `batch` with a `<<'EOF'` heredoc (see Known Issues).
-- NEVER hand-write `\$`, `\t`, `\n` inside executable examples. The CLI does not interpret backslash escapes; they will land in your file as literal characters.
-
-**Incremental execution.** Run commands one at a time and read each exit code. `officecli` mutates the file on every call; a 50-command script that fails at command 3 will cascade silently. One command → check output → continue.
+If the install command above fails (e.g. blocked by security policy, no network access, or insufficient permissions), install manually — download the binary for your platform from https://github.com/iOfficeAI/OfficeCLI/releases — then re-run the verify command.
 
 ## ⚠️ Help-First Rule
 
@@ -43,6 +44,17 @@ officecli help xlsx <element> --json        # Machine-readable schema
 ```
 
 Help is pinned to the installed CLI version (v1.0.63). When this skill and help disagree, **help is authoritative**.
+
+## Shell & Execution Discipline
+
+**Shell quoting (zsh / bash).** Excel paths contain `[]`, and number formats contain `$`. Both are shell metacharacters. Rules:
+
+- ALWAYS quote element paths: `"/Sheet1/row[1]"`, not `/Sheet1/row[1]`.
+- Use **single quotes** for any prop value containing `$`: `numFmt='$#,##0'`.
+- For formulas with cross-sheet `!` references, use `batch` with a `<<'EOF'` heredoc (see Known Issues).
+- NEVER hand-write `\$`, `\t`, `\n` inside executable examples. The CLI does not interpret backslash escapes; they will land in your file as literal characters.
+
+**Incremental execution.** Run commands one at a time and read each exit code. `officecli` mutates the file on every call; a 50-command script that fails at command 3 will cascade silently. One command → check output → continue.
 
 ## Requirements for Outputs
 
@@ -72,6 +84,14 @@ Before you declare done, run `officecli view "$FILE" html` and Read the returned
 
 If any of the above fails, STOP and fix before declaring done.
 
+**Print / PDF layout.** Any sheet the user may print, export to PDF, or send as a board pack needs page setup. Default portrait + no fit-to-page splits wide tables and charts mid-way. Apply per sheet:
+
+```bash
+officecli set data.xlsx "/Summary" --prop orientation=landscape --prop fitToPage=true
+```
+
+Trigger: sheet holds a chart, or > 8 columns, or the user's ask mentions print / PDF / export / board / investor.
+
 ### Financial models only — skip this section if you are building a template, tracker, CSV import, or operational sheet
 
 Scope: budgets, forecasts, 3-statement models, valuation, any `$`-heavy analytical workbook. A customer-support tracker or onboarding template does not need this section.
@@ -99,7 +119,7 @@ Scope: budgets, forecasts, 3-statement models, valuation, any `$`-heavy analytic
 
 Six steps. Every non-trivial build follows this shape.
 
-1. **Choose the mode.** Always use `officecli open <file>` at the start and `officecli close <file>` at the end. Resident mode is the default, not an optimization — it avoids re-parsing the file on every command. For many cells, use `batch`: **≤ 50 ops/block recommended; pure value-set batches run fine at 80+ ops (verified at 82 × 80-op chunks, 0 failures). Keep ≤ 12 only for mixed formula + resident scenarios**.
+1. **Choose the mode.** Always use `officecli open <file>` at the start and `officecli close <file>` at the end. Resident mode is the default, not an optimization — it avoids re-parsing the file on every command. For many cells, use `batch`: **≤ 50 ops/block recommended; tested up to 80+ ops per block on pure value-set payloads with zero failures. Cross-sheet formula batches are the exception — run those non-resident, single heredoc (see Known Issues)**.
 2. **Create or load.** `officecli create foo.xlsx` (new) or `officecli view foo.xlsx outline` (existing — get the lay of the land first).
 3. **Build incrementally.** One command, read the output, continue. After any structural op (new sheet, chart, named range, pivot), run `get` on it to confirm shape before stacking more on top.
 4. **Format.** Column widths, number formats, freeze panes, tab colors, header fills. Formatting is not optional polish — per "Requirements for Outputs" it is part of the deliverable.
@@ -131,9 +151,17 @@ officecli validate revenue.xlsx
 
 Verified: `validate` returns `no errors found`, `B5` resolves to `135000`. This is the shape of every build: open → set cells/formulas → format → close → validate.
 
-## CSV / bulk import (no native `import` command)
+## CSV / bulk import
 
-There is no `officecli import csv`. Pattern: read the CSV in Python, emit a batch JSON, pipe via heredoc. Recipe for 600-6000+ cells:
+**Native `import` command (preferred for CSV/TSV).** Fastest path; loads a CSV into a sheet in one call. `--header` sets AutoFilter + freeze pane on row 1. Widths and `numFmt` still need a follow-up pass (per D-12 in Dashboard skill).
+
+```bash
+officecli import data.xlsx /Sheet1 --file data.csv --header
+officecli import data.xlsx /Sheet1 --file data.tsv --format tsv --header
+officecli import data.xlsx /Sheet1 --stdin --start-cell B2 < data.csv
+```
+
+**Python + batch fallback** — use when you need custom type coercion, formula injection, or the CSV lives inside another data pipeline. Recipe for 600-6000+ cells:
 
 ```python
 # gen_batch.py — produces batch chunks of 80 value-set ops each
@@ -429,6 +457,8 @@ Avoid these until fixed; they produce invalid XML or silent breakage. Full detai
 - **Conditional formatting naming asymmetry** — the element name for `--type` is `conditionalformatting`; the path suffix is `/cf[N]`. Use `officecli help xlsx conditionalformatting` for schema, `/cf[N]` for paths.
 - **Sheet `position` prop on add** — help says Add processes `position`, but the prop is often ignored. Reorder with `officecli move --index` / `--after` / `--before` after creating the sheet.
 - **`remove /sheet[N]` cascade guard** — 1.0.59+ rejects sheet remove/rename when the sheet is referenced by validation / conditional format / sparkline / hyperlink / named range on another sheet. Remove those dependent elements first, then remove the sheet.
+- **Batch JSON rejects cell `color` alias** — inside batch `props`, `"color": "FF0000"` errors `ambiguous in cell context — use 'font.color' (text) or 'fill' (bg)`. The CLI at shell level accepts `--prop color=...` / `--prop size=14` as aliases on non-cell elements, but inside batch JSON on a cell always write the full dotted name: `"font.color"`, `"font.size"`, `"font.name"`.
+- **`SUMPRODUCT((range=criterion)*values)` caches `0` on 1.0.63** — the CLI calc engine does not evaluate array-predicate `SUMPRODUCT` at write-time; runtime Excel/WPS compute fine but the cached `0` ships to non-recalculating readers. **Helper-column fallback:** add a column `F` on the source sheet with `=C2*D2` per row, then aggregate via `=SUMIF(B:B, "Region X", F:F)`. Caches correctly, audits cleanly, and survives non-recalculating viewers.
 
 ### Renderer caveats (cross-viewer color fidelity)
 

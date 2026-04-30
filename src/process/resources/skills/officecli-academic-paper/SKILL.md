@@ -4,33 +4,37 @@ name: officecli-academic-paper
 description: "Use this skill to build academic-style .docx output: journal / conference / thesis chapters carrying formal citation style (APA, Chicago, IEEE, MLA), numbered equations, figure & table cross-references, footnotes/endnotes, bibliography, or multi-column journal layout. Trigger on: 'research paper', 'journal paper', 'conference paper', 'manuscript', 'thesis', 'APA', 'MLA', 'Chicago', 'IEEE two-column', 'bibliography', 'hanging indent', 'citation style', 'abstract + keywords', 'equation numbering', 'cross-reference', paper with footnotes/endnotes. Output is a single .docx."
 ---
 
-# officecli: v1.0.63
-
 # OfficeCLI Academic Paper Skill
 
 **This skill is a scene layer on top of `officecli-docx`.** Every docx hard rule — style architecture, heading hierarchy, shell quoting, `break=newPage` alias, belt-and-suspenders page breaks, live PAGE field, Delivery Gate, renderer quirks — is inherited, not re-taught. This file adds only what academic papers need on top: citation styles, equations, SEQ / PAGEREF cross-refs, multi-column journal layout, bibliography hanging indent, abstract/keywords/affiliation block.
 
 When the docx base rules cover it, the text here says `→ see docx v2 §X`. Read docx v2 first if you have not.
 
-## BEFORE YOU START
+## BEFORE YOU START (CRITICAL)
 
-**Install check.** If `officecli --version` fails:
+**If `officecli` is not installed:**
+
+`macOS / Linux`
 
 ```bash
-# macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
+if ! command -v officecli >/dev/null 2>&1; then
+    curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
+fi
 ```
+
+`Windows (PowerShell)`
 
 ```powershell
-# Windows (PowerShell)
-irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex
+if (-not (Get-Command officecli -ErrorAction SilentlyContinue)) {
+    irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex
+}
 ```
 
-`officecli --version` must report `1.0.63` or newer. If not, open a new terminal and retry.
+Verify: `officecli --version`
 
-**Shell quoting, incremental execution, `$FILE` convention** → see docx v2 §BEFORE YOU START. The same rules apply here verbatim — quote `[N]` paths, single-quote any value containing `$` (including `$2.8B` in a body paragraph or `@` DOIs), never hand-write `\$ \t \n` in executable examples, one command at a time. Academic-paper examples below use `$FILE` as a shell variable (`FILE="thesis.docx"`).
+If `officecli` is still not found after first install, open a new terminal and run the verify command again.
 
-**Inherits docx v2.** You should have read `skills/officecli-docx/SKILL.md` first. This skill assumes you know how to add paragraphs, set styles, build tables, insert images, manage TOC/footer/headers, force page breaks, and run the Delivery Gate. If any of those are unfamiliar, open a second session on docx v2 before continuing.
+If the install command above fails (e.g. blocked by security policy, no network access, or insufficient permissions), install manually — download the binary for your platform from https://github.com/iOfficeAI/OfficeCLI/releases — then re-run the verify command.
 
 ## ⚠️ Help-First Rule
 
@@ -43,6 +47,14 @@ officecli help docx <element> --json         # Machine-readable
 ```
 
 Help is pinned to the installed CLI version. **When this skill and help disagree, help wins.** Every `--prop X=` in this file has been grep-verified against `officecli help docx <element>` — if help adds / renames a prop in a later version, trust help.
+
+## Mental Model & Inheritance
+
+**Inherits docx v2.** You should have read `skills/officecli-docx/SKILL.md` first. This skill assumes you know how to add paragraphs, set styles, build tables, insert images, manage TOC/footer/headers, force page breaks, and run the Delivery Gate. If any of those are unfamiliar, open a second session on docx v2 before continuing.
+
+## Shell & Execution Discipline
+
+**Shell quoting, incremental execution, `$FILE` convention** → see docx v2 §Shell & Execution Discipline. The same rules apply here verbatim — quote `[N]` paths, single-quote any value containing `$` (including `$2.8B` in a body paragraph or `@` DOIs), never hand-write `\$ \t \n` in executable examples, one command at a time. Academic-paper examples below use `$FILE` as a shell variable (`FILE="thesis.docx"`).
 
 ## What "academic" means here (identity)
 
@@ -431,19 +443,12 @@ officecli add "$FILE" / --type header --prop type=default --prop alignment=right
 Every in-text citation key should resolve to a bibliography entry. Count mismatches = REJECT.
 
 ```bash
-# APA / MLA style: extract parenthetical citations. Adjust the regex for your style.
-# APA: (Author, Year) — e.g. "(Smith, 2024)" — regex: \([A-Z][a-zA-Z]+(?:\s*(?:&|et al\.?|and)\s*[A-Z][a-zA-Z]+)*,?\s*[0-9]{4}\)
-# IEEE: [N] — regex: \[[0-9]+\]
-# Chicago Notes-Bib: footnotes — count with query 'footnote'
+# IEEE example (bracketed numerics). Adjust regex for APA (Author, Year) or MLA (Author Page).
 CITATIONS=$(officecli view "$FILE" text | grep -oE '\[[0-9]+\]' | sort -u | wc -l)
-ENTRIES=$(officecli query "$FILE" 'paragraph[hangingIndent]' | wc -l)
-echo "In-text citation markers: $CITATIONS"
-echo "Bibliography entries (hanging indent): $ENTRIES"
-# For IEEE, the highest [N] should equal ENTRIES. For APA/MLA, CITATIONS ≤ ENTRIES and every cited author appears in biblio.
-# REJECT rule: CITATIONS > ENTRIES (cites without references) = REJECT. ENTRIES > CITATIONS is tolerated (listed but never cited; some venues allow).
-
-# Mergefield-based citation keys (if the paper uses them) round-trip:
-officecli query "$FILE" 'field[fieldType=mergefield]' | wc -l   # ≥ 1 if any MERGEFIELD citations exist
+ENTRIES=$(officecli query "$FILE" 'paragraph[hangingIndent]' --json | jq '.data.results | length')
+echo "In-text citation markers: $CITATIONS | Bibliography entries: $ENTRIES"
+# REJECT when citations exceed entries (cites without references). Entries > citations is allowed by some venues.
+[ "$CITATIONS" -le "$ENTRIES" ] && echo "Gate 4 OK" || { echo "REJECT Gate 4: $CITATIONS in-text markers but only $ENTRIES bibliography entries"; exit 1; }
 ```
 
 ### Gate 5a — SEQ presence + cached numbers distinct
@@ -461,8 +466,7 @@ fi
 # Cached values must be distinct (CLI emits "1" per field by default → all three would show "Figure 1").
 # After the raw-set patches in §SEQ, view text should show Figure 1 / Figure 2 / Figure 3:
 DISTINCT=$(officecli view "$FILE" text | grep -oE '(Figure|Table) [0-9]+' | sort -u | wc -l)
-echo "Gate 5a: SEQ fields=$SEQ_COUNT, distinct rendered labels=$DISTINCT"
-# If SEQ_COUNT > DISTINCT, cached values collide — go back and patch <w:t> after each SEQ field.
+[ "$SEQ_COUNT" -le "$DISTINCT" ] && echo "Gate 5a OK (SEQ=$SEQ_COUNT, distinct=$DISTINCT)" || { echo "REJECT Gate 5a: $SEQ_COUNT SEQ fields but only $DISTINCT distinct rendered labels — patch cached <w:t> after each SEQ field"; exit 1; }
 ```
 
 ### Gate 5b — Visual audit via HTML preview (MANDATORY, not optional)
