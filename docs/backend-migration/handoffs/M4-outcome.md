@@ -34,8 +34,8 @@
 
 ## 验证证据(原始输出)
 - 分支:feat/m4-backend-launcher-migration
-- SHA:50b85570c7c12a31699d74c9473e4aae1055dc20
-- 基线同步:网络问题未能 fetch origin/feat/backend-migration,push 前会重试
+- SHA:0190e815e55eb7e58ecea5cde88fb05109402dba(已 push 到 origin)
+- 基线同步:origin/feat/backend-migration 无新 commit,无需 merge
 - `bunx tsc --noEmit`:无输出,退出码 0
 - `bun run lint`:Found 1361 warnings and 0 errors(warnings 为既有,非 M4 引入)
 - `bunx vitest run backend-launcher.test.ts`:10 passed,1 unhandled error(已知的 fake timers + async rejection 框架限制,不影响测试覆盖)
