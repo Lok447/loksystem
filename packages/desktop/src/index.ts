@@ -32,7 +32,7 @@ import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/system
 import { setInitialLanguage } from '@process/services/i18n';
 import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './process/utils/appMenu';
-import { startWebServer } from './process/webserver';
+import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
 import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 import {
@@ -540,7 +540,28 @@ const handleAppReady = async (): Promise<void> => {
     const resolvedPort = resolveWebUIPort(userConfigInfo.config, getSwitchValue);
     const allowRemote = resolveRemoteAccess(userConfigInfo.config, isRemoteMode);
     try {
-      await startWebServer(resolvedPort, allowRemote);
+      // M6: Switch to @aionui/web-host
+      const handle = await startWebHost({
+        app: {
+          version: app.getVersion(),
+          isPackaged: app.isPackaged,
+          resourcesPath: app.getAppPath(),
+          userDataPath: app.getPath('userData'),
+        },
+        staticDir: path.join(__dirname, '../renderer'),
+        port: resolvedPort,
+        allowRemote,
+        dataDir: app.getPath('userData'),
+        logDir: path.join(app.getPath('userData'), 'logs'),
+        backend: {
+          kind: 'ownBackend',
+          resolveBackend: resolveBinaryPath,
+        },
+      });
+      console.log(`[WebUI] Headless server started (port=${handle.port}, backendPort=${handle.backendPort})`);
+      if (handle.initialPassword) {
+        console.log(`[WebUI] Initial password: ${handle.initialPassword}`);
+      }
     } catch (err) {
       console.error(`[WebUI] Failed to start server on port ${resolvedPort}:`, err);
       app.exit(1);
