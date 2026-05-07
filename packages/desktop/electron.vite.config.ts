@@ -3,7 +3,7 @@ import { execSync } from 'child_process';
 import { resolve } from 'path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import UnoCSS from 'unocss/vite';
-import unoConfig from './uno.config.ts';
+import unoConfig from '../../uno.config.ts';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 // Build builtin MCP servers after main process bundle so they survive out/main/ cleanup.
@@ -45,13 +45,16 @@ function iconParkPlugin() {
 }
 
 // Common path aliases for main process and workers
+const desktopSrcRoot = resolve('packages/desktop/src');
+const rendererRoot = resolve('packages/desktop/src/renderer');
+
 const mainAliases = {
-  '@': resolve('src'),
-  '@common': resolve('src/common'),
-  '@renderer': resolve('src/renderer'),
-  '@process': resolve('src/process'),
-  '@worker': resolve('src/process/worker'),
-  '@xterm/headless': resolve('src/common/utils/shims/xterm-headless.ts'),
+  '@': desktopSrcRoot,
+  '@common': resolve('packages/desktop/src/common'),
+  '@renderer': rendererRoot,
+  '@process': resolve('packages/desktop/src/process'),
+  '@worker': resolve('packages/desktop/src/process/worker'),
+  '@xterm/headless': resolve('packages/desktop/src/common/utils/shims/xterm-headless.ts'),
 };
 
 export default defineConfig(({ mode }) => {
@@ -66,8 +69,9 @@ export default defineConfig(({ mode }) => {
       filesToDeleteAfterUpload: ['./out/**/*.map'],
       rewriteSources: (source: string) => {
         // Normalize Windows backslashes and strip leading relative prefixes
-        // so Sentry paths match the GitHub repo structure (e.g. src/process/...)
-        return source.replace(/\\/g, '/').replace(/^(\.\.\/)+(src\/)/, '$2');
+        // so Sentry paths match the GitHub repo structure (e.g.
+        // packages/desktop/src/process/...)
+        return source.replace(/\\/g, '/').replace(/^(\.\.\/)+(packages\/desktop\/src\/)/, '$2');
       },
     },
   };
@@ -83,7 +87,7 @@ export default defineConfig(({ mode }) => {
               {
                 name: 'dev-build-mcp-servers',
                 closeBundle() {
-                  execSync(`node "${resolve(__dirname, 'scripts/build-mcp-servers.js')}"`, {
+                  execSync(`node "${resolve(__dirname, '../../scripts/build-mcp-servers.js')}"`, {
                     stdio: 'inherit',
                   });
                 },
@@ -100,7 +104,7 @@ export default defineConfig(({ mode }) => {
                 targets: [
                   // Use single * glob to copy top-level items (directories) with their contents intact.
                   // Using ** would flatten all nested files into the dest root.
-                  { src: 'src/renderer/assets/logos/*', dest: 'static/images' },
+                  { src: 'packages/desktop/src/renderer/assets/logos/*', dest: 'static/images' },
                 ],
               }),
             ]
@@ -114,7 +118,7 @@ export default defineConfig(({ mode }) => {
         reportCompressedSize: false,
         rollupOptions: {
           input: {
-            index: resolve('src/index.ts'),
+            index: resolve('packages/desktop/src/index.ts'),
             // Built-in MCP server entry points (compiled by scripts/build-mcp-servers.js via esbuild,
             // not vite — esbuild bundles all deps for self-contained execution by external node processes)
           },
@@ -139,7 +143,10 @@ export default defineConfig(({ mode }) => {
       // bytes of IPC wiring we actually need.
       plugins: [externalizeDepsPlugin({ exclude: ['@sentry/electron'] })],
       resolve: {
-        alias: { '@': resolve('src'), '@common': resolve('src/common') },
+        alias: {
+          '@': resolve('packages/desktop/src'),
+          '@common': resolve('packages/desktop/src/common'),
+        },
         extensions: ['.ts', '.tsx', '.js', '.json'],
       },
       build: {
@@ -147,16 +154,20 @@ export default defineConfig(({ mode }) => {
         reportCompressedSize: false,
         rollupOptions: {
           input: {
-            index: resolve('src/preload/main.ts'),
-            petPreload: resolve('src/preload/petPreload.ts'),
-            petHitPreload: resolve('src/preload/petHitPreload.ts'),
-            petConfirmPreload: resolve('src/preload/petConfirmPreload.ts'),
+            index: resolve('packages/desktop/src/preload/main.ts'),
+            petPreload: resolve('packages/desktop/src/preload/petPreload.ts'),
+            petHitPreload: resolve('packages/desktop/src/preload/petHitPreload.ts'),
+            petConfirmPreload: resolve('packages/desktop/src/preload/petConfirmPreload.ts'),
           },
         },
       },
     },
 
     renderer: {
+      // The renderer workspace moved under packages/desktop/src/renderer in M1.
+      // Make the root explicit so Vite emits page names relative to that directory
+      // instead of leaking source-relative ../../ paths into HTML asset names.
+      root: rendererRoot,
       base: './',
       publicDir: resolve('public'),
       appType: 'mpa',
@@ -174,11 +185,11 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': resolve('src'),
-          '@common': resolve('src/common'),
-          '@renderer': resolve('src/renderer'),
-          '@process': resolve('src/process'),
-          '@worker': resolve('src/process/worker'),
+          '@': resolve('packages/desktop/src'),
+          '@common': resolve('packages/desktop/src/common'),
+          '@renderer': resolve('packages/desktop/src/renderer'),
+          '@process': resolve('packages/desktop/src/process'),
+          '@worker': resolve('packages/desktop/src/process/worker'),
           // Force ESM version of streamdown
           streamdown: resolve('node_modules/streamdown/dist/index.js'),
         },
@@ -199,10 +210,10 @@ export default defineConfig(({ mode }) => {
         cssCodeSplit: true,
         rollupOptions: {
           input: {
-            index: resolve('src/renderer/index.html'),
-            pet: resolve('src/renderer/pet/pet.html'),
-            'pet-hit': resolve('src/renderer/pet/pet-hit.html'),
-            'pet-confirm': resolve('src/renderer/pet/pet-confirm.html'),
+            index: resolve(rendererRoot, 'index.html'),
+            pet: resolve(rendererRoot, 'pet/pet.html'),
+            'pet-hit': resolve(rendererRoot, 'pet/pet-hit.html'),
+            'pet-confirm': resolve(rendererRoot, 'pet/pet-confirm.html'),
           },
           external: ['node:crypto', 'crypto'],
           onwarn(warning, warn) {
