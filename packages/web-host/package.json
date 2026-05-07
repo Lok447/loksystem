@@ -13,12 +13,12 @@
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "cookie": "^1.0.2",
+    "cookie": "^0.7.0",
     "serve-handler": "^6.1.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
-    "@types/cookie": "^1.0.0",
+    "@types/cookie": "^0.6.0",
     "@types/node": "^22.10.2",
     "@types/serve-handler": "^6.1.4",
     "vitest": "^4.1.0"

@@ -16,8 +16,15 @@ import http, {
 import { networkInterfaces } from 'node:os';
 import type { Socket } from 'node:net';
 import serveHandler from 'serve-handler';
-import * as cookie from 'cookie';
+import * as cookieRaw from 'cookie';
 import type { AppMetadata } from './types.js';
+
+// Type workaround: cookie@0.7 with @types/cookie@0.6 has resolution issues
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const cookie = cookieRaw as any as {
+  serialize: (name: string, val: string, options?: Record<string, unknown>) => string;
+  parse: (str: string) => Record<string, string | undefined>;
+};
 import { verifyPassword } from './auth/index.js';
 import {
   SESSION_COOKIE,
