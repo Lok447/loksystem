@@ -104,7 +104,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
       );
     }
 
-    return <MessageOne theme='outline' size='16' className={classNames('line-height-0 flex-shrink-0', dimmedClass)} />;
+    return <MessageOne theme='outline' size='16' className={classNames('line-height-0 flex-shrink-0 text-t-secondary', dimmedClass)} />;
   };
 
   const handleRowClick = () => {

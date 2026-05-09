@@ -61,7 +61,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     }) => {
       const isCollapsed = collapsedSections.has(sectionKey);
       return (
-        <div className='group/label flex items-center px-12px h-28px select-none sticky top-0 z-10 bg-fill-2'>
+        <div className='group/label flex items-center px-12px h-28px select-none sticky top-0 z-10 bg-fill-2 mt-4px'>
           <span className='text-12px text-t-tertiary font-normal leading-none'>
             {label}
           </span>
@@ -496,7 +496,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
           onDragCancel={handleDragCancel}
         >
           {pinnedConversations.length > 0 && (
-            <div className='mb-8px min-w-0'>
+            <div className='min-w-0'>
               {!collapsed && (
                 <SectionLabel sectionKey='pinned' label={t('conversation.history.pinnedSection')} />
               )}
@@ -526,7 +526,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
 
         {/* 项目 section — L1，与对话平级 */}
         {projectGroups.length > 0 && (
-          <div className='mb-8px min-w-0'>
+          <div className='min-w-0'>
             {!collapsed && (
               <SectionLabel
                 sectionKey='projects'
@@ -557,9 +557,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                       onToggle={() => handleToggleWorkspace(group.workspace)}
                       siderCollapsed={collapsed}
                       header={
-                        <div className='flex items-center gap-6px text-13px min-w-0'>
-                          <span className='truncate flex-1 text-2 min-w-0'>{group.displayName}</span>
-                        </div>
+                        <span className='text-14px font-normal truncate flex-1 text-t-primary min-w-0'>{group.displayName}</span>
                       }
                       trailing={
                         <Dropdown
@@ -591,7 +589,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
 
         {/* 对话 section — L1，与项目平级，内部按时间线分组 */}
         {conversationOnlySections.length > 0 && (
-          <div className='mb-8px min-w-0'>
+          <div className='min-w-0'>
             {!collapsed && (
               <SectionLabel
                 sectionKey='conversations'

@@ -65,7 +65,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
         onContextMenu={onContextMenu}
       >
         {/* Leading icon — fixed 28px column to align with other sidebar rows */}
-        <span className='size-22px flex items-center justify-center shrink-0 line-height-0'>{icon}</span>
+        <span className='size-22px flex items-center justify-center shrink-0 line-height-0 text-t-secondary'>{icon}</span>
 
         {/* Name with truncation — reserve extra room on the right when pinned
             so the pushpin never overlaps the text in the resting state. */}

@@ -7,7 +7,7 @@
 import { DeleteOne, EditOne, Peoples, Plus, Pushpin, Right } from '@icon-park/react';
 import { Input, Message, Modal, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useSWRConfig } from 'swr';
@@ -45,7 +45,12 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
   const { mutate: globalMutate } = useSWRConfig();
 
   const [createTeamVisible, setCreateTeamVisible] = useState(false);
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState<boolean>(() => {
+    return localStorage.getItem('team-section-expanded') === 'true';
+  });
+  useEffect(() => {
+    localStorage.setItem('team-section-expanded', String(expanded));
+  }, [expanded]);
 
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => {
     try {
@@ -145,7 +150,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
       ) : (
         <div className='shrink-0 flex flex-col gap-2px'>
           <div
-            className='group/label flex items-center px-12px h-28px select-none sticky top-0 z-10 bg-fill-2'
+            className='group/label flex items-center px-12px h-28px select-none sticky top-0 z-10 bg-fill-2 mt-4px'
             data-testid='team-section-toggle'
           >
             <span className='text-12px text-t-tertiary font-normal leading-none'>{t('team.sider.title')}</span>
@@ -191,7 +196,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
               return (
                 <div key={team.id} className='relative group'>
                   <SiderItem
-                    icon={<Peoples theme='outline' size='16' fill={iconColors.primary} style={{ lineHeight: 0 }} />}
+                    icon={<Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />}
                     name={team.name}
                     selected={pathname.startsWith(`/team/${team.id}`)}
                     pinned={isPinned}

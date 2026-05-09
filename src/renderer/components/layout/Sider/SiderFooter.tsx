@@ -41,7 +41,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
     <ArrowCircleLeft
       theme='outline'
       size='16'
-      fill={iconColors.primary}
+      fill='currentColor'
       className='block leading-none'
       style={{ lineHeight: 0 }}
     />
@@ -49,7 +49,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
     <SettingTwo
       theme='outline'
       size='16'
-      fill={iconColors.primary}
+      fill='currentColor'
       className='block leading-none'
       style={{ lineHeight: 0 }}
     />
@@ -64,7 +64,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
           <div
             onClick={onSettingsClick}
             className={classNames(
-              'h-34px flex items-center rd-0.5rem cursor-pointer transition-colors',
+              'group h-34px flex items-center rd-0.5rem cursor-pointer transition-colors',
               collapsed ? 'w-full justify-center' : 'flex-1 min-w-0 justify-start gap-8px pl-10px pr-8px',
               isMobile && 'sider-footer-btn-mobile',
               {
@@ -73,7 +73,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
               }
             )}
           >
-            <span className='size-22px flex items-center justify-center shrink-0'>{settingsIcon}</span>
+            <span className='size-22px flex items-center justify-center shrink-0 text-t-secondary'>{settingsIcon}</span>
             <span className='collapsed-hidden text-t-primary text-14px font-medium leading-24px truncate'>
               {isSettings ? t('common.back') : t('common.settings')}
             </span>
