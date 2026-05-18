@@ -79,3 +79,22 @@
 - Windows 本地原生依赖和 symlink 环境问题已处理完成。
 - 全量测试剩余问题为性能阈值偶发波动，不属于 Hermes/Lok CLI 第一阶段改造逻辑失败。
 
+### 手动验证问题修复记录
+
+日期：2026-05-18
+
+- 问题 1：创建助手弹窗的主 Agent 默认值仍为 `gemini`。
+  - 修复：将助手创建、编辑、复制流程的默认 `presetAgentType` 回退值统一改为 `hermes`。
+  - 修复：助手 Agent 下拉框过滤 `aionrs`、`claude`、`gemini`，避免被旧数据或检测结果带回。
+- 问题 2：使用 Lok CLI 新建聊天后 Hermes ACP 进程立即退出。
+  - 诊断：本机 `D:\AI\hermes-agent-main\.venv\Scripts\hermes.exe acp` 输出 `ACP dependencies not installed.`。
+  - 环境修复：为 Hermes 虚拟环境安装 `agent-client-protocol==0.10.0`。
+  - 环境修复：设置用户环境变量 `HERMES_CLI_PATH=D:\AI\hermes-agent-main\.venv\Scripts\hermes.exe`。
+  - 代码修复：Lok CLI 默认注册逻辑优先读取 `HERMES_CLI_PATH`，并在本机开发环境下自动识别 Hermes venv 可执行文件。
+  - 验证：使用 Hermes ACP `initialize` JSON-RPC 握手测试，返回 `agentInfo.name = hermes-agent`，`version = 0.11.0`。
+- 修复后目标测试：
+  - `npx vitest run tests/unit/acpDetector.test.ts tests/unit/process/agent/agentRegistryDeduplicate.test.ts tests/unit/guidAgentHooks.dom.test.ts tests/unit/renderer/team/TeamCreateModal.dom.test.tsx tests/unit/process/team/modelListHandler.test.ts`
+  - 结果：5 个测试文件通过，51 个测试通过。
+- 类型检查：
+  - `npx tsc --noEmit`
+  - 结果：通过。

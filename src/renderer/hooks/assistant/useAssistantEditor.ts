@@ -46,8 +46,9 @@ export const useAssistantEditor = ({
   const [editDescription, setEditDescription] = useState('');
   const [editContext, setEditContext] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
-  // editAgent holds a backend ID (e.g. "claude", "goose") or an extension adapter ID (e.g. "ext-buddy")
-  const [editAgent, setEditAgent] = useState<string>('gemini');
+  const DEFAULT_ASSISTANT_AGENT = 'hermes';
+  // editAgent holds a backend ID (e.g. "hermes", "goose") or an extension adapter ID (e.g. "ext-buddy")
+  const [editAgent, setEditAgent] = useState<string>(DEFAULT_ASSISTANT_AGENT);
   const [editSkills, setEditSkills] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
@@ -100,7 +101,7 @@ export const useAssistantEditor = ({
     setEditName(assistant.name || '');
     setEditDescription(assistant.description || '');
     setEditAvatar(assistant.avatar || '');
-    setEditAgent(assistant.presetAgentType || 'gemini');
+    setEditAgent(assistant.presetAgentType || DEFAULT_ASSISTANT_AGENT);
     setPendingSkills([]);
     setDeletePendingSkillName(null);
     setDeleteCustomSkillName(null);
@@ -164,7 +165,7 @@ export const useAssistantEditor = ({
     setEditDescription('');
     setEditContext('');
     setEditAvatar('\u{1F916}');
-    setEditAgent('gemini');
+    setEditAgent(DEFAULT_ASSISTANT_AGENT);
     setEditSkills('');
     setSelectedSkills([]);
     setCustomSkills([]);
@@ -194,7 +195,7 @@ export const useAssistantEditor = ({
     setEditName(`${assistant.nameI18n?.[localeKey] || assistant.name} (Copy)`);
     setEditDescription(assistant.descriptionI18n?.[localeKey] || assistant.description || '');
     setEditAvatar(assistant.avatar || '\u{1F916}');
-    setEditAgent(assistant.presetAgentType || 'gemini');
+    setEditAgent(assistant.presetAgentType || DEFAULT_ASSISTANT_AGENT);
     setPromptViewMode('edit');
     setEditVisible(true);
 

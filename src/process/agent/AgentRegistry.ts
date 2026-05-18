@@ -15,6 +15,9 @@ import type {
 } from '@/common/types/detectedAgent';
 import { isAgentKind } from '@/common/types/detectedAgent';
 import type { RemoteAgentConfig } from '@process/agent/remote/types';
+import { existsSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 /**
  * Central registry for ALL detected execution engines.
@@ -38,6 +41,20 @@ import type { RemoteAgentConfig } from '@process/agent/remote/types';
 class AgentRegistry {
   private static readonly DISABLED_BACKENDS = new Set(['aionrs', 'claude', 'gemini']);
 
+  private resolveHermesCliPath(): string {
+    const candidates = [
+      process.env.HERMES_CLI_PATH,
+      path.join(os.homedir(), 'hermes-agent-main', '.venv', process.platform === 'win32' ? 'Scripts' : 'bin', process.platform === 'win32' ? 'hermes.exe' : 'hermes'),
+      process.platform === 'win32' ? 'D:\\AI\\hermes-agent-main\\.venv\\Scripts\\hermes.exe' : undefined,
+    ].filter((candidate): candidate is string => Boolean(candidate));
+
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) return candidate;
+    }
+
+    return ACP_BACKENDS_ALL.hermes.cliCommand ?? 'hermes';
+  }
+
   private detectedAgents: DetectedAgent[] = [];
   private isInitialized = false;
   private mutationQueue: Promise<void> = Promise.resolve();
@@ -57,7 +74,7 @@ class AgentRegistry {
       kind: 'acp',
       available: true,
       backend: 'hermes',
-      cliPath: hermes.cliCommand,
+      cliPath: this.resolveHermesCliPath(),
       acpArgs: hermes.acpArgs,
     };
   }

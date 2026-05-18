@@ -80,7 +80,8 @@ describe('AgentRegistry', () => {
 
       // Lok CLI is always first; disabled foreign backends are filtered out.
       expect(agents).toHaveLength(2);
-      expect(agents[0]).toMatchObject({ backend: 'hermes', name: 'Lok CLI', cliPath: 'hermes' });
+      expect(agents[0]).toMatchObject({ backend: 'hermes', name: 'Lok CLI' });
+      expect(agents[0].cliPath).toMatch(/hermes(?:\.exe)?$/);
       expect(agents[1]).toMatchObject({ backend: 'qwen', cliPath: 'qwen' });
     });
 
@@ -106,7 +107,8 @@ describe('AgentRegistry', () => {
       const agents = registry.getDetectedAgents();
 
       expect(agents).toHaveLength(1); // Lok CLI
-      expect(agents[0]).toMatchObject({ backend: 'hermes', name: 'Lok CLI', cliPath: 'hermes' });
+      expect(agents[0]).toMatchObject({ backend: 'hermes', name: 'Lok CLI' });
+      expect(agents[0].cliPath).toMatch(/hermes(?:\.exe)?$/);
     });
 
     it('should detect extension-contributed agents when CLI is available', async () => {

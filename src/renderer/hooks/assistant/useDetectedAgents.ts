@@ -10,6 +10,8 @@ export type AvailableBackend = {
   isExtension?: boolean;
 };
 
+const DISABLED_ASSISTANT_BACKENDS = new Set(['aionrs', 'claude', 'gemini']);
+
 /**
  * Provides detected execution engines for backend selectors (e.g. AssistantEditDrawer).
  * Excludes preset assistants — those live in ConfigStorage('assistants').
@@ -23,7 +25,7 @@ export const useDetectedAgents = () => {
   const availableBackends = useMemo<AvailableBackend[]>(
     () =>
       rawAgents
-        .filter((a) => !a.isPreset && a.backend !== 'remote')
+        .filter((a) => !a.isPreset && a.backend !== 'remote' && !DISABLED_ASSISTANT_BACKENDS.has(a.backend))
         .map((a) => ({
           id: a.backend,
           name: a.name,
