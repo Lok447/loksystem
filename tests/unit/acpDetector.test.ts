@@ -78,12 +78,10 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      // Aionrs always first, Gemini always second, then ACP agents
-      expect(agents).toHaveLength(4);
-      expect(agents[0].backend).toBe('aionrs');
-      expect(agents[1].backend).toBe('gemini');
-      expect(agents[2]).toMatchObject({ backend: 'claude', cliPath: 'claude' });
-      expect(agents[3]).toMatchObject({ backend: 'qwen', cliPath: 'qwen' });
+      // Lok CLI is always first; disabled foreign backends are filtered out.
+      expect(agents).toHaveLength(2);
+      expect(agents[0]).toMatchObject({ backend: 'hermes', name: 'Lok CLI', cliPath: 'hermes' });
+      expect(agents[1]).toMatchObject({ backend: 'qwen', cliPath: 'qwen' });
     });
 
     it('should skip built-in CLIs that are not available', async () => {
@@ -95,19 +93,20 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      expect(agents).toHaveLength(3); // gemini + aionrs + claude
+      expect(agents).toHaveLength(1); // Lok CLI only; claude is disabled
+      expect(agents[0].backend).toBe('hermes');
       expect(agents.find((a) => a.backend === 'qwen')).toBeUndefined();
       expect(agents.find((a) => a.backend === 'auggie')).toBeUndefined();
+      expect(agents.find((a) => a.backend === 'claude')).toBeUndefined();
     });
 
-    it('should always include Aionrs first and Gemini second', async () => {
+    it('should always include Lok CLI first', async () => {
       const registry = await createFreshRegistry();
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      expect(agents).toHaveLength(2); // aionrs + gemini
-      expect(agents[0]).toMatchObject({ backend: 'aionrs', name: 'Aion CLI' });
-      expect(agents[1]).toMatchObject({ backend: 'gemini', name: 'Gemini CLI' });
+      expect(agents).toHaveLength(1); // Lok CLI
+      expect(agents[0]).toMatchObject({ backend: 'hermes', name: 'Lok CLI', cliPath: 'hermes' });
     });
 
     it('should detect extension-contributed agents when CLI is available', async () => {
@@ -138,7 +137,7 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      expect(agents).toHaveLength(2); // gemini + aionrs
+      expect(agents).toHaveLength(1); // Lok CLI
     });
 
     it('should not run twice (isDetected guard)', async () => {
@@ -206,14 +205,13 @@ describe('AgentRegistry', () => {
       expect(agent!.isExtension).toBe(true);
     });
 
-    it('should always include aionrs and gemini', async () => {
+    it('should always include Lok CLI', async () => {
       const registry = await createFreshRegistry();
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      expect(agents).toHaveLength(2);
-      expect(agents[0].backend).toBe('aionrs');
-      expect(agents[1].backend).toBe('gemini');
+      expect(agents).toHaveLength(1);
+      expect(agents[0].backend).toBe('hermes');
     });
   });
 
@@ -299,7 +297,7 @@ describe('AgentRegistry', () => {
   });
 
   describe('refreshBuiltinAgents', () => {
-    it('should keep Aionrs and Gemini ahead of builtin agents after refresh', async () => {
+    it('should keep Lok CLI ahead of builtin agents after refresh', async () => {
       mockDetectBuiltinAgents.mockResolvedValue([
         makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
         makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
@@ -311,9 +309,8 @@ describe('AgentRegistry', () => {
       await registry.refreshBuiltinAgents();
       const agents = registry.getDetectedAgents();
 
-      expect(agents[0].backend).toBe('aionrs');
-      expect(agents[1].backend).toBe('gemini');
-      expect(agents.slice(2).map((agent) => agent.backend)).toEqual(['claude', 'qwen']);
+      expect(agents[0].backend).toBe('hermes');
+      expect(agents.slice(1).map((agent) => agent.backend)).toEqual(['qwen']);
     });
 
     it('should clear env cache before re-detecting', async () => {
@@ -326,7 +323,7 @@ describe('AgentRegistry', () => {
   });
 
   describe('hasAgents', () => {
-    it('should return true after initialization (Gemini is always present)', async () => {
+    it('should return true after initialization (Lok CLI is always present)', async () => {
       const registry = await createFreshRegistry();
       await registry.initialize();
       expect(registry.hasAgents()).toBe(true);

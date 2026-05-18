@@ -7,7 +7,7 @@ vi.mock('electron', () => ({
 }));
 
 const MOCK_CACHED_INIT = {
-  claude: {
+  hermes: {
     protocolVersion: 1,
     capabilities: {
       mcpCapabilities: { stdio: true, http: false, sse: false },
@@ -16,8 +16,8 @@ const MOCK_CACHED_INIT = {
 };
 
 const MOCK_CACHED_MODELS: Record<string, { availableModels: Array<{ id: string }> }> = {
-  claude: {
-    availableModels: [{ id: 'claude-sonnet-4-20250514' }, { id: 'claude-opus-4-20250514' }],
+  hermes: {
+    availableModels: [{ id: 'hermes-v13.0' }, { id: 'hermes-v13.0-local' }],
   },
 };
 
@@ -41,7 +41,7 @@ vi.mock('../../src/process/team/googleAuthCheck', () => ({
 
 vi.mock('@process/agent/AgentRegistry', () => ({
   agentRegistry: {
-    getDetectedAgents: vi.fn(() => [{ backend: 'claude', name: 'Claude' }]),
+    getDetectedAgents: vi.fn(() => [{ backend: 'hermes', name: 'Lok CLI' }]),
   },
 }));
 
@@ -55,10 +55,10 @@ describe('handleListModels', () => {
   });
 
   it('returns models for a specific agent_type', async () => {
-    const result = await handleListModels({ agent_type: 'claude' });
-    expect(result).toContain('## Models for claude');
-    expect(result).toContain('- claude-sonnet-4-20250514');
-    expect(result).toContain('- claude-opus-4-20250514');
+    const result = await handleListModels({ agent_type: 'hermes' });
+    expect(result).toContain('## Models for hermes');
+    expect(result).toContain('- hermes-v13.0');
+    expect(result).toContain('- hermes-v13.0-local');
   });
 
   it('returns "no models" for an unknown agent_type', async () => {
@@ -69,8 +69,8 @@ describe('handleListModels', () => {
   it('lists all team-capable backends when no agent_type is given', async () => {
     const result = await handleListModels({});
     expect(result).toContain('## Available Models by Agent Type');
-    expect(result).toContain('### Claude (`claude`)');
-    expect(result).toContain('claude-sonnet-4-20250514');
+    expect(result).toContain('### Lok CLI (`hermes`)');
+    expect(result).toContain('hermes-v13.0');
   });
 
   it('returns "no team-capable agents" when none detected', async () => {

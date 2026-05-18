@@ -521,8 +521,8 @@ export class TeamSessionService {
           isInheritedWorkspace: !params.workspace,
         });
         const conversation = await this.conversationService.createConversation(conversationParams);
-        // Ensure teamId is in extra regardless of which factory function was used
-        // (some factories like createCodexAgent/createGeminiAgent drop unknown extra fields)
+        // Ensure teamId is in extra regardless of which factory function was used.
+        // Some legacy factories drop unknown extra fields during conversation creation.
         await this.conversationService.updateConversation(conversation.id, { extra: { teamId } } as any, true);
         return { ...agent, slotId, conversationId: conversation.id };
       })
@@ -680,7 +680,7 @@ export class TeamSessionService {
   private resolveBackend(agentType: string, agents: TeamAgent[]): string {
     if (agentType !== 'acp') return agentType;
     const leader = agents.find((a) => a.role === 'leader');
-    return leader && leader.agentType !== 'acp' ? leader.agentType : 'claude';
+    return leader && leader.agentType !== 'acp' ? leader.agentType : 'hermes';
   }
 
   private resolveConversationType(agentType: string): AgentType {
@@ -763,7 +763,7 @@ export class TeamSessionService {
     const spawnAgent = async (agentName: string, agentType?: string, model?: string, customAgentId?: string) => {
       // Default to the leader's agent type instead of hardcoding 'claude'
       const leadAgent = team.agents.find((a) => a.role === 'leader');
-      const resolvedType = agentType || leadAgent?.agentType || 'claude';
+      const resolvedType = agentType || leadAgent?.agentType || 'hermes';
       const newAgent = await this.addAgent(teamId, {
         conversationId: '',
         role: 'teammate',

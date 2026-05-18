@@ -29,18 +29,18 @@ vi.mock('@process/utils/initStorage', () => ({
           agentInfo: null,
           authMethods: [],
         });
-        return { claude: makeEntry(), codex: makeEntry() };
+        return { hermes: makeEntry(), codex: makeEntry() };
       }
       return null;
     }),
   },
 }));
 
-// Mock acpDetector for getTeamCapableBackends error message
-vi.mock('@process/agent/acp/AcpDetector', () => ({
-  acpDetector: {
+// Mock detected agents for getTeamCapableBackends error messages
+vi.mock('@process/agent/AgentRegistry', () => ({
+  agentRegistry: {
     getDetectedAgents: vi.fn(() => [
-      { backend: 'claude', name: 'Claude' },
+      { backend: 'hermes', name: 'Lok CLI' },
       { backend: 'codex', name: 'Codex' },
     ]),
   },
@@ -118,7 +118,7 @@ function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
     slotId: 'slot-lead',
     conversationId: 'conv-lead',
     role: 'leader',
-    agentType: 'claude',
+    agentType: 'hermes',
     agentName: 'Leader',
     conversationType: 'acp',
     status: 'idle',
@@ -571,7 +571,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
         port,
         authToken,
         'team_spawn_agent',
-        { name: 'NewAgent', agent_type: 'claude' },
+        { name: 'NewAgent', agent_type: 'hermes' },
         'slot-lead'
       )) as { result: string };
 
@@ -584,7 +584,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
         port,
         authToken,
         'team_spawn_agent',
-        { name: 'BadSpawn', agent_type: 'claude' },
+        { name: 'BadSpawn', agent_type: 'hermes' },
         'slot-worker'
       )) as { error: string };
 
@@ -604,9 +604,9 @@ describe('TeamMcpServer — TCP tool interface', () => {
       expect(resp.error).toContain('unsupported-type');
     });
 
-    it('allows claude and codex agent types', async () => {
+    it('allows hermes and codex agent types', async () => {
       const results = await Promise.all(
-        ['claude', 'codex'].map((agentType) =>
+        ['hermes', 'codex'].map((agentType) =>
           callTool(
             port,
             authToken,
@@ -618,7 +618,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
       );
       for (const [i, resp] of results.entries()) {
         const typed = resp as { result?: string; error?: string };
-        const agentType = ['claude', 'codex'][i];
+        const agentType = ['hermes', 'codex'][i];
         expect(typed.error, `Agent type "${agentType}" should be allowed`).toBeUndefined();
         expect(typed.result).toBeTruthy();
       }

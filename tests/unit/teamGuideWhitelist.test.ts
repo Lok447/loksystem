@@ -13,7 +13,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 
-// Mock ProcessConfig to return cached init results for claude, codex (gemini is always team-capable)
+// Mock ProcessConfig to return cached init results for qwen and codex
 vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: {
     get: vi.fn(async (key: string) => {
@@ -30,7 +30,7 @@ vi.mock('@process/utils/initStorage', () => ({
           agentInfo: null,
           authMethods: [],
         });
-        return { claude: makeEntry(), codex: makeEntry() };
+        return { qwen: makeEntry(), codex: makeEntry() };
       }
       return null;
     }),
@@ -42,26 +42,22 @@ import { shouldInjectTeamGuideMcp } from '../../src/process/team/prompts/teamGui
 
 describe('team guide MCP injection capability check', () => {
   describe('allowed backends — should inject team guide MCP', () => {
-    it('injects for claude backend (known team-capable)', async () => {
-      expect(await shouldInjectTeamGuideMcp('claude')).toBe(true);
+    it('injects for hermes backend (default Lok CLI)', async () => {
+      expect(await shouldInjectTeamGuideMcp('hermes')).toBe(true);
     });
 
     it('injects for codex backend (known team-capable)', async () => {
       expect(await shouldInjectTeamGuideMcp('codex')).toBe(true);
     });
 
-    it('injects for gemini backend (known team-capable)', async () => {
-      expect(await shouldInjectTeamGuideMcp('gemini')).toBe(true);
-    });
-
-    it('injects for aionrs backend (known team-capable)', async () => {
-      expect(await shouldInjectTeamGuideMcp('aionrs')).toBe(true);
+    it('injects for qwen backend with cached stdio capability', async () => {
+      expect(await shouldInjectTeamGuideMcp('qwen')).toBe(true);
     });
   });
 
   describe('blocked backends — should NOT inject team guide MCP', () => {
-    it('does not inject for qwen backend (no cached init result)', async () => {
-      expect(await shouldInjectTeamGuideMcp('qwen')).toBe(false);
+    it('does not inject for claude backend even with cached init result', async () => {
+      expect(await shouldInjectTeamGuideMcp('claude')).toBe(false);
     });
 
     it('does not inject for opencode backend (no cached init result)', async () => {
@@ -85,26 +81,26 @@ describe('team guide MCP injection capability check', () => {
 
   describe('solo-vs-team guidance prompt', () => {
     it('keeps solo work as the default and limits proactive team escalation', () => {
-      const prompt = getTeamGuidePrompt('gemini');
+      const prompt = getTeamGuidePrompt('hermes');
 
       expect(prompt).toContain('Handle the task yourself in the current chat by default.');
       expect(prompt).toContain('ask at most once whether the user wants to bring in a Team');
-      expect(prompt).toContain('| Leader | Coordinate and review | gemini |');
+      expect(prompt).toContain('| Leader | Coordinate and review | hermes |');
       expect(prompt).not.toContain('Task spans multiple files, modules, or domains');
     });
 
     it('labels the Leader row with the preset assistant name when one is active', () => {
-      const prompt = getTeamGuidePrompt({ backend: 'gemini', leaderLabel: 'Word Creator' });
+      const prompt = getTeamGuidePrompt({ backend: 'hermes', leaderLabel: 'Word Creator' });
 
-      expect(prompt).toContain('| Leader | Coordinate and review | Word Creator (gemini) |');
+      expect(prompt).toContain('| Leader | Coordinate and review | Word Creator (hermes) |');
       // Other roles keep backend-only labels so the leader stays visually distinct.
-      expect(prompt).toContain('| Developer | Implement features | gemini |');
-      expect(prompt).toContain('| Tester | Write and run tests | gemini |');
+      expect(prompt).toContain('| Developer | Implement features | hermes |');
+      expect(prompt).toContain('| Tester | Write and run tests | hermes |');
     });
 
     it('accepts a legacy string backend for backward compatibility', () => {
-      const prompt = getTeamGuidePrompt('claude');
-      expect(prompt).toContain('| Leader | Coordinate and review | claude |');
+      const prompt = getTeamGuidePrompt('qwen');
+      expect(prompt).toContain('| Leader | Coordinate and review | qwen |');
     });
 
     it('requires explicit user intent or explicit approval before creating a team', () => {

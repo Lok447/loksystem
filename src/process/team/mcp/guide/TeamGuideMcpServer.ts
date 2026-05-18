@@ -187,9 +187,9 @@ export class TeamGuideMcpServer {
     }
 
     // Use system-injected backend (from AION_MCP_BACKEND env var) as the authoritative agent type.
-    // Falls back to 'claude' only when the backend is unknown or not in the whitelist.
+    // Falls back to Hermes/Lok CLI when the backend is unknown or not in the whitelist.
     const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
-    const agentType = backend && isTeamCapableBackend(backend, cachedInitResults) ? backend : 'claude';
+    const agentType = backend && isTeamCapableBackend(backend, cachedInitResults) ? backend : 'hermes';
 
     const teamName = name || summary.split(/\s+/).slice(0, 5).join(' ');
     const userId = 'system_default_user';

@@ -148,16 +148,16 @@ describe('AgentRegistry.deduplicate', () => {
 
   it('builtin wins over extension with same backend (merge order priority)', async () => {
     mockDetectBuiltinAgents.mockResolvedValue([
-      makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
+      makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
     ]);
     mockDetectExtensionAgents.mockResolvedValue([
       makeAcpAgent({
-        id: 'claude-ext',
-        name: 'Claude Ext',
-        backend: 'claude',
-        cliPath: 'bunx @claude/claude',
+        id: 'qwen-ext',
+        name: 'Qwen Ext',
+        backend: 'qwen',
+        cliPath: 'bunx @qwen/qwen',
         isExtension: true,
-        extensionName: 'ext-claude',
+        extensionName: 'ext-qwen',
       }),
     ]);
 
@@ -165,21 +165,20 @@ describe('AgentRegistry.deduplicate', () => {
     await registry.initialize();
     const agents = registry.getDetectedAgents();
 
-    const claudeAgents = agents.filter((a) => a.backend === 'claude');
-    expect(claudeAgents).toHaveLength(1);
-    expect(claudeAgents[0].id).toBe('claude');
-    expect(claudeAgents[0].isExtension).toBeUndefined();
+    const qwenAgents = agents.filter((a) => a.backend === 'qwen');
+    expect(qwenAgents).toHaveLength(1);
+    expect(qwenAgents[0].id).toBe('qwen');
+    expect(qwenAgents[0].isExtension).toBeUndefined();
   });
 
-  it('returns aionrs + gemini for empty sub-detector results', async () => {
+  it('returns Lok CLI for empty sub-detector results', async () => {
     const registry = await createFreshRegistry();
     await registry.initialize();
     const agents = registry.getDetectedAgents();
 
-    // Only the always-present agents
-    expect(agents).toHaveLength(2);
-    expect(agents[0].backend).toBe('aionrs');
-    expect(agents[1].backend).toBe('gemini');
+    // Only the always-present Lok CLI agent
+    expect(agents).toHaveLength(1);
+    expect(agents[0].backend).toBe('hermes');
   });
 
   it('returns a single agent unchanged (no false dedup)', async () => {
@@ -191,14 +190,14 @@ describe('AgentRegistry.deduplicate', () => {
     await registry.initialize();
     const agents = registry.getDetectedAgents();
 
-    // aionrs + gemini + codex
-    expect(agents).toHaveLength(3);
-    expect(agents[2]).toMatchObject({ id: 'codex', backend: 'codex' });
+    // Lok CLI + codex
+    expect(agents).toHaveLength(2);
+    expect(agents[1]).toMatchObject({ id: 'codex', backend: 'codex' });
   });
 
   it('keeps multiple remote agents alongside a single non-remote backend', async () => {
     mockDetectBuiltinAgents.mockResolvedValue([
-      makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
+      makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
     ]);
     mockGetRemoteAgents.mockReturnValue([
       makeRemoteAgentConfig({ id: 'r1', name: 'Remote 1' }),
@@ -209,11 +208,11 @@ describe('AgentRegistry.deduplicate', () => {
     await registry.initialize();
     const agents = registry.getDetectedAgents();
 
-    // aionrs + gemini + claude + 2 remotes
-    expect(agents).toHaveLength(5);
+    // Lok CLI + qwen + 2 remotes
+    expect(agents).toHaveLength(4);
     const remoteAgents = agents.filter((a) => a.kind === 'remote');
     expect(remoteAgents).toHaveLength(2);
-    const claudeAgents = agents.filter((a) => a.backend === 'claude');
-    expect(claudeAgents).toHaveLength(1);
+    const qwenAgents = agents.filter((a) => a.backend === 'qwen');
+    expect(qwenAgents).toHaveLength(1);
   });
 });

@@ -55,9 +55,9 @@ vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: {
     get: vi.fn(async (key: string) => {
       if (key === 'acp.cachedInitializeResult') {
-        // Provide cached init results so shouldInjectTeamGuideMcp returns true for claude/gemini
+        // Provide cached init results so shouldInjectTeamGuideMcp returns true for hermes
         return {
-          claude: {
+          hermes: {
             protocolVersion: 1,
             capabilities: {
               loadSession: false,
@@ -122,7 +122,7 @@ vi.mock('@process/task/CronCommandDetector', () => ({
 // Mock hasNativeSkillSupport to use real logic for known backends
 vi.mock('@process/utils/initAgent', () => ({
   hasNativeSkillSupport: vi.fn((backend: string | undefined) => {
-    const supported = ['gemini', 'claude', 'codebuddy', 'codex', 'qwen', 'goose', 'droid', 'kimi', 'vibe', 'cursor'];
+    const supported = ['hermes', 'codebuddy', 'codex', 'qwen', 'goose', 'droid', 'kimi', 'vibe', 'cursor'];
     return !!backend && supported.includes(backend);
   }),
   setupAssistantWorkspace: vi.fn(),
@@ -157,7 +157,7 @@ function createManager(
 ) {
   const data = {
     conversation_id: 'test-conv',
-    backend: overrides.backend ?? 'claude',
+    backend: overrides.backend ?? 'hermes',
     workspace: '/tmp/test-workspace',
     customWorkspace: overrides.customWorkspace,
     presetContext: overrides.presetContext,
@@ -192,7 +192,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
 
   it('uses native skills (no prompt injection) for supported backend without customWorkspace', async () => {
     const manager = createManager({
-      backend: 'claude',
+      backend: 'hermes',
       customWorkspace: false,
       presetContext: 'You are helpful.',
       enabledSkills: ['pptx'],
@@ -210,7 +210,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
 
   it('falls back to prompt injection for supported backend WITH customWorkspace', async () => {
     const manager = createManager({
-      backend: 'claude',
+      backend: 'hermes',
       customWorkspace: true,
       presetContext: 'You are helpful.',
       enabledSkills: ['pptx'],
@@ -222,7 +222,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
       presetContext: 'You are helpful.',
       enabledSkills: ['pptx'],
       enableTeamGuide: true,
-      backend: 'claude',
+      backend: 'hermes',
     });
   });
 
@@ -246,7 +246,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
 
   it('injects team guide prompt even when presetContext is undefined (native path, whitelisted backend)', async () => {
     const manager = createManager({
-      backend: 'claude',
+      backend: 'hermes',
       customWorkspace: false,
     });
 
@@ -254,7 +254,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
 
     expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
     const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
-    // claude is whitelisted for team guide → content should include team guide prompt
+    // hermes is whitelisted for team guide → content should include team guide prompt
     expect(sentContent).toContain('[Assistant Rules');
     expect(sentContent).toContain('Team Mode');
     expect(sentContent).toContain('[User Request]');

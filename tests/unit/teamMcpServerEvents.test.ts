@@ -59,7 +59,7 @@ vi.mock('../../src/process/utils/initStorage', () => ({
     get: vi.fn(async (key: string) => {
       if (key === 'acp.cachedInitializeResult') {
         return {
-          claude: {
+          qwen: {
             protocolVersion: 1,
             capabilities: {
               loadSession: false,
@@ -94,7 +94,7 @@ vi.mock('../../src/process/utils/initStorage', () => ({
 vi.mock('../../src/process/agent/acp/AcpDetector', () => ({
   acpDetector: {
     getDetectedAgents: vi.fn(() => [
-      { backend: 'claude', name: 'Claude' },
+      { backend: 'qwen', name: 'Qwen' },
       { backend: 'codex', name: 'Codex' },
     ]),
   },
@@ -180,16 +180,16 @@ describe('Task #4: TeamMcpServer IPC events', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('TeamMcpServer agent type capability check', () => {
-  it('allows gemini agents via handleSpawnAgent (gemini is always team-capable)', async () => {
+  it('allows hermes agents via handleSpawnAgent (Lok CLI is always team-capable)', async () => {
     const spawnAgent = vi.fn().mockResolvedValue({ slotId: 'new-slot', conversationId: 'c1' });
     const deps = { ...makeMockDeps(), spawnAgent };
     const server = new TeamMcpServer(deps);
 
-    // gemini should not throw on the TEAM_ALLOWED check
+    // hermes should not throw on the team capability check
     await expect(
-      (server as any).handleSpawnAgent({ name: 'gemini-agent', agent_type: 'gemini' })
+      (server as any).handleSpawnAgent({ name: 'lok-agent', agent_type: 'hermes' })
     ).resolves.not.toThrow();
-    expect(spawnAgent).toHaveBeenCalledWith('gemini-agent', 'gemini', undefined, undefined);
+    expect(spawnAgent).toHaveBeenCalledWith('lok-agent', 'hermes', undefined, undefined);
   });
 
   it('rejects codebuddy agents via handleSpawnAgent (no cached init result)', async () => {

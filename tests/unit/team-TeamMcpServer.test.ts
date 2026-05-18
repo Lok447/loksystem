@@ -15,7 +15,7 @@ vi.mock('@process/utils/initStorage', () => ({
     get: vi.fn(async (key: string) => {
       if (key === 'acp.cachedInitializeResult') {
         return {
-          claude: {
+          hermes: {
             protocolVersion: 1,
             capabilities: {
               loadSession: false,
@@ -49,11 +49,11 @@ vi.mock('@process/utils/initStorage', () => ({
   },
 }));
 
-// Mock acpDetector for getTeamCapableBackends error message
-vi.mock('@process/agent/acp/AcpDetector', () => ({
-  acpDetector: {
+// Mock detected agents for getTeamCapableBackends error messages
+vi.mock('@process/agent/AgentRegistry', () => ({
+  agentRegistry: {
     getDetectedAgents: vi.fn(() => [
-      { backend: 'claude', name: 'Claude' },
+      { backend: 'hermes', name: 'Lok CLI' },
       { backend: 'codex', name: 'Codex' },
     ]),
   },
@@ -74,7 +74,7 @@ function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
     conversationId: 'conv-1',
     role: 'leader',
     agentType: 'acp',
-    agentName: 'Claude',
+    agentName: 'Lok CLI',
     conversationType: 'acp',
     status: 'idle',
     ...overrides,
@@ -472,19 +472,19 @@ describe('TeamMcpServer', () => {
     it('spawns a new agent when called by leader', async () => {
       const response = (await tcpRequest(server.getPort(), {
         tool: 'team_spawn_agent',
-        args: { name: 'NewBot', agent_type: 'claude' },
+        args: { name: 'NewBot', agent_type: 'hermes' },
         from_slot_id: 'slot-lead',
         auth_token: authToken,
       })) as Record<string, unknown>;
 
-      expect(spawnAgent).toHaveBeenCalledWith('NewBot', 'claude', undefined, undefined);
+      expect(spawnAgent).toHaveBeenCalledWith('NewBot', 'hermes', undefined, undefined);
       expect(response.result).toContain('NewBot');
     });
 
     it('rejects spawn from non-leader agent', async () => {
       const response = (await tcpRequest(server.getPort(), {
         tool: 'team_spawn_agent',
-        args: { name: 'NewBot', agent_type: 'claude' },
+        args: { name: 'NewBot', agent_type: 'hermes' },
         from_slot_id: 'slot-member',
         auth_token: authToken,
       })) as Record<string, unknown>;
@@ -511,7 +511,7 @@ describe('TeamMcpServer', () => {
           name: 'Word Creator',
           isPreset: true,
           enabled: true,
-          presetAgentType: 'claude',
+          presetAgentType: 'hermes',
         },
       ];
 
@@ -523,7 +523,7 @@ describe('TeamMcpServer', () => {
       })) as Record<string, unknown>;
 
       expect(response.error).toBeUndefined();
-      expect(spawnAgent).toHaveBeenCalledWith('WordBot', 'claude', undefined, 'builtin-word-creator');
+      expect(spawnAgent).toHaveBeenCalledWith('WordBot', 'hermes', undefined, 'builtin-word-creator');
     });
 
     it('rejects spawn when custom_agent_id does not match any preset', async () => {
@@ -547,7 +547,7 @@ describe('TeamMcpServer', () => {
           name: 'Cowork',
           isPreset: true,
           enabled: false,
-          presetAgentType: 'claude',
+          presetAgentType: 'hermes',
         },
       ];
 

@@ -308,7 +308,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     name: 'Claude Code',
     cliCommand: 'claude',
     authRequired: true,
-    enabled: true,
+    enabled: false,
     supportsStreaming: false,
     skillsDirs: ['.claude/skills'],
   },
@@ -456,13 +456,14 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
   },
   hermes: {
     id: 'hermes',
-    name: 'Hermes Agent',
-    description: 'AI agent by Nous Research with 90+ tools, persistent memory, and multi-platform support',
+    name: 'Lok CLI',
+    description: 'Local Hermes v13.0 core agent for LokSystem',
     cliCommand: 'hermes',
     authRequired: true,
-    enabled: true, // ✅ Nous Research Hermes Agent，使用 `hermes acp` 启动
+    enabled: true,
     supportsStreaming: false,
-    acpArgs: ['acp'], // hermes 使用 acp 子命令
+    acpArgs: ['acp'],
+    skillsDirs: ['.hermes/skills'],
   },
   snow: {
     id: 'snow',

@@ -372,7 +372,7 @@ describe('aion_create_team handler', () => {
     );
   });
 
-  it('falls back to claude when backend is not in whitelist', async () => {
+  it('falls back to hermes when backend is not in whitelist', async () => {
     await tcpRequest(getPort(service), {
       tool: 'aion_create_team',
       args: { summary: '分析代码' },
@@ -382,12 +382,12 @@ describe('aion_create_team handler', () => {
 
     expect(mockCreateTeam).toHaveBeenCalledWith(
       expect.objectContaining({
-        agents: expect.arrayContaining([expect.objectContaining({ agentType: 'claude' })]),
+        agents: expect.arrayContaining([expect.objectContaining({ agentType: 'hermes' })]),
       })
     );
   });
 
-  it('falls back to claude when backend is not provided', async () => {
+  it('falls back to hermes when backend is not provided', async () => {
     await tcpRequest(getPort(service), {
       tool: 'aion_create_team',
       args: { summary: '构建网站' },
@@ -396,7 +396,7 @@ describe('aion_create_team handler', () => {
 
     expect(mockCreateTeam).toHaveBeenCalledWith(
       expect.objectContaining({
-        agents: expect.arrayContaining([expect.objectContaining({ agentType: 'claude' })]),
+        agents: expect.arrayContaining([expect.objectContaining({ agentType: 'hermes' })]),
       })
     );
   });

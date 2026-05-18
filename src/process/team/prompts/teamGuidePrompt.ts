@@ -42,7 +42,7 @@ export interface TeamGuidePromptOptions {
  */
 export function getTeamGuidePrompt(input?: string | TeamGuidePromptOptions): string {
   const opts: TeamGuidePromptOptions = typeof input === 'string' ? { backend: input } : (input ?? {});
-  const agentType = opts.backend || 'claude';
+  const agentType = opts.backend || 'hermes';
   const rawLabel = opts.leaderLabel?.trim();
   // When an assistant label is present, keep the backend in parentheses so the
   // agent still knows which CLI/runtime is in use; fall back to plain backend.

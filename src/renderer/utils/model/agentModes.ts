@@ -57,6 +57,10 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
     { value: 'build', label: 'Build' },
     { value: 'plan', label: 'Plan' },
   ],
+  hermes: [
+    { value: 'default', label: 'Default' },
+    { value: 'yolo', label: 'YOLO' },
+  ],
   gemini: [
     { value: 'default', label: 'Default' },
     { value: 'autoEdit', label: 'Auto-Accept Edits' },

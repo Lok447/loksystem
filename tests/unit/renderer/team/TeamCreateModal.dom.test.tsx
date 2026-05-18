@@ -22,17 +22,17 @@ const mockCreateTeam = vi.hoisted(() => vi.fn());
 const mockIsElectronDesktop = vi.hoisted(() => vi.fn(() => true));
 
 const cliAgents: AvailableAgent[] = [
-  { backend: 'gemini', name: 'Gemini CLI', cliPath: '/usr/bin/gemini' },
-  { backend: 'claude', name: 'Claude Code', cliPath: '/usr/bin/claude' },
+  { backend: 'hermes', name: 'Lok CLI', cliPath: 'hermes' },
+  { backend: 'qwen', name: 'Qwen Code', cliPath: '/usr/bin/qwen' },
 ];
 
 const presetAssistants: AvailableAgent[] = [
   {
-    backend: 'gemini',
+    backend: 'hermes',
     name: 'Writing Buddy',
     customAgentId: 'builtin-writing-buddy',
     isPreset: true,
-    presetAgentType: 'gemini',
+    presetAgentType: 'hermes',
   },
 ];
 
@@ -78,7 +78,7 @@ vi.mock('@/common/config/storage', () => ({
     get: vi.fn(async (key: string) => {
       if (key === 'acp.cachedInitializeResult') {
         return {
-          claude: {
+          qwen: {
             protocolVersion: 1,
             capabilities: {
               loadSession: false,
@@ -158,7 +158,7 @@ describe('TeamCreateModal', () => {
 
     expect(screen.getByText('CLI Agents')).toBeInTheDocument();
     expect(screen.getByText('Preset Assistants')).toBeInTheDocument();
-    expect(screen.getByText('Gemini CLI')).toBeInTheDocument();
+    expect(screen.getByText('Lok CLI')).toBeInTheDocument();
     expect(screen.getByText('Writing Buddy')).toBeInTheDocument();
   });
 
@@ -174,7 +174,7 @@ describe('TeamCreateModal', () => {
     const visibleOptions = Array.from(document.querySelectorAll('.arco-select-option:not(.arco-select-option-hidden)'));
     const labels = visibleOptions.map((node) => node.textContent?.trim());
     expect(labels.some((label) => label?.includes('Writing Buddy'))).toBe(true);
-    expect(labels.some((label) => label?.includes('Gemini CLI'))).toBe(false);
+    expect(labels.some((label) => label?.includes('Lok CLI'))).toBe(false);
   });
 
   it('creates a team with the preset customAgentId and presetAgentType-derived backend', async () => {
@@ -205,8 +205,8 @@ describe('TeamCreateModal', () => {
     expect(payload.agents).toHaveLength(1);
     expect(payload.agents[0]).toMatchObject({
       role: 'leader',
-      agentType: 'gemini',
-      conversationType: 'gemini',
+      agentType: 'hermes',
+      conversationType: 'acp',
       customAgentId: 'builtin-writing-buddy',
     });
     expect(onCreated).toHaveBeenCalledWith({ id: 'team-created' });

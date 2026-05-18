@@ -188,7 +188,7 @@ export class TeammateManager extends EventEmitter {
             .map((a) => ({
               customAgentId: a.id,
               name: a.name,
-              backend: a.presetAgentType || 'gemini',
+              backend: a.presetAgentType || 'hermes',
               description: a.description,
               skills: a.enabledSkills,
             }))

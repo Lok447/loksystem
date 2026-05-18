@@ -72,10 +72,10 @@ describe('resolveConversationType', () => {
 // isTeamCapableBackend — dynamic capability check
 // ---------------------------------------------------------------------------
 describe('isTeamCapableBackend', () => {
-  const cached = makeCachedInit(['claude', 'codex']);
+  const cached = makeCachedInit(['qwen', 'codex']);
 
   it('returns true for known team-capable backends regardless of cached data', () => {
-    for (const backend of ['gemini', 'claude', 'codex', 'aionrs']) {
+    for (const backend of ['hermes', 'codex']) {
       expect(isTeamCapableBackend(backend, null)).toBe(true);
       expect(isTeamCapableBackend(backend, undefined)).toBe(true);
       expect(isTeamCapableBackend(backend, {})).toBe(true);
@@ -84,7 +84,7 @@ describe('isTeamCapableBackend', () => {
   });
 
   it('returns false for ACP backend without cached init result', () => {
-    expect(isTeamCapableBackend('qwen', cached)).toBe(false);
+    expect(isTeamCapableBackend('opencode', cached)).toBe(false);
     expect(isTeamCapableBackend('codebuddy', cached)).toBe(false);
   });
 
@@ -101,16 +101,16 @@ describe('isTeamCapableBackend', () => {
 // getTeamCapableBackends
 // ---------------------------------------------------------------------------
 describe('getTeamCapableBackends', () => {
-  const cached = makeCachedInit(['claude', 'codex']);
+  const cached = makeCachedInit(['qwen', 'codex']);
 
-  it('returns only backends with cached init + gemini', () => {
-    const result = getTeamCapableBackends(['claude', 'codex', 'gemini', 'qwen'], cached);
-    expect(result).toEqual(['claude', 'codex', 'gemini']);
+  it('returns only backends with cached init plus known LokSystem backends', () => {
+    const result = getTeamCapableBackends(['hermes', 'codex', 'qwen', 'codebuddy'], cached);
+    expect(result).toEqual(['hermes', 'codex', 'qwen']);
   });
 
   it('returns known team-capable backends even without cached data', () => {
-    const result = getTeamCapableBackends(['claude', 'codex', 'gemini', 'qwen'], null);
-    expect(result).toEqual(['claude', 'codex', 'gemini']);
+    const result = getTeamCapableBackends(['hermes', 'codex', 'qwen', 'codebuddy'], null);
+    expect(result).toEqual(['hermes', 'codex']);
   });
 });
 
@@ -126,35 +126,35 @@ describe('filterTeamSupportedAgents', () => {
       ...overrides,
     }) as AvailableAgent;
 
-  const cached = makeCachedInit(['claude', 'codex']);
+  const cached = makeCachedInit(['qwen', 'codex']);
 
-  it('keeps agents with cached init results and gemini', () => {
+  it('keeps agents with cached init results and known LokSystem backends', () => {
     const agents = [
-      makeAgent('claude'),
+      makeAgent('hermes'),
       makeAgent('gemini'),
       makeAgent('codex'),
       makeAgent('qwen'),
       makeAgent('codebuddy'),
     ];
     const result = filterTeamSupportedAgents(agents, cached);
-    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['claude', 'gemini', 'codex']);
+    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['hermes', 'codex', 'qwen']);
   });
 
   it('uses presetAgentType over backend when available', () => {
-    const agent = makeAgent('claude', { presetAgentType: 'qwen' });
+    const agent = makeAgent('hermes', { presetAgentType: 'codebuddy' });
     const result = filterTeamSupportedAgents([agent], cached);
-    // qwen has no cached init → filtered out
+    // codebuddy has no cached init → filtered out
     expect(result).toHaveLength(0);
   });
 
   it('returns known team-capable agents even without cached data', () => {
-    const agents = [makeAgent('claude'), makeAgent('gemini'), makeAgent('codex'), makeAgent('qwen')];
+    const agents = [makeAgent('hermes'), makeAgent('gemini'), makeAgent('codex'), makeAgent('qwen')];
     const result = filterTeamSupportedAgents(agents, null);
-    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['claude', 'gemini', 'codex']);
+    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['hermes', 'codex']);
   });
 
   it('returns all agents when all have cached init results', () => {
-    const agents = [makeAgent('claude'), makeAgent('codex')];
+    const agents = [makeAgent('qwen'), makeAgent('codex')];
     expect(filterTeamSupportedAgents(agents, cached)).toHaveLength(2);
   });
 });

@@ -132,8 +132,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     const finalEffectiveAgentType = effectiveAgentType;
 
-    // Gemini path
-    if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && finalEffectiveAgentType === 'gemini')) {
+    // Legacy Gemini path. LokSystem defaults to Hermes/Lok CLI, so an empty agent
+    // selection must fall through to the ACP path instead of creating Gemini.
+    if (selectedAgent === 'gemini' || (isPreset && finalEffectiveAgentType === 'gemini')) {
       // The placeholder only makes sense while Google Auth is active — otherwise
       // it fabricates a logged-out auth type and the chat page fails to load.
       if (!currentModel && !isGoogleAuth) {

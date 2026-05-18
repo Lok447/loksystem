@@ -599,7 +599,7 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
       enabled: enabledByDefault,
       isPreset: true,
       isBuiltin: true,
-      presetAgentType: preset.presetAgentType || 'gemini',
+      presetAgentType: preset.presetAgentType || 'hermes',
       // Cowork 默认启用所有内置技能 / Cowork enables all builtin skills by default
       enabledSkills: defaultEnabledSkills,
       // 复制快捷提示词 / Copy quick prompts

@@ -5,11 +5,10 @@
  */
 
 import { acpDetector } from '@process/agent/acp/AcpDetector';
+import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import type {
   AcpDetectedAgent,
-  AionrsDetectedAgent,
   DetectedAgent,
-  GeminiDetectedAgent,
   NanobotDetectedAgent,
   OpenClawDetectedAgent,
   RemoteDetectedAgent,
@@ -24,20 +23,21 @@ import type { RemoteAgentConfig } from '@process/agent/remote/types';
  * `getDetectedAgents()` API consumed by IPC bridges.
  *
  * Sources:
- *   - Gemini       — always present (no CLI detection)
- *   - ACP builtin  — CLI agents on PATH (claude, qwen, codex, …)
- *   - ACP extension — contributed by hub extensions
- *   - Remote       — user-configured WebSocket agents (from DB)
- *   - Aionrs       — always present (Rust binary, availability resolved at runtime)
- *   - OpenClaw GW  — detected via `openclaw` CLI on PATH
- *   - Nanobot      — detected via `nanobot` CLI on PATH
- *   - Custom ACP   — user-defined ACP CLIs from ConfigStorage 'assistants'
+ *   - Lok CLI      - default Hermes entry (launches `hermes acp`)
+ *   - ACP builtin  - CLI agents on PATH (qwen, codebuddy, opencode, etc.)
+ *   - ACP extension - contributed by hub extensions
+ *   - Remote       - user-configured WebSocket agents (from DB)
+ *   - OpenClaw GW  - detected via `openclaw` CLI on PATH
+ *   - Nanobot      - detected via `nanobot` CLI on PATH
+ *   - Custom ACP   - user-defined ACP CLIs from ConfigStorage 'assistants'
  *
  * Preset assistants (prompt-only presets with no CLI binary) are NOT
  * execution engines — they live in the configuration layer and reference
  * execution engines by backend type.
  */
 class AgentRegistry {
+  private static readonly DISABLED_BACKENDS = new Set(['aionrs', 'claude', 'gemini']);
+
   private detectedAgents: DetectedAgent[] = [];
   private isInitialized = false;
   private mutationQueue: Promise<void> = Promise.resolve();
@@ -49,23 +49,16 @@ class AgentRegistry {
   private otherAgents: DetectedAgent[] = [];
   private customAgents: AcpDetectedAgent[] = [];
 
-  private createGeminiAgent(): GeminiDetectedAgent {
+  private createLokCliAgent(): AcpDetectedAgent {
+    const hermes = ACP_BACKENDS_ALL.hermes;
     return {
-      id: 'gemini',
-      name: 'Gemini CLI',
-      kind: 'gemini',
+      id: 'hermes',
+      name: hermes.name,
+      kind: 'acp',
       available: true,
-      backend: 'gemini',
-    };
-  }
-
-  private createAionrsAgent(): AionrsDetectedAgent {
-    return {
-      id: 'aionrs',
-      name: 'Aion CLI',
-      kind: 'aionrs',
-      available: true,
-      backend: 'aionrs',
+      backend: 'hermes',
+      cliPath: hermes.cliCommand,
+      acpArgs: hermes.acpArgs,
     };
   }
 
@@ -125,8 +118,8 @@ class AgentRegistry {
   }
 
   /**
-   * Deduplicate agents by backend ID. First occurrence wins — merge order
-   * determines priority: Aionrs > Gemini > Builtin > Other > Remote > Extension > Custom.
+   * Deduplicate agents by backend ID. First occurrence wins, so merge order
+   * determines priority: Lok CLI > Builtin > Other > Remote > Extension > Custom.
    * When an extension contributes the same backend as a builtin, the builtin wins.
    *
    * Remote and custom agents share their `backend` string but are individually
@@ -137,6 +130,7 @@ class AgentRegistry {
     const result: DetectedAgent[] = [];
 
     for (const agent of agents) {
+      if (AgentRegistry.DISABLED_BACKENDS.has(agent.backend)) continue;
       const key = agent.kind === 'remote' || agent.backend === 'custom' ? agent.id : agent.backend;
       if (seen.has(key)) continue;
       seen.add(key);
@@ -149,8 +143,7 @@ class AgentRegistry {
   // prettier-ignore
   private merge(): void {
     this.detectedAgents = this.deduplicate([
-      this.createAionrsAgent(),
-      this.createGeminiAgent(),
+      this.createLokCliAgent(),
       ...this.builtinAgents,
       ...this.otherAgents,
       ...this.remoteAgents,

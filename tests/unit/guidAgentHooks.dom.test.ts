@@ -67,7 +67,7 @@ describe('useAgentAvailability', () => {
   ];
 
   const stubResolvePresetAgentType = (info: { backend: string; customAgentId?: string } | undefined) =>
-    info?.customAgentId ? 'gemini' : (info?.backend ?? 'gemini');
+    info?.customAgentId ? 'hermes' : (info?.backend ?? 'hermes');
 
   // -- isMainAgentAvailable ---------------------------------------------------
 
@@ -219,16 +219,16 @@ describe('usePresetAssistantResolver', () => {
     expect(result.current.resolvePresetAgentType({ backend: 'qwen', customAgentId: 'agent-beta' })).toBe('qwen');
   });
 
-  it('resolvePresetAgentType defaults to gemini for unknown preset agent', () => {
+  it('resolvePresetAgentType defaults to hermes for unknown preset agent', () => {
     const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
-    expect(result.current.resolvePresetAgentType({ backend: 'claude', customAgentId: 'unknown-id' })).toBe('gemini');
+    expect(result.current.resolvePresetAgentType({ backend: 'claude', customAgentId: 'unknown-id' })).toBe('hermes');
   });
 
-  it('resolvePresetAgentType returns gemini when agentInfo is undefined', () => {
+  it('resolvePresetAgentType returns hermes when agentInfo is undefined', () => {
     const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
-    expect(result.current.resolvePresetAgentType(undefined)).toBe('gemini');
+    expect(result.current.resolvePresetAgentType(undefined)).toBe('hermes');
   });
 
   // -- resolveEnabledSkills ---------------------------------------------------
