@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  *
  * Tests for TeamGuideMcpServer tool handler logic (TCP architecture):
@@ -157,7 +157,7 @@ describe('TeamGuideMcpServer lifecycle', () => {
 
   it('getStdioConfig returns correct structure', () => {
     const config = service.getStdioConfig();
-    expect(config.name).toBe('aionui-team-guide');
+    expect(config.name).toBe('loksystem-team-guide');
     expect(config.command).toBe('node');
     expect(Array.isArray(config.args)).toBe(true);
     expect(config.env.some((e) => e.name === 'AION_MCP_PORT')).toBe(true);

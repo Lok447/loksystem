@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,7 +16,7 @@ import type { IMcpServer, IMcpServerTransport } from '@/common/config/storage';
 
 /**
  * aionrs config.toml transport type (kebab-case)
- * Maps to AionUi transport types (snake_case)
+ * Maps to LokSystem transport types (snake_case)
  */
 type AionrsTransportType = 'stdio' | 'sse' | 'streamable-http';
 
@@ -64,15 +64,15 @@ function getAionrsConfigPath(cliPath?: string): string {
 }
 
 /**
- * Map aionrs transport type (kebab-case) to AionUi transport type
+ * Map aionrs transport type (kebab-case) to LokSystem transport type
  */
-function toAionUiTransportType(aionrsType: AionrsTransportType): IMcpServerTransport['type'] {
+function toLokSystemTransportType(aionrsType: AionrsTransportType): IMcpServerTransport['type'] {
   if (aionrsType === 'streamable-http') return 'streamable_http';
   return aionrsType;
 }
 
 /**
- * Map AionUi transport type to aionrs transport type (kebab-case)
+ * Map LokSystem transport type to aionrs transport type (kebab-case)
  */
 function toAionrsTransportType(type: IMcpServerTransport['type']): AionrsTransportType {
   if (type === 'streamable_http') return 'streamable-http';
@@ -81,10 +81,10 @@ function toAionrsTransportType(type: IMcpServerTransport['type']): AionrsTranspo
 }
 
 /**
- * Convert an aionrs server config entry to an AionUi IMcpServer
+ * Convert an aionrs server config entry to an LokSystem IMcpServer
  */
 function toMcpServer(name: string, config: AionrsServerConfig): IMcpServer {
-  const transportType = toAionUiTransportType(config.transport);
+  const transportType = toLokSystemTransportType(config.transport);
   const now = Date.now();
 
   const transport: IMcpServerTransport =
@@ -116,7 +116,7 @@ function toMcpServer(name: string, config: AionrsServerConfig): IMcpServer {
 }
 
 /**
- * Convert an AionUi IMcpServer to an aionrs server config entry
+ * Convert an LokSystem IMcpServer to an aionrs server config entry
  */
 function toAionrsConfig(server: IMcpServer): AionrsServerConfig {
   const aionrsType = toAionrsTransportType(server.transport.type);
@@ -144,7 +144,7 @@ function toAionrsConfig(server: IMcpServer): AionrsServerConfig {
 }
 
 /**
- * Aion CLI (aionrs) MCP agent implementation
+ * Lok CLI (aionrs) MCP agent implementation
  *
  * Manages MCP server configuration in the platform config directory (see getAionrsConfigPath())
  * aionrs uses TOML format with [mcp.servers.*] sections
@@ -158,7 +158,7 @@ export class AionrsMcpAgent extends AbstractMcpAgent {
   }
 
   getSupportedTransports(): string[] {
-    // aionrs supports stdio, sse, streamable-http (mapped to streamable_http in AionUi)
+    // aionrs supports stdio, sse, streamable-http (mapped to streamable_http in LokSystem)
     return ['stdio', 'sse', 'streamable_http'];
   }
 

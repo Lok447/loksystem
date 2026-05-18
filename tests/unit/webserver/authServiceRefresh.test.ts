@@ -30,9 +30,9 @@ describe('AuthService refreshToken', () => {
       },
       'db-secret',
       {
-        audience: 'aionui-webui',
+        audience: 'loksystem-webui',
         expiresIn: -10,
-        issuer: 'aionui',
+        issuer: 'loksystem',
       }
     );
 

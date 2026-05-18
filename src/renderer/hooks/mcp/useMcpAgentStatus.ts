@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ConfigStorage } from '@/common/config/storage';
 import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
 import type { IMcpServer } from '@/common/config/storage';
+import { filterVisibleMcpAgentNames, filterVisibleMcpAgents } from './mcpAgentFilter';
 
 /**
  * MCP Agent安装状态管理Hook
@@ -77,7 +78,7 @@ export const useMcpAgentStatus = () => {
 
       for (const [serverName, agents] of Object.entries(installStatus)) {
         if (currentEnabledServers.has(serverName)) {
-          filteredInstallStatus[serverName] = agents;
+          filteredInstallStatus[serverName] = filterVisibleMcpAgentNames(agents);
         }
       }
 
@@ -119,7 +120,8 @@ export const useMcpAgentStatus = () => {
           return;
         }
 
-        const mcpConfigsResponse = await mcpService.getAgentMcpConfigs.invoke(agentsResponse.data);
+        const visibleAgents = filterVisibleMcpAgents(agentsResponse.data);
+        const mcpConfigsResponse = await mcpService.getAgentMcpConfigs.invoke(visibleAgents);
 
         if (!mcpConfigsResponse.success || !mcpConfigsResponse.data) {
           // 如果MCP配置获取失败，保持当前状态，避免闪烁
@@ -175,7 +177,8 @@ export const useMcpAgentStatus = () => {
       }
 
       // 获取所有agents的MCP配置
-      const mcpConfigsResponse = await mcpService.getAgentMcpConfigs.invoke(agentsResponse.data);
+      const visibleAgents = filterVisibleMcpAgents(agentsResponse.data);
+      const mcpConfigsResponse = await mcpService.getAgentMcpConfigs.invoke(visibleAgents);
       if (!mcpConfigsResponse.success || !mcpConfigsResponse.data) {
         return;
       }
@@ -185,7 +188,7 @@ export const useMcpAgentStatus = () => {
       mcpConfigsResponse.data.forEach((agentConfig) => {
         const hasServer = agentConfig.servers.some((server) => server.name === serverName);
         if (hasServer) {
-          installedAgents.push(agentConfig.source);
+          installedAgents.push(...filterVisibleMcpAgentNames([agentConfig.source]));
         }
       });
 

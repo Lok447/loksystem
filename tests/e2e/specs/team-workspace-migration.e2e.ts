@@ -27,7 +27,7 @@ test.describe('Team Workspace Migration', () => {
   let teamId: string | undefined;
 
   test.beforeAll(async () => {
-    targetWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-target-'));
+    targetWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), 'loksystem-target-'));
   });
 
   test.afterAll(async () => {

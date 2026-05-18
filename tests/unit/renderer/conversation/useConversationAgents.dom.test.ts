@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -143,7 +143,7 @@ describe('useConversationAgents', () => {
       expect(result.current.presetAssistants[0].backend).toBe('claude');
     });
 
-    it('defaults backend to "gemini" when presetAgentType is undefined', async () => {
+    it('defaults backend to "hermes" when presetAgentType is undefined', async () => {
       setupMocks([makePresetConfig({ id: 'p2', name: 'Default Backend' })]);
 
       const { result } = renderHook(() => useConversationAgents());
@@ -152,10 +152,10 @@ describe('useConversationAgents', () => {
         expect(result.current.presetAssistants.length).toBe(1);
       });
 
-      expect(result.current.presetAssistants[0].backend).toBe('gemini');
+      expect(result.current.presetAssistants[0].backend).toBe('hermes');
     });
 
-    it('defaults backend to "gemini" when presetAgentType is empty string', async () => {
+    it('defaults backend to "hermes" when presetAgentType is empty string', async () => {
       setupMocks([makePresetConfig({ id: 'p3', name: 'Empty Type', presetAgentType: '' })]);
 
       const { result } = renderHook(() => useConversationAgents());
@@ -164,8 +164,8 @@ describe('useConversationAgents', () => {
         expect(result.current.presetAssistants.length).toBe(1);
       });
 
-      // Empty string is falsy, so fallback to 'gemini'
-      expect(result.current.presetAssistants[0].backend).toBe('gemini');
+      // Empty string is falsy, so fallback to 'hermes'
+      expect(result.current.presetAssistants[0].backend).toBe('hermes');
     });
 
     it('sets isPreset to true for all preset assistants', async () => {

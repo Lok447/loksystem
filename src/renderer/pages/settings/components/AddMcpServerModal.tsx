@@ -1,5 +1,6 @@
 import type { IMcpServer } from '@/common/config/storage';
 import { acpConversation } from '@/common/adapter/ipcBridge';
+import { filterVisibleMcpAgents } from '@/renderer/hooks/mcp/mcpAgentFilter';
 import React, { useEffect, useState } from 'react';
 import JsonImportModal from './JsonImportModal';
 import OneClickImportModal from './OneClickImportModal';
@@ -32,7 +33,10 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({
           const response = await acpConversation.getAvailableAgents.invoke();
 
           if (response.success && response.data) {
-            const agents = response.data.map((agent) => ({ backend: agent.backend, name: agent.name }));
+            const agents = filterVisibleMcpAgents(response.data).map((agent) => ({
+              backend: agent.backend,
+              name: agent.name,
+            }));
 
             // 根据检测到的agents数量和importMode决定显示哪个模态框
             if (agents.length === 0) {

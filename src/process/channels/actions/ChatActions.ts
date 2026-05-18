@@ -1,12 +1,11 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import type { IRegisteredAction, ActionHandler } from './types';
 import { ChatActionNames, createSuccessResponse, createErrorResponse } from './types';
-import { createResponseActionsKeyboard, createErrorRecoveryKeyboard } from '../plugins/telegram/TelegramKeyboards';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 
 /**
@@ -67,10 +66,10 @@ export const handleChatContinue: ActionHandler = async (context, params) => {
 
 /**
  * Handle action.copy - Copy response content
- * Note: Copy is handled client-side in Telegram
+ * Note: copy is handled client-side by the chat platform.
  */
 export const handleCopy: ActionHandler = async (context, params) => {
-  // Telegram doesn't support programmatic copy
+  // Chat platforms do not support programmatic copy
   // We just show a toast message
   return {
     success: true,
@@ -83,7 +82,7 @@ export const handleCopy: ActionHandler = async (context, params) => {
 };
 
 /**
- * Handle tool confirmation from Telegram buttons
+ * Handle tool confirmation from channel buttons
  * Callback data format: confirm:{callId}:{value}
  */
 export const handleToolConfirm: ActionHandler = async (context, params) => {
@@ -162,7 +161,7 @@ export function buildChatResponse(
   return {
     text,
     parseMode: 'HTML',
-    replyMarkup: isComplete ? createResponseActionsKeyboard() : undefined,
+    replyMarkup: undefined,
   };
 }
 
@@ -177,7 +176,7 @@ export function buildChatErrorResponse(error: string): {
   return {
     text: `❌ <b>Processing Failed</b>\n\n${error}\n\nPlease retry or start a new conversation.`,
     parseMode: 'HTML',
-    replyMarkup: createErrorRecoveryKeyboard(),
+    replyMarkup: undefined,
   };
 }
 

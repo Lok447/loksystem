@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,7 +14,7 @@ describe('ACP built-in MCP session config', () => {
     const servers: IMcpServer[] = [
       {
         id: 'builtin-image-gen',
-        name: 'aionui-image-generation',
+        name: 'loksystem-image-generation',
         enabled: true,
         builtin: true,
         status: 'connected',
@@ -23,8 +23,8 @@ describe('ACP built-in MCP session config', () => {
           command: 'node',
           args: ['/abs/builtin-mcp-image-gen.js'],
           env: {
-            AIONUI_IMG_PLATFORM: 'openai',
-            AIONUI_IMG_MODEL: 'gpt-image-1',
+            LOKSYSTEM_IMG_PLATFORM: 'openai',
+            LOKSYSTEM_IMG_MODEL: 'gpt-image-1',
           },
         },
         createdAt: 1,
@@ -94,12 +94,12 @@ describe('ACP built-in MCP session config', () => {
     expect(result).toEqual([
       {
         type: 'stdio',
-        name: 'aionui-image-generation',
+        name: 'loksystem-image-generation',
         command: 'node',
         args: ['/abs/builtin-mcp-image-gen.js'],
         env: [
-          { name: 'AIONUI_IMG_PLATFORM', value: 'openai' },
-          { name: 'AIONUI_IMG_MODEL', value: 'gpt-image-1' },
+          { name: 'LOKSYSTEM_IMG_PLATFORM', value: 'openai' },
+          { name: 'LOKSYSTEM_IMG_MODEL', value: 'gpt-image-1' },
         ],
       },
       {

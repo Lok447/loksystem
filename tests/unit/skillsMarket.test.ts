@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,7 +11,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 /**
  * Skills Market feature tests
  *
- * Tests the enable/disable flow for the aionui-skills builtin skill:
+ * Tests the enable/disable flow for the loksystem-skills builtin skill:
  * - Bundled SKILL.md content validation
  * - Enable: copy bundled SKILL.md → user builtin skills directory
  * - Disable: remove the skill directory
@@ -21,15 +21,15 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 // Path to the bundled SKILL.md in the project
 const BUNDLED_SKILL_PATH = path.resolve(
   __dirname,
-  '../../src/process/resources/skills/_builtin/aionui-skills/SKILL.md'
+  '../../src/process/resources/skills/_builtin/loksystem-skills/SKILL.md'
 );
 
 // Mock Electron app and initStorage before importing AcpSkillManager
-vi.mock('electron', () => ({ app: { setName: vi.fn(), getPath: () => '/tmp/aionui-test' } }));
+vi.mock('electron', () => ({ app: { setName: vi.fn(), getPath: () => '/tmp/loksystem-test' } }));
 vi.mock('../../src/process/utils/initStorage', () => ({
-  getSkillsDir: () => path.join('/tmp/aionui-test', 'skills'),
-  getAutoSkillsDir: () => path.join('/tmp/aionui-test', 'skills', '_builtin'),
-  getBuiltinSkillsCopyDir: () => path.join('/tmp/aionui-test', 'builtin-skills'),
+  getSkillsDir: () => path.join('/tmp/loksystem-test', 'skills'),
+  getAutoSkillsDir: () => path.join('/tmp/loksystem-test', 'skills', '_builtin'),
+  getBuiltinSkillsCopyDir: () => path.join('/tmp/loksystem-test', 'builtin-skills'),
 }));
 
 describe('Skills Market - Bundled SKILL.md', () => {
@@ -47,7 +47,7 @@ describe('Skills Market - Bundled SKILL.md', () => {
 
     const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
     expect(nameMatch).not.toBeNull();
-    expect(nameMatch![1].trim()).toBe('aionui-skills');
+    expect(nameMatch![1].trim()).toBe('loksystem-skills');
 
     const descMatch = frontmatter.match(/^description:\s*(.+)$/m);
     expect(descMatch).not.toBeNull();
@@ -56,7 +56,7 @@ describe('Skills Market - Bundled SKILL.md', () => {
 
   it('contains the curl command for fetching full SKILL.md', async () => {
     const content = await fs.readFile(BUNDLED_SKILL_PATH, 'utf-8');
-    expect(content).toContain('curl -s https://skills.aionui.com/SKILL.md');
+    expect(content).toContain('curl -s https://skills.loksystem.com/SKILL.md');
   });
 
   it('contains the 3-step setup guide', async () => {
@@ -68,7 +68,7 @@ describe('Skills Market - Bundled SKILL.md', () => {
 
   it('references the standard credentials path', async () => {
     const content = await fs.readFile(BUNDLED_SKILL_PATH, 'utf-8');
-    expect(content).toContain('~/.config/aionui-skills');
+    expect(content).toContain('~/.config/loksystem-skills');
   });
 
   it('is concise enough for [LOAD_SKILL] injection (under 50 lines)', async () => {
@@ -97,9 +97,9 @@ describe('Skills Market - Enable/Disable flow', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('enable: creates aionui-skills directory with SKILL.md', async () => {
+  it('enable: creates loksystem-skills directory with SKILL.md', async () => {
     const builtinDir = path.join(tmpDir, '_builtin');
-    const skillDir = path.join(builtinDir, 'aionui-skills');
+    const skillDir = path.join(builtinDir, 'loksystem-skills');
 
     // Simulate enable flow
     await fs.mkdir(skillDir, { recursive: true });
@@ -109,12 +109,12 @@ describe('Skills Market - Enable/Disable flow', () => {
     // Verify
     const written = await fs.readFile(path.join(skillDir, 'SKILL.md'), 'utf-8');
     expect(written).toBe(content);
-    expect(written).toContain('name: aionui-skills');
+    expect(written).toContain('name: loksystem-skills');
   });
 
-  it('disable: removes aionui-skills directory completely', async () => {
+  it('disable: removes loksystem-skills directory completely', async () => {
     const builtinDir = path.join(tmpDir, '_builtin');
-    const skillDir = path.join(builtinDir, 'aionui-skills');
+    const skillDir = path.join(builtinDir, 'loksystem-skills');
 
     // Setup: create the skill
     await fs.mkdir(skillDir, { recursive: true });
@@ -128,7 +128,7 @@ describe('Skills Market - Enable/Disable flow', () => {
   });
 
   it('disable: fs.rm with force does not throw if directory does not exist', async () => {
-    const skillDir = path.join(tmpDir, '_builtin', 'aionui-skills');
+    const skillDir = path.join(tmpDir, '_builtin', 'loksystem-skills');
 
     // Should not throw even if directory doesn't exist
     await expect(fs.rm(skillDir, { recursive: true, force: true })).resolves.toBeUndefined();

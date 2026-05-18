@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -189,7 +189,7 @@ const Layout: React.FC<{
     };
   }, [loadAndHealCustomCss]);
 
-  // Re-sync theme css on route changes, because some settings pages do not mount CssThemeSettings.
+  // Re-sync theme css on route changes because theme caches can change outside the current route.
   useEffect(() => {
     void loadAndHealCustomCss();
   }, [location.pathname, location.search, location.hash, loadAndHealCustomCss]);
@@ -325,7 +325,7 @@ const Layout: React.FC<{
       void navigate('/settings/about');
       // Trigger update modal after a short delay to ensure page is loaded
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'tray' } }));
+        window.dispatchEvent(new CustomEvent('loksystem-open-update-modal', { detail: { source: 'tray' } }));
       }, 100);
     };
 
@@ -476,7 +476,7 @@ const Layout: React.FC<{
                     ></path>
                   </svg>
                 </div>
-                <div className='flex-1 text-20px text-1 collapsed-hidden font-bold'>AionUi</div>
+                <div className='flex-1 text-20px text-1 collapsed-hidden font-bold'>LokSystem</div>
                 {isMobile && !collapsed && (
                   <button
                     type='button'

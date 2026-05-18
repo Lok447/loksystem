@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -65,7 +65,7 @@ export function initConversationBridge(
     ipcBridge.conversation.listChanged.emit({
       conversationId: conversation.id,
       action,
-      source: conversation.source || 'aionui',
+      source: conversation.source || 'loksystem',
     });
   };
 
@@ -137,7 +137,7 @@ export function initConversationBridge(
           : params;
       const conversation = await conversationService.createConversation({
         ...createParams,
-        source: 'aionui',
+        source: 'loksystem',
       } as CreateConversationParams);
 
       // Discover and persist loaded skills snapshot at creation time
@@ -270,9 +270,9 @@ export function initConversationBridge(
       // Kill the running task if exists
       workerTaskManager.kill(id);
 
-      // If source is not 'aionui' (e.g., telegram), cleanup channel resources
-      // 如果来源不是 aionui（如 telegram），需要清理 channel 相关资源
-      if (source && source !== 'aionui') {
+      // If source is not 'loksystem' (e.g., telegram), cleanup channel resources
+      // 如果来源不是 loksystem（如 telegram），需要清理 channel 相关资源
+      if (source && source !== 'loksystem') {
         try {
           // Dynamic import to avoid circular dependency
           const { getChannelManager } = await import('@process/channels/core/ChannelManager');
@@ -494,14 +494,6 @@ export function initConversationBridge(
   // 通用 sendMessage 实现 - 统一调用 IAgentManager.sendMessage
   // Generic sendMessage - dispatches via IAgentManager.sendMessage interface
   ipcBridge.conversation.sendMessage.provider(async (params) => {
-    // Notify pet of user sending message (pre-emptive thinking)
-    try {
-      const { getEventBridge } = await import('../pet/petManager');
-      getEventBridge()?.handleUserSendMessage();
-    } catch {
-      /* pet not initialized */
-    }
-
     if (!params) {
       return { success: false, msg: 'Missing request parameters' };
     }

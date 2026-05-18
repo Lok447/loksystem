@@ -1,6 +1,6 @@
-# AionUi Database System
+# LokSystem Database System
 
-本文档介绍 AionUi 的新数据库系统，它使用 **better-sqlite3** (主进程) 作为持久化存储。
+本文档介绍 LokSystem 的新数据库系统，它使用 **better-sqlite3** (主进程) 作为持久化存储。
 
 ## 架构概览
 
@@ -30,7 +30,7 @@
 │                                     │
 │  - 图片文件 (message.resultDisplay) │
 │  - 大文件附件                       │
-│  - 数据库文件 (aionui.db)           │
+│  - 数据库文件 (loksystem.db)           │
 └─────────────────────────────────────┘
 ```
 
@@ -127,14 +127,14 @@ const collapsed = localStorage.getItem('sidebar_collapsed') === 'true';
 
 ## 数据库文件位置
 
-- **数据库文件**: `{userData}/config/aionui.db`
+- **数据库文件**: `{userData}/config/loksystem.db`
 - **图片文件**: `{userData}/data/images/`
 
 其中 `{userData}` 为：
 
-- macOS: `~/Library/Application Support/AionUi/`
-- Windows: `%APPDATA%/AionUi/`
-- Linux: `~/.config/AionUi/`
+- macOS: `~/Library/Application Support/LokSystem/`
+- Windows: `%APPDATA%/LokSystem/`
+- Linux: `~/.config/LokSystem/`
 
 ## 迁移管理
 
@@ -197,7 +197,7 @@ await importDatabaseFromJSON(data);
 
 ### 数据库文件备份
 
-直接复制 `aionui.db` 和 `aionui.db-wal` 文件即可。
+直接复制 `loksystem.db` 和 `loksystem.db-wal` 文件即可。
 
 ## API 参考
 

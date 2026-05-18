@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
+import { filterVisibleExternalSkillSources } from '@/renderer/utils/skills/externalSkillSourceFilter';
 
 // Skill 信息类型 / Skill info type
 interface SkillInfo {
@@ -66,6 +67,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
   const mySkills = useMemo(() => availableSkills.filter((s) => s.source !== 'extension'), [availableSkills]);
   const extensionSkills = useMemo(() => availableSkills.filter((s) => s.source === 'extension'), [availableSkills]);
+  const visibleExternalSources = useMemo(() => filterVisibleExternalSkillSources(externalSources), [externalSources]);
 
   const filteredSkills = useMemo(() => {
     if (!searchQuery.trim()) return mySkills;
@@ -84,9 +86,11 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
       const external = await ipcBridge.fs.detectAndCountExternalSkills.invoke();
       if (external.success && external.data) {
-        setExternalSources(external.data);
-        if (external.data.length > 0 && !activeSourceTab) {
-          setActiveSourceTab(external.data[0].source);
+        const nextSources = external.data;
+        const visibleSources = filterVisibleExternalSkillSources(nextSources);
+        setExternalSources(nextSources);
+        if (visibleSources.length > 0 && (!activeSourceTab || !visibleSources.find((s) => s.source === activeSourceTab))) {
+          setActiveSourceTab(visibleSources[0].source);
         }
       }
 
@@ -196,9 +200,13 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     try {
       const external = await ipcBridge.fs.detectAndCountExternalSkills.invoke();
       if (external.success && external.data) {
-        setExternalSources(external.data);
-        if (external.data.length > 0 && !external.data.find((s) => s.source === activeSourceTab)) {
-          setActiveSourceTab(external.data[0].source);
+        const nextSources = external.data;
+        const visibleSources = filterVisibleExternalSkillSources(nextSources);
+        setExternalSources(nextSources);
+        if (visibleSources.length > 0 && !visibleSources.find((s) => s.source === activeSourceTab)) {
+          setActiveSourceTab(visibleSources[0].source);
+        } else if (visibleSources.length === 0) {
+          setActiveSourceTab('');
         }
       }
       Message.success(t('common.refreshSuccess', { defaultValue: 'Refreshed' }));
@@ -230,7 +238,8 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   }, [customPathName, customPathValue, handleRefreshExternal]);
 
   const totalExternal = externalSources.reduce((sum, src) => sum + src.skills.length, 0);
-  const activeSource = externalSources.find((s) => s.source === activeSourceTab);
+  const visibleExternalTotal = visibleExternalSources.reduce((sum, src) => sum + src.skills.length, 0);
+  const activeSource = visibleExternalSources.find((s) => s.source === activeSourceTab);
 
   const filteredExternalSkills = useMemo(() => {
     if (!activeSource) return [];
@@ -256,7 +265,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                     {t('settings.skillsHub.discoveredTitle', { defaultValue: 'Discovered External Skills' })}
                   </span>
                   <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 text-12px px-10px py-2px rd-[100px] font-medium ml-4px'>
-                    {totalExternal}
+                    {visibleExternalTotal}
                   </span>
                   <button
                     className='outline-none border-none bg-transparent cursor-pointer p-6px text-t-tertiary hover:text-primary-6 transition-colors rd-full hover:bg-fill-2 ml-4px'
@@ -268,7 +277,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 </div>
                 <Typography.Text className='text-13px text-t-secondary block max-w-xl leading-relaxed'>
                   {t('settings.skillsHub.discoveryAlert', {
-                    defaultValue: 'Detected skills from your CLI tools. Import them to use in AionUi.',
+                    defaultValue: 'Detected skills from your CLI tools. Import them to use in LokSystem.',
                   })}
                 </Typography.Text>
               </div>
@@ -290,7 +299,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
             {/* Toolbar (Tabs) */}
             <div className='flex flex-wrap items-center gap-8px mb-20px relative z-10 w-full'>
-              {externalSources.map((source) => {
+              {visibleExternalSources.map((source) => {
                 const isActive = activeSourceTab === source.source;
                 return (
                   <button
@@ -383,6 +392,13 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+            {!activeSource && (
+              <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-b-base border-dashed'>
+                {t('settings.skillsHub.noSupportedExternalSources', {
+                  defaultValue: 'No supported external skill sources discovered',
+                })}
               </div>
             )}
           </div>
@@ -489,13 +505,13 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   </div>
 
                   <div className='shrink-0 sm:self-center flex items-center justify-end gap-6px mt-12px sm:mt-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity pl-4px'>
-                    {externalSources.length > 0 && (
+                    {visibleExternalSources.length > 0 && (
                       <Dropdown
                         trigger='click'
                         position='bl'
                         droplist={
                           <Menu>
-                            {externalSources.map((source) => (
+                            {visibleExternalSources.map((source) => (
                               <Menu.Item
                                 key={source.source}
                                 onClick={async (e) => {

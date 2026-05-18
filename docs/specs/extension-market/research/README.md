@@ -76,7 +76,7 @@ aion-extension.json
 ├── version       (semver)
 ├── description?, author?, icon?, homepage?
 ├── apiVersion?   (^semver, API 兼容性声明)
-├── engine?       { aionui: "^x.y.z" }
+├── engine?       { loksystem: "^x.y.z" }
 ├── dependencies? { extName: "^x.y.z" }
 ├── i18n?         { localesDir, defaultLocale }
 ├── lifecycle?    { onInstall, onActivate, onDeactivate, onUninstall }
@@ -112,5 +112,5 @@ aion-extension.json
 ### 成熟度结论
 
 - Extension 系统的核心架构（Loader → Registry → Resolvers → Lifecycle → IPC）已经 production-ready。
-- Worker Thread 沙箱的消息路由已修复（PR [#1991](https://github.com/iOfficeAI/AionUi/pull/1991)：Worker→Host RPC、事件转发、storage API），但 `createSandbox()` 尚未被实际调用（ChannelPlugin 和 Lifecycle hooks 仍在主进程裸跑，待迁移）。
+- Worker Thread 沙箱的消息路由已修复（PR [#1991](https://github.com/iOfficeAI/LokSystem/pull/1991)：Worker→Host RPC、事件转发、storage API），但 `createSandbox()` 尚未被实际调用（ChannelPlugin 和 Lifecycle hooks 仍在主进程裸跑，待迁移）。
 - 市场化所需的**分发链路**（远程安装、包格式、签名验证、市场 Registry）和**安全执行**（权限强制、沙箱隔离接入）是两个需要从零建设的方向。

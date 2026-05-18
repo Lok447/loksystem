@@ -38,7 +38,7 @@ export interface IHubExtension {
     unpackedSize: number;
   };
   engines: {
-    aionui: string; // APP 依赖版本
+    loksystem: string; // APP 依赖版本
   };
   hubs: string[]; // 分类标识，本期固定筛选包含 "agent" 的项
   tags: string[];
@@ -74,8 +74,8 @@ export interface IHubAgentItem extends IHubExtension {
 
 1. **加载内置索引**: 同步读取 `process.resourcesPath/hub/index.json` 作为基础数据源。
 2. **异步加载远程索引**:
-   - 首选拉取 `https://raw.githubusercontent.com/aionui/hub/main/dist/index.json`。
-   - 配置 5s 超时；若失败则尝试 fallback 到 jsDelivr CDN (`https://cdn.jsdelivr.net/gh/aionui/hub@main/dist/index.json`)。
+   - 首选拉取 `https://raw.githubusercontent.com/loksystem/hub/main/dist/index.json`。
+   - 配置 5s 超时；若失败则尝试 fallback 到 jsDelivr CDN (`https://cdn.jsdelivr.net/gh/loksystem/hub@main/dist/index.json`)。
    - 完全失败则只依赖内置数据，不抛出异常阻塞启动。
 3. **合并策略**: 远程数据优先级高于内置数据。以 `name` 字段作为 Key 进行合并，输出 `mergedExtensions`。
 
@@ -123,13 +123,13 @@ function deriveStatus(extension: IHubExtension): HubExtensionStatus {
 1. **状态流转**: `status` 切换至 `installing`，IPC 广播该状态通知 Renderer 显示 loading。
 2. **获取包体**:
    - 若 `bundled: true` 且存在本地资源，直接读取本地资源目录。
-   - 若为远程，则下载并缓存至 `~/.aionui/cache/<name>.tgz`。
+   - 若为远程，则下载并缓存至 `~/.loksystem/cache/<name>.tgz`。
 3. **完整性校验**: 计算获取文件的 SHA-512 Hash 并比对 `dist.integrity`。失败则回退至 `install_failed` 状态。
 4. **解压验证**:
-   - 解压至安全临时目录 `~/.aionui/extensions/.tmp/<name>/`。
+   - 解压至安全临时目录 `~/.loksystem/extensions/.tmp/<name>/`。
    - 验证 `aion-extension.json` 规范性。
 5. **部署执行**:
-   - 将临时目录原子性移动（重命名）到目标安装目录 `~/.aionui/extensions/<name>/`。
+   - 将临时目录原子性移动（重命名）到目标安装目录 `~/.loksystem/extensions/<name>/`。
    - 读取并执行生命周期 `onInstall` 钩子（例如执行 `bun add -g @anthropic-ai/claude-code`）。
 6. **完成及联动**:
    - 成功执行后，触发 `ExtensionRegistry.reload()` 及 `AcpDetector.scan()`。
@@ -139,7 +139,7 @@ function deriveStatus(extension: IHubExtension): HubExtensionStatus {
 
 当用户点击 `Retry` (触发 `hub.retryInstall`)：
 
-- 系统首先检查目标目录 `~/.aionui/extensions/<name>/` 是否存在。
+- 系统首先检查目标目录 `~/.loksystem/extensions/<name>/` 是否存在。
 - 若目录及解压文件已就绪，则**跳过下载和解压**环节，直接尝试再次执行 `onInstall` 钩子命令。
 - 若目录缺失或文件损坏，则从头（步骤 2）完整重启安装流程。
 

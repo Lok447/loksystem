@@ -1,7 +1,8 @@
 import { ipcBridge } from '@/common';
 import type { Message } from '@arco-design/web-react';
 import type { ExternalSource, PendingSkill, SkillInfo } from '@/renderer/pages/settings/AssistantSettings/types';
-import React, { useCallback, useEffect, useState } from 'react';
+import { filterVisibleExternalSkillSources } from '@/renderer/utils/skills/externalSkillSourceFilter';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type UseAssistantSkillsParams = {
@@ -51,9 +52,13 @@ export const useAssistantSkills = ({
     try {
       const response = await ipcBridge.fs.detectAndCountExternalSkills.invoke();
       if (response.success && response.data) {
-        setExternalSources(response.data);
-        if (response.data.length > 0 && !response.data.find((s) => s.source === activeSourceTab)) {
-          setActiveSourceTab(response.data[0].source);
+        const nextSources = response.data;
+        const visibleSources = filterVisibleExternalSkillSources(nextSources);
+        setExternalSources(nextSources);
+        if (visibleSources.length > 0 && !visibleSources.find((s) => s.source === activeSourceTab)) {
+          setActiveSourceTab(visibleSources[0].source);
+        } else if (visibleSources.length === 0) {
+          setActiveSourceTab('');
         }
       }
     } catch (error) {
@@ -145,7 +150,8 @@ export const useAssistantSkills = ({
     }
   };
 
-  const activeSource = externalSources.find((s) => s.source === activeSourceTab);
+  const visibleExternalSources = useMemo(() => filterVisibleExternalSkillSources(externalSources), [externalSources]);
+  const activeSource = visibleExternalSources.find((s) => s.source === activeSourceTab);
 
   const filteredExternalSkills = React.useMemo(() => {
     if (!activeSource) return [];
@@ -158,7 +164,7 @@ export const useAssistantSkills = ({
   }, [activeSource, searchExternalQuery]);
 
   return {
-    externalSources,
+    externalSources: visibleExternalSources,
     activeSourceTab,
     setActiveSourceTab,
     searchExternalQuery,

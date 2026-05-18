@@ -16,7 +16,10 @@ export function useHubAgents() {
       const response = await ipcBridge.hub.getExtensionList.invoke();
       if (response.success && response.data) {
         // Filter agents
-        const agentExtensions = response.data.filter((ext: IHubAgentItem) => ext.hubs?.includes('acpAdapters'));
+        const agentExtensions = response.data.filter(
+          (ext: IHubAgentItem) =>
+            ext.hubs?.includes('acpAdapters') && !/(augment|augg\w+)/i.test(`${ext.name} ${ext.displayName ?? ''}`)
+        );
         setAgents(agentExtensions);
       } else {
         setError(response.msg || 'Failed to fetch hub extensions');

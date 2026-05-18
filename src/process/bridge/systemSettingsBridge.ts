@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,7 +16,6 @@ import { ipcBridge } from '@/common';
 import { getPlatformServices } from '@/common/platform';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { changeLanguage } from '@process/services/i18n';
-import type { PetSize } from '@process/pet/petTypes';
 
 // Keep-awake power blocker state
 let _keepAwakeBlockerId: number | null = null;
@@ -149,24 +148,14 @@ export function initSystemSettingsBridge(): void {
     await ProcessConfig.set('system.autoPreviewOfficeFiles', enabled);
   });
 
-  // Desktop pet settings
+  // Desktop pet has been removed from the product surface; keep IPC providers
+  // as no-ops so older renderer builds or stored settings do not break startup.
   ipcBridge.systemSettings.getPetEnabled.provider(async () => {
-    const value = await ProcessConfig.get('pet.enabled');
-    return value ?? false;
+    return false;
   });
 
   ipcBridge.systemSettings.setPetEnabled.provider(async ({ enabled }) => {
-    const { createPetWindow, destroyPetWindow, isPetSupported } = await import('@process/pet/petManager');
-    if (enabled && !isPetSupported()) {
-      console.warn('[SystemSettings] Desktop pet is not supported in headless mode');
-      return;
-    }
     await ProcessConfig.set('pet.enabled', enabled);
-    if (enabled) {
-      createPetWindow();
-    } else {
-      destroyPetWindow();
-    }
   });
 
   ipcBridge.systemSettings.getPetSize.provider(async () => {
@@ -176,8 +165,6 @@ export function initSystemSettingsBridge(): void {
 
   ipcBridge.systemSettings.setPetSize.provider(async ({ size }) => {
     await ProcessConfig.set('pet.size', size);
-    const { resizePetWindow } = await import('@process/pet/petManager');
-    resizePetWindow(size as PetSize);
   });
 
   ipcBridge.systemSettings.getPetDnd.provider(async () => {
@@ -187,8 +174,6 @@ export function initSystemSettingsBridge(): void {
 
   ipcBridge.systemSettings.setPetDnd.provider(async ({ dnd }) => {
     await ProcessConfig.set('pet.dnd', dnd);
-    const { setPetDndMode } = await import('@process/pet/petManager');
-    setPetDndMode(dnd);
   });
 
   // Pet confirm-bubble toggle: when disabled, AI tool-call confirmations
@@ -200,7 +185,5 @@ export function initSystemSettingsBridge(): void {
 
   ipcBridge.systemSettings.setPetConfirmEnabled.provider(async ({ enabled }) => {
     await ProcessConfig.set('pet.confirmEnabled', enabled);
-    const { setPetConfirmEnabled } = await import('@process/pet/petManager');
-    setPetConfirmEnabled(enabled);
   });
 }

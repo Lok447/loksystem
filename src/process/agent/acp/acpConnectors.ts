@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -153,7 +153,7 @@ export async function prepareCleanEnv(): Promise<Record<string, string | undefin
   delete merged.NODE_INSPECT;
   delete merged.NODE_DEBUG;
   // Remove CLAUDECODE env var to prevent claude-agent-sdk from detecting
-  // a nested session when AionUi itself is launched from Claude Code.
+  // a nested session when LokSystem itself is launched from Claude Code.
   delete merged.CLAUDECODE;
   // Strip npm lifecycle vars inherited from parent `npm start` process.
   // These (npm_config_*, npm_lifecycle_*, npm_package_*) can cause npx to
@@ -266,7 +266,7 @@ export function ensureMinNodeVersion(
  *
  * @param cliPath - CLI command path (e.g., 'goose', 'npx @pkg/cli')
  * @param workingDir - Working directory for the spawned process
- * @param acpArgs - Arguments to enable ACP mode (e.g., ['acp'] for goose, ['--acp'] for auggie, ['exec','--output-format','acp'] for droid)
+ * @param acpArgs - Arguments to enable ACP mode (e.g., ['acp'] for goose, ['exec','--output-format','acp'] for droid)
  * @param customEnv - Custom environment variables
  * @param prebuiltEnv - Pre-built env to use directly (skips internal getEnhancedEnv)
  */

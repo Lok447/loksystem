@@ -70,8 +70,8 @@ flowchart TD
   Start([应用启动]) --> LoadAll["ExtensionLoader.loadAll()"]
 
   subgraph scan["目录扫描 (优先级递减)"]
-    S1["1. AIONUI_EXTENSIONS_PATH\n环境变量 (可多路径)"]
-    S2["2. ~/.aionui/extensions/\n用户目录"]
+    S1["1. LOKSYSTEM_EXTENSIONS_PATH\n环境变量 (可多路径)"]
+    S2["2. ~/.loksystem/extensions/\n用户目录"]
     S3["3. appdata/extensions/\n应用数据目录"]
     S1 --> S2 --> S3
   end

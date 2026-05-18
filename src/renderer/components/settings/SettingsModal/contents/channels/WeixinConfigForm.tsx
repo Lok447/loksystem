@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -376,7 +376,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     backend: string;
     name: string;
     customAgentId?: string;
-  }> = availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
+  }> = availableAgents.length > 0 ? availableAgents : [{ backend: 'hermes', name: 'Lok CLI' }];
 
   const handleDisconnect = async () => {
     try {

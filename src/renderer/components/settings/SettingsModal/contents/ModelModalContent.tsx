@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,14 +8,13 @@ import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { IProvider } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
-import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
+import { Button, Divider, Message, Popconfirm, Collapse, Switch, Tooltip } from '@arco-design/web-react';
 import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
 import AddPlatformModal from '@/renderer/pages/settings/components/AddPlatformModal';
-import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/utils/model/modelPlatforms';
 import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
@@ -23,39 +22,6 @@ import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
 import { classifyHealthCheckMessage } from './healthCheckUtils';
 import '../model-provider.css';
 
-/**
- * 获取协议显示标签颜色
- * Get protocol badge color
- */
-const getProtocolColor = (protocol: string): string => {
-  switch (protocol) {
-    case 'gemini':
-      return 'blue';
-    case 'anthropic':
-      return 'orange';
-    case 'openai':
-    default:
-      return 'green';
-  }
-};
-
-/**
- * 获取协议显示名称
- * Get protocol display name
- */
-const getProtocolLabel = (protocol: string): string => {
-  return NEW_API_PROTOCOL_OPTIONS.find((p) => p.value === protocol)?.label || 'OpenAI';
-};
-
-/**
- * 获取下一个协议（循环切换）
- * Get next protocol (cycle through options)
- */
-const getNextProtocol = (current: string): string => {
-  const idx = NEW_API_PROTOCOL_OPTIONS.findIndex((p) => p.value === current);
-  const nextIdx = (idx + 1) % NEW_API_PROTOCOL_OPTIONS.length;
-  return NEW_API_PROTOCOL_OPTIONS[nextIdx].value;
-};
 
 // Calculate API Key count
 const getApiKeyCount = (apiKey: string): number => {
@@ -508,7 +474,7 @@ const ModelModalContent: React.FC = () => {
             <p className='text-14px text-t-secondary text-center max-w-400px'>
               {t('settings.needHelpConfigGuide')}
               <a
-                href='https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration'
+                href='https://github.com/iOfficeAI/LokSystem/wiki/LLM-Configuration'
                 target='_blank'
                 rel='noopener noreferrer'
                 className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px'
@@ -611,8 +577,6 @@ const ModelModalContent: React.FC = () => {
                     }
                   >
                     {(platform.model ?? []).map((model: string, index: number, arr: string[]) => {
-                      const isNewApiProvider = isNewApiPlatform(platform.platform);
-                      const modelProtocol = platform.modelProtocols?.[model] || 'openai';
                       const modelHealth = platform.modelHealth?.[model];
                       const healthStatus = modelHealth?.status || 'unknown';
 
@@ -654,23 +618,6 @@ const ModelModalContent: React.FC = () => {
                               )}
 
                               <span className='text-14px text-t-primary'>{model}</span>
-
-                              {/* New API 协议标签（点击循环切换）/ New API protocol badge (click to cycle) */}
-                              {isNewApiProvider && (
-                                <Tag
-                                  size='small'
-                                  color={getProtocolColor(modelProtocol)}
-                                  className='cursor-pointer select-none'
-                                  onClick={() => {
-                                    const nextProtocol = getNextProtocol(modelProtocol);
-                                    const newProtocols = { ...platform.modelProtocols };
-                                    newProtocols[model] = nextProtocol;
-                                    updatePlatform({ ...platform, modelProtocols: newProtocols }, () => {});
-                                  }}
-                                >
-                                  {getProtocolLabel(modelProtocol)}
-                                </Tag>
-                              )}
 
                               {/* 模型启用开关 / Model enable switch */}
                               <Switch

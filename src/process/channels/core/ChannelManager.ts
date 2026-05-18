@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -13,7 +13,6 @@ import { PluginManager, registerPlugin } from '../gateway/PluginManager';
 import { PairingService } from '../pairing/PairingService';
 import { DingTalkPlugin } from '../plugins/dingtalk/DingTalkPlugin';
 import { LarkPlugin } from '../plugins/lark/LarkPlugin';
-import { TelegramPlugin } from '../plugins/telegram/TelegramPlugin';
 import { WeixinPlugin } from '../plugins/weixin/WeixinPlugin';
 import { WecomPlugin } from '../plugins/wecom/WecomPlugin';
 import { isBuiltinChannelPlatform, resolveChannelConvType } from '../types';
@@ -24,7 +23,7 @@ import { SessionManager } from './SessionManager';
  * ChannelManager - Main orchestrator for the Channel subsystem
  *
  * Singleton pattern - manages the lifecycle of all assistant components:
- * - PluginManager: Platform plugin lifecycle (Telegram, Slack, Discord)
+ * - PluginManager: Platform plugin lifecycle (Lark, DingTalk, WeChat, WeCom)
  * - SessionManager: User session management
  * - PairingService: Secure pairing code generation and validation
  *
@@ -49,7 +48,6 @@ export class ChannelManager {
   private constructor() {
     // Private constructor for singleton pattern
     // Register built-in plugins
-    registerPlugin('telegram', TelegramPlugin);
     registerPlugin('lark', LarkPlugin);
     registerPlugin('dingtalk', DingTalkPlugin);
     registerPlugin('weixin', WeixinPlugin);
@@ -185,7 +183,7 @@ export class ChannelManager {
     }
 
     const enabledPlugins = result.data.filter((p) => p.enabled);
-    const builtinStartableTypes = new Set<PluginType>(['telegram', 'lark', 'dingtalk', 'weixin', 'wecom']);
+    const builtinStartableTypes = new Set<PluginType>(['lark', 'dingtalk', 'weixin', 'wecom']);
     const extensionRegistry = ExtensionRegistry.getInstance();
 
     for (const plugin of enabledPlugins) {
@@ -252,12 +250,7 @@ export class ChannelManager {
     let pluginRuntimeConfig = existing?.config ? { ...existing.config } : {};
 
     // Extract credentials based on plugin type
-    if (pluginType === 'telegram') {
-      const token = config.token as string | undefined;
-      if (token) {
-        credentials = { token };
-      }
-    } else if (pluginType === 'lark') {
+    if (pluginType === 'lark') {
       const appId = config.appId as string | undefined;
       const appSecret = config.appSecret as string | undefined;
       const encryptKey = config.encryptKey as string | undefined;
@@ -410,15 +403,6 @@ export class ChannelManager {
   ): Promise<{ success: boolean; botUsername?: string; error?: string }> {
     const pluginType = this.getPluginTypeFromId(pluginId);
 
-    if (pluginType === 'telegram') {
-      const result = await TelegramPlugin.testConnection(token);
-      return {
-        success: result.success,
-        botUsername: result.botInfo?.username,
-        error: result.error,
-      };
-    }
-
     if (pluginType === 'lark') {
       const appId = extraConfig?.appId;
       const appSecret = extraConfig?.appSecret;
@@ -462,9 +446,6 @@ export class ChannelManager {
    * For built-in plugins, derives from ID prefix. For others, returns the ID as type.
    */
   private getPluginTypeFromId(pluginId: string): PluginType {
-    if (pluginId.startsWith('telegram')) return 'telegram';
-    if (pluginId.startsWith('slack')) return 'slack';
-    if (pluginId.startsWith('discord')) return 'discord';
     if (pluginId.startsWith('lark')) return 'lark';
     if (pluginId.startsWith('dingtalk')) return 'dingtalk';
     if (pluginId.startsWith('weixin')) return 'weixin';
@@ -543,7 +524,7 @@ export class ChannelManager {
       // For gemini + model info: update existing conversations' model field
       if (newType === 'gemini' && model?.id && model?.useModel) {
         if (isBuiltinChannelPlatform(platform)) {
-          const builtinPlatform: 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom' = platform;
+          const builtinPlatform: 'lark' | 'dingtalk' | 'weixin' | 'wecom' = platform;
           const fullModel = await getChannelDefaultModel(builtinPlatform);
           const db = await getDatabase();
           const result = db.updateChannelConversationModel(builtinPlatform, 'gemini', fullModel);

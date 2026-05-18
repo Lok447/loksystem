@@ -197,7 +197,7 @@ export class AcpSession {
   }
 
   async sendMessage(text: string, files?: string[]): Promise<void> {
-    const content = this.inputPreprocessor.process(text, files);
+    const content = await this.inputPreprocessor.processAsync(text, files);
     switch (this._status) {
       case 'active':
         await this.promptExecutor.execute(content);

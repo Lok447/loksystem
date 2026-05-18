@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,13 +14,6 @@ import { conversationServiceSingleton } from '@/process/services/conversationSer
 import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import { getChannelManager } from '../core/ChannelManager';
-import type { AgentDisplayInfo } from '../plugins/telegram/TelegramKeyboards';
-import {
-  createAgentSelectionKeyboard,
-  createHelpKeyboard,
-  createMainMenuKeyboard,
-  createSessionControlKeyboard,
-} from '../plugins/telegram/TelegramKeyboards';
 import { getChannelConversationName, resolveChannelConvType } from '../types';
 import {
   createAgentSelectionCard,
@@ -48,8 +41,14 @@ import { SystemActionNames, createErrorResponse, createSuccessResponse } from '.
 import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
 import { buildChannelConversationExtra } from '../utils';
 
+type AgentDisplayInfo = {
+  type: ChannelAgentType;
+  emoji: string;
+  name: string;
+};
+
 /**
- * Get the default model for Channel assistant (Telegram/Lark)
+ * Get the default model for Channel assistant (Lark/DingTalk/WeChat/WeCom)
  * Reads from saved config or falls back to default Gemini model
  */
 
@@ -87,9 +86,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
           ? await ProcessConfig.get('assistant.dingtalk.defaultModel')
           : platform === 'weixin'
             ? await ProcessConfig.get('assistant.weixin.defaultModel')
-            : platform === 'wecom'
-              ? await ProcessConfig.get('assistant.wecom.defaultModel')
-              : await ProcessConfig.get('assistant.telegram.defaultModel');
+            : await ProcessConfig.get('assistant.wecom.defaultModel');
     if (savedModel?.id && savedModel?.useModel) {
       if (savedModel.id === GOOGLE_AUTH_PROVIDER_ID) {
         // Google OAuth credentials are stored locally by Gemini CLI (~/.gemini/oauth_creds.json).
@@ -242,16 +239,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
   await sessionManager.clearSession(context.channelUser.id, context.chatId);
 
   const platform = context.platform;
-  const source =
-    platform === 'lark'
-      ? 'lark'
-      : platform === 'dingtalk'
-        ? 'dingtalk'
-        : platform === 'weixin'
-          ? 'weixin'
-          : platform === 'wecom'
-            ? 'wecom'
-            : 'telegram';
+  const source = platform === 'lark' || platform === 'dingtalk' || platform === 'weixin' || platform === 'wecom' ? platform : 'lark';
 
   // Selected agent (defaults to Gemini)
   let savedAgent: unknown = undefined;
@@ -262,9 +250,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
         ? ProcessConfig.get('assistant.dingtalk.agent')
         : platform === 'weixin'
           ? ProcessConfig.get('assistant.weixin.agent')
-          : platform === 'wecom'
-            ? ProcessConfig.get('assistant.wecom.agent')
-            : ProcessConfig.get('assistant.telegram.agent'));
+          : ProcessConfig.get('assistant.wecom.agent'));
   } catch {
     // ignore
   }
@@ -361,7 +347,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
       ? createMainMenuCard()
       : context.platform === 'dingtalk'
         ? createDingTalkMainMenuCard()
-        : createMainMenuKeyboard();
+        : undefined;
   return createSuccessResponse({
     type: 'text',
     text: `🆕 <b>New Session Created</b>\n\nSession ID: <code>${session.id.slice(-8)}</code>\n\nYou can start a new conversation now!`,
@@ -422,7 +408,7 @@ export const handleSessionStatus: ActionHandler = async (context) => {
       type: 'text',
       text: '📊 <b>Session Status</b>\n\nNo active session.\n\nSend a message to start a new conversation, or tap the "New Chat" button.',
       parseMode: 'HTML',
-      replyMarkup: createSessionControlKeyboard(),
+      replyMarkup: undefined,
     });
   }
 
@@ -440,7 +426,7 @@ export const handleSessionStatus: ActionHandler = async (context) => {
       `🔖 Session ID: <code>${session.id.slice(-8)}</code>`,
     ].join('\n'),
     parseMode: 'HTML',
-    replyMarkup: createSessionControlKeyboard(),
+    replyMarkup: undefined,
   });
 };
 
@@ -465,9 +451,9 @@ export const handleHelpShow: ActionHandler = async (context) => {
   return createSuccessResponse({
     type: 'text',
     text: [
-      '❓ <b>AionUi Assistant</b>',
+      '❓ <b>LokSystem Assistant</b>',
       '',
-      'A remote assistant to interact with AionUi via Telegram.',
+      'A remote assistant to interact with LokSystem via configured channels.',
       '',
       '<b>Common Actions:</b>',
       '• 🆕 New Chat - Start a new session',
@@ -477,7 +463,7 @@ export const handleHelpShow: ActionHandler = async (context) => {
       'Send a message to chat with the AI assistant.',
     ].join('\n'),
     parseMode: 'HTML',
-    replyMarkup: createHelpKeyboard(),
+    replyMarkup: undefined,
   });
 };
 
@@ -520,7 +506,7 @@ export const handleHelpFeatures: ActionHandler = async (context) => {
       '• Continue conversation',
     ].join('\n'),
     parseMode: 'HTML',
-    replyMarkup: createHelpKeyboard(),
+    replyMarkup: undefined,
   });
 };
 
@@ -550,16 +536,16 @@ export const handleHelpPairing: ActionHandler = async (context) => {
       '<b>First-time Setup:</b>',
       '1. Send any message to the bot',
       '2. Bot displays pairing code',
-      '3. Approve pairing in AionUi settings',
+      '3. Approve pairing in LokSystem settings',
       '4. Ready to use after pairing',
       '',
       '<b>Notes:</b>',
       '• Pairing code valid for 10 minutes',
-      '• AionUi app must be running',
-      '• One Telegram account can only pair once',
+      '• LokSystem app must be running',
+      '• One channel account can only pair once',
     ].join('\n'),
     parseMode: 'HTML',
-    replyMarkup: createHelpKeyboard(),
+    replyMarkup: undefined,
   });
 };
 
@@ -597,7 +583,7 @@ export const handleHelpTips: ActionHandler = async (context) => {
       '• New chat clears history context',
     ].join('\n'),
     parseMode: 'HTML',
-    replyMarkup: createHelpKeyboard(),
+    replyMarkup: undefined,
   });
 };
 
@@ -624,12 +610,12 @@ export const handleSettingsShow: ActionHandler = async (context) => {
     text: [
       '⚙️ <b>Settings</b>',
       '',
-      'Channel settings need to be configured in the AionUi app.',
+      'Channel settings need to be configured in the LokSystem app.',
       '',
-      'Open AionUi → WebUI → Channels',
+      'Open LokSystem → WebUI → Channels',
     ].join('\n'),
     parseMode: 'HTML',
-    replyMarkup: createMainMenuKeyboard(),
+    replyMarkup: undefined,
   });
 };
 
@@ -683,7 +669,7 @@ export const handleAgentShow: ActionHandler = async (context) => {
       `Current: <b>${getAgentDisplayName(currentAgent)}</b>`,
     ].join('\n'),
     parseMode: 'HTML',
-    replyMarkup: createAgentSelectionKeyboard(availableAgents, currentAgent),
+    replyMarkup: undefined,
   });
 };
 
@@ -721,7 +707,7 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
         ? createMainMenuCard()
         : context.platform === 'dingtalk'
           ? createDingTalkMainMenuCard()
-          : createMainMenuKeyboard();
+          : undefined;
     return createSuccessResponse({
       type: 'text',
       text: `✓ Already using <b>${getAgentDisplayName(newAgentType)}</b>`,
@@ -753,7 +739,7 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
       ? createMainMenuCard()
       : context.platform === 'dingtalk'
         ? createDingTalkMainMenuCard()
-        : createMainMenuKeyboard();
+        : undefined;
   return createSuccessResponse({
     type: 'text',
     text: [

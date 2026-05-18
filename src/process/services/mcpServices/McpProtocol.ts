@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -15,9 +15,9 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { getEnhancedEnv, normalizeNpxArgsForBundledBun, resolveNpxPath } from '@/process/utils/shellEnv';
 
 /**
- * MCP源类型 - 包括所有ACP后端和AionUi内置
+ * MCP源类型 - 包括所有ACP后端和LokSystem内置
  */
-export type McpSource = AcpBackendAll | 'gemini' | 'aionui' | 'aionrs';
+export type McpSource = AcpBackendAll | 'gemini' | 'loksystem' | 'aionrs';
 
 /**
  * MCP操作结果接口
@@ -266,7 +266,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
           return {
             success: false,
             error:
-              'Bundled bun runtime is unavailable. Please reinstall AionUi or use a direct stdio command instead of npx.',
+              'Bundled bun runtime is unavailable. Please reinstall LokSystem or use a direct stdio command instead of npx.',
           };
         }
         return {
@@ -280,7 +280,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       if (errorCode === 'EACCES' || errorMessage.includes('EACCES') || errorMessage.includes('permission denied')) {
         return {
           success: false,
-          error: `Permission denied when running "${transport.command}". Please check file permissions or reinstall AionUi.`,
+          error: `Permission denied when running "${transport.command}". Please check file permissions or reinstall LokSystem.`,
         };
       }
 

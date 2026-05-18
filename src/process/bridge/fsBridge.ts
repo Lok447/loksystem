@@ -1,10 +1,10 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
+import { LOKSYSTEM_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import fs from 'fs/promises';
 import type { Dirent } from 'fs';
 import path from 'path';
@@ -383,7 +383,7 @@ export function initFsBridge(): void {
           {
             headers: {
               'User-Agent': 'AionUI-Preview',
-              Referer: 'https://github.com/iOfficeAI/AionUi',
+              Referer: 'https://github.com/iOfficeAI/LokSystem',
             },
           },
           (response) => {
@@ -477,7 +477,7 @@ export function initFsBridge(): void {
         const timestamp = Date.now();
         const ext = path.extname(safeFileName);
         const name = path.basename(safeFileName, ext);
-        const tempFileName = `${name}${AIONUI_TIMESTAMP_SEPARATOR}${timestamp}${ext}`;
+        const tempFileName = `${name}${LOKSYSTEM_TIMESTAMP_SEPARATOR}${timestamp}${ext}`;
         tempFilePath = path.join(tempDir, tempFileName);
       }
 
@@ -545,7 +545,7 @@ export function initFsBridge(): void {
         const timestamp = Date.now();
         const ext = path.extname(safeFileName);
         const name = path.basename(safeFileName, ext);
-        const newFileName = `${name}${AIONUI_TIMESTAMP_SEPARATOR}${timestamp}${ext}`;
+        const newFileName = `${name}${LOKSYSTEM_TIMESTAMP_SEPARATOR}${timestamp}${ext}`;
         filePath = path.join(uploadDir, newFileName);
       }
 
@@ -863,7 +863,7 @@ export function initFsBridge(): void {
             const name = path.basename(targetPath, ext);
             // Construct new path in the same directory / 在同一目录下构建新路径
             const dir = path.dirname(targetPath);
-            const newFileName = `${name}${AIONUI_TIMESTAMP_SEPARATOR}${timestamp}${ext}`;
+            const newFileName = `${name}${LOKSYSTEM_TIMESTAMP_SEPARATOR}${timestamp}${ext}`;
             finalTargetPath = path.join(dir, newFileName);
           }
 
@@ -1754,11 +1754,11 @@ export function initFsBridge(): void {
     }
   });
 
-  // Skills Market: inject the aionui-skills builtin skill
+  // Skills Market: inject the loksystem-skills builtin skill
   ipcBridge.fs.enableSkillsMarket.provider(async () => {
     try {
       const { getAutoSkillsDir } = await import('@process/utils/initStorage');
-      const skillDir = path.join(getAutoSkillsDir(), 'aionui-skills');
+      const skillDir = path.join(getAutoSkillsDir(), 'loksystem-skills');
       await fs.mkdir(skillDir, { recursive: true });
 
       // Copy the bundled SKILL.md (concise entry-point version)
@@ -1780,11 +1780,11 @@ export function initFsBridge(): void {
     }
   });
 
-  // Skills Market: remove the aionui-skills builtin skill
+  // Skills Market: remove the loksystem-skills builtin skill
   ipcBridge.fs.disableSkillsMarket.provider(async () => {
     try {
       const { getAutoSkillsDir } = await import('@process/utils/initStorage');
-      const skillDir = path.join(getAutoSkillsDir(), 'aionui-skills');
+      const skillDir = path.join(getAutoSkillsDir(), 'loksystem-skills');
       await fs.rm(skillDir, { recursive: true, force: true });
 
       // Reset AcpSkillManager singleton so it re-discovers builtin skills
@@ -1803,7 +1803,7 @@ export function initFsBridge(): void {
 }
 
 /**
- * Read the bundled SKILL.md for aionui-skills from app resources.
+ * Read the bundled SKILL.md for loksystem-skills from app resources.
  *
  * This is a concise entry-point version (~30 lines) that tells agents
  * to fetch the full API documentation via curl at runtime.
@@ -1812,10 +1812,10 @@ export function initFsBridge(): void {
  */
 async function readBundledSkillsMarketMd(): Promise<string> {
   try {
-    const fallbackPath = path.join(getBuiltinSkillsCopyDir(), 'aionui-skills', 'SKILL.md');
+    const fallbackPath = path.join(getBuiltinSkillsCopyDir(), 'loksystem-skills', 'SKILL.md');
     return await fs.readFile(fallbackPath, 'utf-8');
   } catch (error) {
-    console.warn('[fsBridge] Failed to read bundled aionui-skills SKILL.md:', error);
-    return `---\nname: aionui-skills\ndescription: "Access the AionUI Skills registry — discover and download AI agent skills."\n---\n\n# AionUI Skills Registry\n\nFetch full instructions:\n\n\`\`\`bash\nmkdir -p ~/.config/aionui-skills\ncurl -s https://skills.aionui.com/SKILL.md > ~/.config/aionui-skills/SKILL.md\n\`\`\`\n\nThen read and follow the instructions in that file.\n`;
+    console.warn('[fsBridge] Failed to read bundled loksystem-skills SKILL.md:', error);
+    return `---\nname: loksystem-skills\ndescription: "Access the AionUI Skills registry — discover and download AI agent skills."\n---\n\n# AionUI Skills Registry\n\nFetch full instructions:\n\n\`\`\`bash\nmkdir -p ~/.config/loksystem-skills\ncurl -s https://skills.loksystem.com/SKILL.md > ~/.config/loksystem-skills/SKILL.md\n\`\`\`\n\nThen read and follow the instructions in that file.\n`;
   }
 }

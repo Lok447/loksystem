@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -32,7 +32,7 @@ export function initApplicationBridgeCore(): void {
       if (oldDir.cacheDir !== safeCacheDir) {
         await copyDirectoryRecursively(oldDir.cacheDir, safeCacheDir);
       }
-      await ProcessEnv.set('aionui.dir', { cacheDir: safeCacheDir, workDir: safeWorkDir });
+      await ProcessEnv.set('loksystem.dir', { cacheDir: safeCacheDir, workDir: safeWorkDir });
       return { success: true };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

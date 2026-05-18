@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -28,13 +28,19 @@ import {
   createToolConfirmationCard as createDingTalkToolConfirmationCard,
 } from '../plugins/dingtalk/DingTalkCards';
 import { convertHtmlToDingTalkMarkdown } from '../plugins/dingtalk/DingTalkAdapter';
-import { createMainMenuKeyboard, createToolConfirmationKeyboard } from '../plugins/telegram/TelegramKeyboards';
-import { escapeHtml, markdownToTelegramHtml } from '../plugins/telegram/TelegramAdapter';
 import { stripHtml } from '../plugins/weixin/WeixinAdapter';
 import type { ChannelAgentType, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
 import type { PluginManager } from './PluginManager';
 import { buildChannelConversationExtra, resolveChannelSendProtocol } from '../utils';
 import i18n from '@process/services/i18n';
+
+const escapeHtml = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 // ==================== Platform-specific Helpers ====================
 
@@ -48,7 +54,7 @@ function getMainMenuMarkup(platform: PluginType) {
   if (platform === 'dingtalk') {
     return createDingTalkMainMenuCard();
   }
-  return createMainMenuKeyboard();
+  return undefined;
 }
 
 /**
@@ -58,7 +64,7 @@ function getResponseActionsMarkup(platform: PluginType, text?: string) {
   if (platform === 'dingtalk') {
     return createDingTalkResponseActionsCard(text || '');
   }
-  // Telegram and Lark: no response action buttons
+  // Lark/WeChat/WeCom: no response action buttons
   return undefined;
 }
 
@@ -83,7 +89,7 @@ function getToolConfirmationMarkup(
       options
     );
   }
-  return createToolConfirmationKeyboard(callId, options);
+  return undefined;
 }
 
 /**
@@ -96,7 +102,7 @@ function getErrorRecoveryMarkup(platform: PluginType, errorMessage?: string) {
   if (platform === 'dingtalk') {
     return createDingTalkErrorRecoveryCard(errorMessage);
   }
-  return createMainMenuKeyboard(); // Telegram uses main menu for recovery
+  return undefined;
 }
 
 /**
@@ -108,9 +114,6 @@ function formatTextForPlatform(text: string, platform: PluginType): string {
   }
   if (platform === 'dingtalk') {
     return convertHtmlToDingTalkMarkdown(text);
-  }
-  if (platform === 'telegram') {
-    return markdownToTelegramHtml(text);
   }
   if (platform === 'weixin' || platform === 'wecom') {
     return stripHtml(text);
@@ -301,7 +304,7 @@ function convertTMessageToOutgoing(
       if (isWeixinPlatform(platform)) {
         return null;
       }
-      // Channels (Telegram/Lark) use automatic approval via yoloMode.
+      // Channels use automatic approval via yoloMode.
       // Show a subtle indicator instead of an error message.
       return {
         type: 'text',
@@ -828,7 +831,7 @@ export class ActionExecutor {
         // Use actual content of last message, add action buttons (based on platform)
         const responseMarkup = getResponseActionsMarkup(context.platform as PluginType, finalVisibleText);
         const finalReplyMarkup =
-          responseMarkup ?? (context.platform === 'wecom' ? ({ __aionuiFinal: true } as unknown) : undefined);
+          responseMarkup ?? (context.platform === 'wecom' ? ({ __loksystemFinal: true } as unknown) : undefined);
         const finalMessage: IUnifiedOutgoingMessage = lastMessageContent
           ? {
               ...lastMessageContent,

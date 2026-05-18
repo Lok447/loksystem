@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,7 +8,7 @@
  * OpenClaw Conflict Detector
  *
  * Detects if OpenClaw has Lark/Telegram channels enabled with the same credentials
- * as AionUi Channels, and warns the user about the conflict.
+ * as LokSystem Channels, and warns the user about the conflict.
  */
 
 import fs from 'node:fs';
@@ -96,9 +96,9 @@ function readOpenClawConfig(): OpenClawConfig | null {
 }
 
 /**
- * Check if OpenClaw Lark channel conflicts with AionUi credentials
+ * Check if OpenClaw Lark channel conflicts with LokSystem credentials
  */
-export function detectLarkConflict(aionuiAppId: string): ConflictInfo | null {
+export function detectLarkConflict(loksystemAppId: string): ConflictInfo | null {
   const config = readOpenClawConfig();
   if (!config?.channels?.feishu) {
     return null;
@@ -111,15 +111,15 @@ export function detectLarkConflict(aionuiAppId: string): ConflictInfo | null {
 
   // Check all accounts
   for (const [accountName, account] of Object.entries(feishu.accounts)) {
-    if (account.enabled && account.appId === aionuiAppId) {
+    if (account.enabled && account.appId === loksystemAppId) {
       console.warn(
-        `[OpenClawConflictDetector] Lark conflict detected: OpenClaw account "${accountName}" uses same appId: ${aionuiAppId}`
+        `[OpenClawConflictDetector] Lark conflict detected: OpenClaw account "${accountName}" uses same appId: ${loksystemAppId}`
       );
       return {
         platform: 'lark',
         openclawEnabled: true,
         credentialMatch: true,
-        openclawCredential: aionuiAppId,
+        openclawCredential: loksystemAppId,
       };
     }
   }
@@ -128,9 +128,9 @@ export function detectLarkConflict(aionuiAppId: string): ConflictInfo | null {
 }
 
 /**
- * Check if OpenClaw Telegram channel conflicts with AionUi credentials
+ * Check if OpenClaw Telegram channel conflicts with LokSystem credentials
  */
-export function detectTelegramConflict(aionuiBotToken: string): ConflictInfo | null {
+export function detectTelegramConflict(loksystemBotToken: string): ConflictInfo | null {
   const config = readOpenClawConfig();
   if (!config?.channels?.telegram) {
     return null;
@@ -141,13 +141,13 @@ export function detectTelegramConflict(aionuiBotToken: string): ConflictInfo | n
     return null;
   }
 
-  if (telegram.botToken === aionuiBotToken) {
+  if (telegram.botToken === loksystemBotToken) {
     console.warn(`[OpenClawConflictDetector] Telegram conflict detected: OpenClaw uses same bot token`);
     return {
       platform: 'telegram',
       openclawEnabled: true,
       credentialMatch: true,
-      openclawCredential: aionuiBotToken.substring(0, 20) + '...',
+      openclawCredential: loksystemBotToken.substring(0, 20) + '...',
     };
   }
 
@@ -184,10 +184,10 @@ export function getConflictResolutionSteps(platform: 'lark' | 'telegram'): strin
   const platformName = platform === 'lark' ? 'Feishu' : 'Telegram';
 
   return [
-    `Detected conflict: OpenClaw ${platformName} channel is using the same credentials as AionUi.`,
+    `Detected conflict: OpenClaw ${platformName} channel is using the same credentials as LokSystem.`,
     ``,
-    `This means messages are being handled by OpenClaw, not AionUi Channels.`,
-    `Switching agents in AionUi will have no effect.`,
+    `This means messages are being handled by OpenClaw, not LokSystem Channels.`,
+    `Switching agents in LokSystem will have no effect.`,
     ``,
     `To fix this, choose one:`,
     ``,
@@ -198,11 +198,11 @@ export function getConflictResolutionSteps(platform: 'lark' | 'telegram'): strin
     ``,
     `Option 2: Use different credentials`,
     `  - Create a new ${platformName} bot`,
-    `  - Configure it in AionUi Channels`,
+    `  - Configure it in LokSystem Channels`,
     `  - Keep OpenClaw ${platformName} channel for other use`,
     ``,
     `Option 3: Use OpenClaw for ${platformName}`,
-    `  - Disable ${platformName} in AionUi Channels`,
+    `  - Disable ${platformName} in LokSystem Channels`,
     `  - Use OpenClaw's native ${platformName} integration`,
   ];
 }

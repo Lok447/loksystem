@@ -150,9 +150,6 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           input: {
             index: resolve('src/preload/main.ts'),
-            petPreload: resolve('src/preload/petPreload.ts'),
-            petHitPreload: resolve('src/preload/petHitPreload.ts'),
-            petConfirmPreload: resolve('src/preload/petConfirmPreload.ts'),
             ambientPreload: resolve('src/preload/ambientPreload.ts'),
           },
         },
@@ -164,7 +161,7 @@ export default defineConfig(({ mode }) => {
       publicDir: resolve('public'),
       appType: 'mpa',
       server: {
-        // Default to 5173; when occupied (e.g. another AionUi clone is running),
+        // Default to 5173; when occupied (e.g. another LokSystem clone is running),
         // Vite auto-increments to the next available port.
         // electron-vite reads the actual port and sets ELECTRON_RENDERER_URL accordingly.
         port: 5173,
@@ -203,9 +200,6 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           input: {
             index: resolve('src/renderer/index.html'),
-            pet: resolve('src/renderer/pet/pet.html'),
-            'pet-hit': resolve('src/renderer/pet/pet-hit.html'),
-            'pet-confirm': resolve('src/renderer/pet/pet-confirm.html'),
             'ambient/bubble': resolve('src/renderer/ambient/bubble.html'),
           },
           external: ['node:crypto', 'crypto'],
@@ -252,7 +246,7 @@ export default defineConfig(({ mode }) => {
       define: {
         'process.env.NODE_ENV': JSON.stringify(mode),
         'process.env.env': JSON.stringify(process.env.env),
-        'process.env.AIONUI_MULTI_INSTANCE': JSON.stringify(process.env.AIONUI_MULTI_INSTANCE ?? ''),
+        'process.env.LOKSYSTEM_MULTI_INSTANCE': JSON.stringify(process.env.LOKSYSTEM_MULTI_INSTANCE ?? ''),
         'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
         global: 'globalThis',
       },

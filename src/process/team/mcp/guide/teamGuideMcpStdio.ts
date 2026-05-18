@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  *
  * Standalone stdio MCP server for Aion team-guide tools.
@@ -81,7 +81,7 @@ function createAionTool(
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 
-const server = new McpServer({ name: 'aionui-team-guide', version: '1.0.0' }, { capabilities: { tools: {} } });
+const server = new McpServer({ name: 'loksystem-team-guide', version: '1.0.0' }, { capabilities: { tools: {} } });
 
 // ---- aion_create_team ----
 createAionTool(

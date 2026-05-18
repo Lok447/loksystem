@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -35,7 +35,7 @@ export interface ImageGenerationToolParams {
 }
 
 export class ImageGenerationTool extends BaseDeclarativeTool<ImageGenerationToolParams, ToolResult> {
-  static readonly Name: string = 'aionui_image_generation';
+  static readonly Name: string = 'loksystem_image_generation';
 
   constructor(
     private readonly config: Config,

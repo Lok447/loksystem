@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -252,7 +252,7 @@ export class PluginManager {
    * Build plugin status object
    */
   private buildPluginStatus(config: IChannelPluginConfig): IChannelPluginStatus {
-    const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'weixin', 'wecom', 'slack', 'discord']);
+    const BUILTIN_TYPES = new Set(['lark', 'dingtalk', 'weixin', 'wecom']);
     const plugin = this.plugins.get(config.id);
     const botInfo = plugin?.getBotInfo();
 

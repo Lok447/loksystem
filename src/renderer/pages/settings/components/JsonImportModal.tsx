@@ -89,7 +89,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
 
   /**
    * Parse transport config from JSON server config.
-   * Supports both "type" field (standard) and "transport" field (Gemini CLI format).
+   * Supports both "type" field (standard) and "transport" field (legacy CLI format).
    */
   const parseTransport = (serverConfig: JsonServerConfig): IMcpServerTransport => {
     if (serverConfig.command) {
@@ -102,7 +102,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
     }
 
     // Check both "type" and "transport" fields for transport type detection
-    // Gemini CLI uses "transport" field, standard format uses "type" field
+    // Legacy CLI configs use "transport" field, standard format uses "type" field
     const transportType = serverConfig.type || serverConfig.transport;
 
     if (transportType === 'sse' || serverConfig.url?.includes('/sse')) {

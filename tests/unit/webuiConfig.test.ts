@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -142,7 +142,7 @@ describe('webuiConfig module', () => {
     });
 
     it('should fallback to env variable', async () => {
-      process.env.AIONUI_PORT = '7070';
+      process.env.LOKSYSTEM_PORT = '7070';
       const { resolveWebUIPort } = await import('@process/utils/webuiConfig');
 
       expect(resolveWebUIPort({}, () => undefined)).toBe(7070);
@@ -169,14 +169,14 @@ describe('webuiConfig module', () => {
     });
 
     it('should return true when env says allow remote', async () => {
-      process.env.AIONUI_ALLOW_REMOTE = '1';
+      process.env.LOKSYSTEM_ALLOW_REMOTE = '1';
       const { resolveRemoteAccess } = await import('@process/utils/webuiConfig');
 
       expect(resolveRemoteAccess({}, false)).toBe(true);
     });
 
     it('should return true when host is 0.0.0.0', async () => {
-      process.env.AIONUI_HOST = '0.0.0.0';
+      process.env.LOKSYSTEM_HOST = '0.0.0.0';
       const { resolveRemoteAccess } = await import('@process/utils/webuiConfig');
 
       expect(resolveRemoteAccess({}, false)).toBe(true);

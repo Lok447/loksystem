@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -33,7 +33,7 @@ const AionrsSettings: React.FC = () => {
     <SettingsPageWrapper>
       <div className='flex flex-col gap-16px'>
         <Typography.Title heading={5} className='!mb-0'>
-          Aion CLI
+          Lok CLI
         </Typography.Title>
 
         {/* Status */}
@@ -64,7 +64,7 @@ const AionrsSettings: React.FC = () => {
         <Typography.Text type='secondary' className='text-12px'>
           {t('settings.aionrs.providerNote', {
             defaultValue:
-              'Provider and API key settings are managed in the Models page. Aion CLI supports: Anthropic, OpenAI, AWS Bedrock.',
+              'Provider and API key settings are managed in the Models page. Lok CLI supports domestic model providers and OpenAI-compatible endpoints.',
           })}
         </Typography.Text>
       </div>

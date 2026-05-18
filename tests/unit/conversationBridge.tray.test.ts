@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -43,11 +43,11 @@ const {
     mockRefreshTrayMenu: vi.fn(async () => {}),
     mockRemoveFromMessageCache: vi.fn(),
     mockConversationService: {
-      createConversation: vi.fn(async () => ({ id: 'conv-created', name: 'Created Conversation', source: 'aionui' })),
+      createConversation: vi.fn(async () => ({ id: 'conv-created', name: 'Created Conversation', source: 'loksystem' })),
       deleteConversation: vi.fn(async () => {}),
       updateConversation: vi.fn(async () => {}),
-      getConversation: vi.fn(async () => ({ id: 'conv-1', source: 'aionui', name: 'Original Name', type: 'gemini' })),
-      createWithMigration: vi.fn(async () => ({ id: 'conv-migrated', source: 'aionui' })),
+      getConversation: vi.fn(async () => ({ id: 'conv-1', source: 'loksystem', name: 'Original Name', type: 'gemini' })),
+      createWithMigration: vi.fn(async () => ({ id: 'conv-migrated', source: 'loksystem' })),
     },
     mockWorkerTaskManager: {
       getTask: vi.fn(),
@@ -176,7 +176,7 @@ describe('conversationBridge tray sync', () => {
 
     const result = await createProvider({ type: 'gemini' });
 
-    expect(result).toEqual({ id: 'conv-created', name: 'Created Conversation', source: 'aionui' });
+    expect(result).toEqual({ id: 'conv-created', name: 'Created Conversation', source: 'loksystem' });
     expect(mockConversationService.createConversation).toHaveBeenCalledOnce();
     expect(mockRefreshTrayMenu).toHaveBeenCalledOnce();
   });

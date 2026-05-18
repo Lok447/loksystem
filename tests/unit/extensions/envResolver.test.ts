@@ -1,11 +1,11 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AIONUI_STRICT_ENV_ENV } from '../../../src/process/extensions/constants';
+import { LOKSYSTEM_STRICT_ENV_ENV } from '../../../src/process/extensions/constants';
 import {
   UndefinedEnvVariableError,
   clearStrictModeCache,
@@ -83,12 +83,12 @@ describe('extensions/envResolver', () => {
   });
 
   it('全局严格模式应缓存并可通过 clearStrictModeCache 失效', () => {
-    process.env[AIONUI_STRICT_ENV_ENV] = '1';
+    process.env[LOKSYSTEM_STRICT_ENV_ENV] = '1';
     clearStrictModeCache();
 
     expect(isGlobalStrictMode()).toBe(true);
 
-    process.env[AIONUI_STRICT_ENV_ENV] = '0';
+    process.env[LOKSYSTEM_STRICT_ENV_ENV] = '0';
     // 仍使用缓存值
     expect(isGlobalStrictMode()).toBe(true);
 

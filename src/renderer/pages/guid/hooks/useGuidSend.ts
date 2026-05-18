@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -343,7 +343,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         });
 
         if (!conversation || !conversation.id) {
-          alert('Failed to create Aion CLI conversation. Please ensure aionrs is installed.');
+          alert('Failed to create Lok CLI conversation. Please ensure aionrs is installed.');
           return;
         }
 
@@ -364,7 +364,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        alert(`Failed to create Aion CLI conversation: ${errorMessage}`);
+        alert(`Failed to create Lok CLI conversation: ${errorMessage}`);
         throw error;
       }
       return;

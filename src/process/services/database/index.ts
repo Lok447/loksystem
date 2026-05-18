@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -104,7 +104,7 @@ const extractSearchPreviewText = (rawContent: string): string => {
 };
 
 /**
- * Main database class for AionUi
+ * Main database class for LokSystem
  * Uses a pluggable ISqliteDriver for SQLite operations
  */
 export class AionUIDatabase {
@@ -1686,7 +1686,7 @@ let dbInstancePromise: Promise<AionUIDatabase> | null = null;
 let dbResolved: AionUIDatabase | null = null;
 
 function resolveDbPath(): string {
-  return path.join(getDataPath(), 'aionui.db');
+  return path.join(getDataPath(), 'loksystem.db');
 }
 
 export function getDatabase(): Promise<AionUIDatabase> {

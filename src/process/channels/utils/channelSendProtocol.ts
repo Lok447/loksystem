@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +10,7 @@ import { existsSync, lstatSync, realpathSync, statSync } from 'fs';
 import { getDatabase } from '@process/services/database';
 import { getConfigPath, getDataPath } from '@process/utils';
 
-const CHANNEL_SEND_BLOCK_RE = /\[AIONUI_CHANNEL_SEND\]\s*([\s\S]*?)\s*\[\/AIONUI_CHANNEL_SEND\]/g;
+const CHANNEL_SEND_BLOCK_RE = /\[LOKSYSTEM_CHANNEL_SEND\]\s*([\s\S]*?)\s*\[\/LOKSYSTEM_CHANNEL_SEND\]/g;
 const MAX_MEDIA_BYTES = 200 * 1024 * 1024;
 const TEMP_WORKSPACE_REGEX = /-temp-\d+$/i;
 

@@ -120,7 +120,7 @@ LobeHub 按独立市场拆分，每种类型一个 index repo：
 ```mermaid
 flowchart LR
   subgraph current["现有能力"]
-    LocalScan["本地目录扫描\nenv / ~/.aionui/ / appdata"]
+    LocalScan["本地目录扫描\nenv / ~/.loksystem/ / appdata"]
     ManifestParse["Manifest 解析\nZod 校验"]
     EngineCheck["引擎兼容性\nsemver 校验"]
   end

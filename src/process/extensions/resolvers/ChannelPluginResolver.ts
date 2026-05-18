@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,7 +12,7 @@ import { isPathWithinDirectory } from '../sandbox/pathSafety';
 import { resolveRuntimeEntryPath } from './utils/entryPointResolver';
 import { toAssetUrl } from '../protocol/assetProtocol';
 
-const DEBUG_ENABLED = process.env.AIONUI_EXTENSION_DEBUG === '1' || process.env.AIONUI_EXTENSION_DEBUG === 'true';
+const DEBUG_ENABLED = process.env.LOKSYSTEM_EXTENSION_DEBUG === '1' || process.env.LOKSYSTEM_EXTENSION_DEBUG === 'true';
 
 function logSecurity(message: string): void {
   if (DEBUG_ENABLED) {

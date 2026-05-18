@@ -32,7 +32,7 @@ async function loadModuleWithArgs(args: string[], platform: NodeJS.Platform): Pr
       hasSwitch: vi.fn().mockReturnValue(false),
       getSwitchValue: vi.fn().mockReturnValue(''),
     },
-    getPath: vi.fn().mockReturnValue('/tmp/aionui-test-userdata'),
+    getPath: vi.fn().mockReturnValue('/tmp/loksystem-test-userdata'),
     setName: vi.fn(),
     setPath: vi.fn(),
   };

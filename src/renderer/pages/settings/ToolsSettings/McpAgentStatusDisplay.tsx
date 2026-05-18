@@ -3,6 +3,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import { Tag, Tooltip } from '@arco-design/web-react';
 import { LoadingOne } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
+import { filterVisibleMcpAgentNames } from '@/renderer/hooks/mcp/mcpAgentFilter';
 
 interface McpAgentStatusDisplayProps {
   serverName: string;
@@ -18,7 +19,7 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({
   isLoadingAgentStatus,
   alwaysVisible = false,
 }) => {
-  const agents = agentInstallStatus[serverName] || [];
+  const agents = filterVisibleMcpAgentNames(agentInstallStatus[serverName] || []);
   const agentsKey = useMemo(() => agents.join('|'), [agents]);
   const [isAlwaysVisibleAnimatedIn, setIsAlwaysVisibleAnimatedIn] = useState(!alwaysVisible);
 

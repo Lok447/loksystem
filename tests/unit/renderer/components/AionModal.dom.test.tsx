@@ -70,7 +70,7 @@ describe('AionModal', () => {
       </AionModal>
     );
 
-    const body = container.querySelector('.aionui-modal-body-content');
+    const body = container.querySelector('.loksystem-modal-body-content');
 
     expect(body).toBeTruthy();
     expect(body).toHaveStyle({ background: 'var(--dialog-fill-0)' });
@@ -83,7 +83,7 @@ describe('AionModal', () => {
       </AionModal>
     );
 
-    const body = container.querySelector('.aionui-modal-body-content');
+    const body = container.querySelector('.loksystem-modal-body-content');
 
     expect(body).toBeTruthy();
     expect(body).toHaveStyle({ background: 'rgb(var(--primary-1))' });

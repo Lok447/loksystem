@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -95,7 +95,7 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
   // aionrs supports all platforms via OpenAI-compatible protocol
   const provider = providers.find((p) => p.enabled !== false);
   if (!provider) {
-    throw new Error('No enabled model provider for Aion CLI');
+    throw new Error('No enabled model provider for Lok CLI');
   }
 
   const enabledModel = provider.model.find((m) => provider.modelEnabled?.[m] !== false);
@@ -219,7 +219,7 @@ export async function buildPresetAssistantParams(
   workspace: string,
   language: string
 ): Promise<ICreateConversationParams> {
-  const { customAgentId, presetAgentType = 'gemini' } = agent;
+  const { customAgentId, presetAgentType = 'hermes' } = agent;
 
   // [BUG-2] Map raw i18n.language to standard locale key
   const localeKey = resolveLocaleKey(language);

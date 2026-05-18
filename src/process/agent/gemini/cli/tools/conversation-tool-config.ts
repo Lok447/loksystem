@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -47,7 +47,7 @@ export class ConversationToolConfig {
    * @param authType 认证类型（平台类型）
    */
   async initializeForConversation(authType: AuthType): Promise<void> {
-    // 所有模型都使用 aionui_web_fetch 替换内置的 web_fetch
+    // 所有模型都使用 loksystem_web_fetch 替换内置的 web_fetch
     this.useAionuiWebFetch = true;
     this.excludeTools.push('web_fetch');
 
@@ -141,7 +141,7 @@ export class ConversationToolConfig {
   async registerCustomTools(config: Config, geminiClient: GeminiClient): Promise<void> {
     const toolRegistry = await config.getToolRegistry();
 
-    // 注册 aionui_web_fetch 工具（所有模型）
+    // 注册 loksystem_web_fetch 工具（所有模型）
     if (this.useAionuiWebFetch) {
       const customWebFetchTool = new WebFetchTool(geminiClient, config.getMessageBus());
       toolRegistry.registerTool(customWebFetchTool);

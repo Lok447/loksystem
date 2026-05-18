@@ -161,7 +161,7 @@ function downloadAndExtract(platform, arch, tag) {
   }
 
   const url = getDownloadUrl(assetName, tag);
-  const tempDir = path.join(os.tmpdir(), 'aionui-aionrs', tag, `${platform}-${arch}`);
+  const tempDir = path.join(os.tmpdir(), 'loksystem-aionrs', tag, `${platform}-${arch}`);
   const archivePath = path.join(tempDir, assetName);
   const extractDir = path.join(tempDir, 'extracted');
 

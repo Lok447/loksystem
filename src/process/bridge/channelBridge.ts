@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -33,7 +33,8 @@ export function initChannelBridge(channelRepo: IChannelRepository): void {
    */
   channel.getPluginStatus.provider(async () => {
     try {
-      const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord', 'weixin', 'wecom']);
+      const BUILTIN_TYPES = new Set(['lark', 'dingtalk', 'weixin', 'wecom']);
+      const REMOVED_TYPES = new Set(['telegram', 'slack', 'discord']);
 
       let dbPlugins: import('@process/channels/types').IChannelPluginConfig[] = [];
       try {
@@ -94,6 +95,9 @@ export function initChannelBridge(channelRepo: IChannelRepository): void {
       const statusMap = new Map<string, IChannelPluginStatus>();
 
       for (const plugin of dbPlugins) {
+        if (REMOVED_TYPES.has(plugin.type)) {
+          continue;
+        }
         const isExtension = !BUILTIN_TYPES.has(plugin.type);
 
         // Skip extension channels whose parent extension is not loaded/enabled
@@ -139,12 +143,10 @@ export function initChannelBridge(channelRepo: IChannelRepository): void {
       // Ensure builtin channel types are always visible in settings
       // even before user configures them (i.e. not yet persisted in DB).
       const BUILTIN_NAMES: Record<string, string> = {
-        telegram: 'Telegram',
         lark: 'Lark',
         dingtalk: 'DingTalk',
-        slack: 'Slack',
-        discord: 'Discord',
         weixin: 'WeChat',
+        wecom: 'WeCom',
       };
       for (const builtinType of BUILTIN_TYPES) {
         if (statusMap.has(builtinType)) continue;

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,7 +12,7 @@ import { useCallback, useEffect, useState } from 'react';
 export type ColorScheme = 'default';
 
 const DEFAULT_COLOR_SCHEME: ColorScheme = 'default';
-const COLOR_SCHEME_CACHE_KEY = '__aionui_colorScheme';
+const COLOR_SCHEME_CACHE_KEY = '__loksystem_colorScheme';
 
 /**
  * Initialize color scheme immediately when module loads

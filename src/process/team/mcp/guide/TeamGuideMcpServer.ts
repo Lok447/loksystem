@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -80,7 +80,7 @@ export class TeamGuideMcpServer {
   getStdioConfig(): StdioMcpConfig {
     const scriptPath = path.join(resolveMcpScriptDir(), 'team-guide-mcp-stdio.js');
     return {
-      name: 'aionui-team-guide',
+      name: 'loksystem-team-guide',
       command: 'node',
       args: [scriptPath],
       env: [
@@ -223,7 +223,7 @@ export class TeamGuideMcpServer {
       ipcBridge.conversation.listChanged.emit({
         conversationId: callerConversationId,
         action: 'updated',
-        source: 'aionui',
+        source: 'loksystem',
       });
     }
 

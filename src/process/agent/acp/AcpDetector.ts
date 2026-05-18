@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -215,7 +215,7 @@ class AcpDetector {
       }
 
       // Extension adapters are trusted — skip CLI availability check.
-      // They declare a defaultCliPath (e.g. "bunx @augmentcode/auggie") as fallback,
+      // They declare a defaultCliPath as fallback,
       // so the CLI doesn't need to be on PATH.
       return candidates.map((c) => c.agent);
     } catch (error) {

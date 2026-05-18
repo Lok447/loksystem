@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -27,7 +27,7 @@ export type UseConversationAgentsResult = {
  */
 function configToAvailableAgent(config: AcpBackendConfig): AvailableAgent {
   return {
-    backend: config.presetAgentType || 'gemini',
+    backend: config.presetAgentType || 'hermes',
     name: config.name,
     customAgentId: config.id,
     isPreset: true,

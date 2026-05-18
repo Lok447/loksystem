@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -40,8 +40,8 @@ describe('buildDisplayMessage', () => {
     expect(result).toBe('hello');
   });
 
-  it('strips AIONUI timestamp separators from filenames while keeping prefix', () => {
-    const files = [`${workspace}/uploads/photo_aionui_1234567890123.jpg`];
+  it('strips LOKSYSTEM timestamp separators from filenames while keeping prefix', () => {
+    const files = [`${workspace}/uploads/photo_loksystem_1234567890123.jpg`];
     const result = buildDisplayMessage('hello', files, workspace);
     expect(result).toContain(`${workspace}/uploads/photo.jpg`);
   });

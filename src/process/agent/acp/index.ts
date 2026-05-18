@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -1517,10 +1517,10 @@ export class AcpAgent {
     const resumeConversationId = this.extra.acpSessionConversationId;
     const mcpServers = await this.loadBuiltinSessionMcpServers();
 
-    // Derive teamId from injected team MCP server name (format: aionui-team-<teamId>)
+    // Derive teamId from injected team MCP server name (format: loksystem-team-<teamId>)
     // Only emit MCP status events when running inside a team session.
     const teamMcpName = this.extra.teamMcpStdioConfig?.name;
-    const teamId = teamMcpName?.startsWith('aionui-team-') ? teamMcpName.slice('aionui-team-'.length) : undefined;
+    const teamId = teamMcpName?.startsWith('loksystem-team-') ? teamMcpName.slice('loksystem-team-'.length) : undefined;
     const slotId = this.id;
 
     const emitMcpStatus = teamId
@@ -1645,8 +1645,8 @@ export class AcpAgent {
       console.warn(`[ACP ${this.extra.backend}] Failed to load built-in MCP config for session/new:`, errMsg);
       const mcpName = this.extra.teamMcpStdioConfig?.name;
       const tId =
-        typeof mcpName === 'string' && mcpName.startsWith('aionui-team-')
-          ? mcpName.slice('aionui-team-'.length)
+        typeof mcpName === 'string' && mcpName.startsWith('loksystem-team-')
+          ? mcpName.slice('loksystem-team-'.length)
           : undefined;
       if (tId) {
         ipcBridge.team.mcpStatus.emit({ teamId: tId, slotId: this.id, phase: 'load_failed', error: errMsg });

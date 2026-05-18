@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -144,7 +144,7 @@ describe('RemoteAgentManagement', () => {
     fireEvent.click(screen.getByText('settings.remoteAgent.guideAction'));
 
     expect(mockOpenExternalUrl).toHaveBeenCalledWith(
-      'https://github.com/iOfficeAI/AionUi/wiki/Remote-Agent-Guide-Chinese'
+      'https://github.com/iOfficeAI/LokSystem/wiki/Remote-Agent-Guide-Chinese'
     );
   });
 

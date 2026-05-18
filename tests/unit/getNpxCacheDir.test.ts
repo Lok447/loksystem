@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -69,7 +69,7 @@ describe('getNpxCacheDir', () => {
 
   it('returns ~/.npm-cache/_npx on POSIX when the newer cache dir exists', async () => {
     Object.defineProperty(process, 'platform', { value: 'darwin' });
-    const tempHome = mkdtempSync(path.join(os.tmpdir(), 'aionui-home-'));
+    const tempHome = mkdtempSync(path.join(os.tmpdir(), 'loksystem-home-'));
     mkdirSync(path.join(tempHome, '.npm-cache'), { recursive: true });
 
     try {
@@ -99,7 +99,7 @@ describe('getNpxCacheDir', () => {
 
   it('falls back to ~/.npm/_npx on POSIX when only the legacy .npm cache exists', async () => {
     Object.defineProperty(process, 'platform', { value: 'darwin' });
-    const tempHome = mkdtempSync(path.join(os.tmpdir(), 'aionui-home-'));
+    const tempHome = mkdtempSync(path.join(os.tmpdir(), 'loksystem-home-'));
     mkdirSync(path.join(tempHome, '.npm'), { recursive: true });
 
     try {

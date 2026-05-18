@@ -9,7 +9,7 @@
 - 将 Hermes v13.0 作为 LokSystem 默认本地核心 Agent。
 - 以 `Lok CLI` 作为 Hermes 在界面和 Agent 注册层的显示名称。
 - 保留国内及主流开源 CLI，如 Qwen、CodeBuddy、Kimi、OpenCode、OpenClaw、Codex 等。
-- 禁用并隐藏用户明确要求移除的默认国外 CLI 入口：Gemini、Claude、Aionrs/Aion CLI。
+- 禁用并隐藏用户明确要求移除的默认国外 CLI 入口：Gemini、Claude、Aionrs（旧默认 CLI）。
 - 保持助手创建和团队协作能力继续基于 ACP 抽象层工作，并默认使用 Hermes/Lok CLI。
 
 ### 核心变更
@@ -61,6 +61,7 @@
 - 类型检查：
   - `npx tsc --noEmit`
   - 结果：通过。
+
 - 构建：
   - `npm run package`
   - 结果：通过。
@@ -98,3 +99,83 @@
 - 类型检查：
   - `npx tsc --noEmit`
   - 结果：通过。
+
+## Phase 2 - UI / 品牌 / 功能删除改造
+
+日期：2026-05-19
+
+### 改造目标
+
+- 完成产品品牌从 `AionUi` 到 `LokSystem`、从 `Aion CLI` 到 `Lok CLI` 的界面与文案替换。
+- 删除用户明确要求移除的国外 CLI、市场安装、反馈、问题报告、远程连接、CSS 设置、桌面宠物和国外 WebUI Channel 入口。
+- 保留 Lok CLI/Hermes 主线、国内 CLI、OpenCode/OpenClaw 等可切换能力。
+- 保留“发现外部技能”能力模块，只隐藏 `Gemini CLI`、`Claude Code` 等国外来源按钮，避免影响本地技能发现链路。
+
+### 主聊天页面改造
+
+- 全局硬编码品牌文案已替换为 `LokSystem` / `Lok CLI`。
+- 删除 Header 中的 `AionUi Skills Market` 入口。
+- 删除 Header 中的“远程连接”入口。
+- 删除 Footer 中“想吐槽或提建议？”、“喜欢我们？点个星吧”等按钮。
+- 删除问题报告/反馈弹窗入口及相关调用，避免界面残留。
+
+### 设置页面改造
+
+- 删除 Gemini CLI 设置页面入口与 `GeminiSettings.tsx` 页面。
+- 删除 CSS 设置功能界面入口，保留底层 UnoCSS/主题能力配置。
+- 删除桌面宠物设置页、渲染入口、preload 文件和主进程宠物管理模块。
+- 删除 Agent 设置页“从市场安装”模块，并删除 `AgentHubModal.tsx`。
+- 设置 - Agents / 能力扩展列表中过滤 Gemini、Claude、Anthropic、Aion CLI 等国外 CLI 展示入口。
+- 模型平台列表按需求保留 OpenRouter、DeepSeek、MiniMax、Novita、Dashscope、SiliconFlow、Zhipu、Moonshot (China)、Ark、Qianfan、Hunyuan，并保留 OpenAI 兼容层。
+- 关于页面已重新排版，仅保留“联系我”和“官网”两个必要入口。
+
+### 能力扩展与外部技能
+
+- 新增 MCP/Agent 展示过滤逻辑，避免 Gemini CLI、Claude Code、Anthropic、Aion CLI 在能力扩展、MCP 状态、添加 MCP 弹窗中出现。
+- 根据复核要求回退“发现外部技能”能力模块删除动作，继续保留外部技能扫描与发现能力。
+- 外部技能最终策略调整为：后端继续扫描 `~/.gemini/skills`、`~/.claude/skills` 等目录，前端隐藏 `Gemini CLI`、`Claude Code` 来源按钮。
+- 新增外部技能来源过滤工具，供设置页和助手添加技能弹窗复用，保证界面不展示国外 CLI 按钮但不破坏技能发现能力。
+
+### WebUI / Channel 改造
+
+- 设置 - WebUI - Channel 仅保留 Lark/Feishu、DingTalk、WeChat、WeCom 等国内/本地可控渠道。
+- 删除 Telegram、Slack、Discord 相关界面卡片、Tab、图标和配置入口。
+- 删除 Telegram 配置表单与后端 Telegram 插件注册，移除 Telegram 插件实现文件。
+- Channel 管理与桥接层同步移除国外 Channel 的默认注册与展示路径。
+
+### 定时任务、助手与团队
+
+- 定时任务页面描述从 “AionUi 帮你创建” 调整为 “LokSystem 帮你创建”。
+- 创建助手、编辑助手、复制助手的默认主代理回退值统一为 `hermes`。
+- 预设助手启动链路改为通过内置后端配置解析 Hermes/Lok CLI，避免使用旧的 `gemini` 默认值。
+- 团队协作和助手能力继续复用 ACP 抽象层，Hermes/Lok CLI 可作为 Leader 或成员代理参与协作。
+
+### 问题修复记录
+
+- 修复 Lok CLI 聊天上传文件后只能显示图标、发送后无法读取附件内容的问题。
+  - `InputPreprocessor` 改为异步读取并解析 Office/PDF 等附件内容。
+  - `AcpSession` 发送用户消息前等待附件预处理完成。
+- 修复创建助手后进入指定助手聊天窗口时报 `Session failed to start` 的问题。
+  - `AcpAgentManager` 支持通过内置助手配置解析 preset assistant，并回退到 Hermes/Lok CLI 可执行路径。
+  - 渲染端默认 agent 类型从旧 `gemini` 路径统一切换到 `hermes`。
+
+### 验证记录
+
+- UI 手动验收：
+  - 主聊天页确认无 Skills Market、反馈/问题报告、GitHub Star、远程连接入口。
+  - 设置 - Agents / 能力扩展确认保留 Lok CLI、国内 CLI、OpenCode/OpenClaw 等入口，隐藏 Gemini CLI、Claude Code 等国外按钮。
+  - 设置 - 模型确认仅展示需求指定的平台与 OpenAI 兼容层。
+  - 设置 - WebUI - Channel 确认仅展示 Lark/Feishu、DingTalk、WeChat、WeCom。
+  - 关于页确认仅保留“联系我”和“官网”。
+- 目标单测：
+  - `npx vitest run tests/unit/process/acp/session/InputPreprocessor.test.ts`
+  - `npx vitest run tests/unit/renderer/conversation/useConversationAgents.dom.test.ts tests/unit/createConversationParams.test.ts tests/unit/process/acp/session/InputPreprocessor.test.ts`
+- 构建验证：
+  - `npm run package`
+  - 结果：通过；仅存在 Vite chunk/dynamic import 相关已知警告，不影响阶段二验收。
+
+### 当前验收结论
+
+- Phase 2 UI / 品牌 / 功能删除改造已完成，并经过手动 UI 验收、目标单测和打包构建验证。
+- “发现外部技能”模块按用户最新要求保留，界面仅去除 Gemini CLI、Claude Code 等国外按钮。
+- 阶段二已满足进入第三阶段 Hermes 深度集成优化的前置条件。

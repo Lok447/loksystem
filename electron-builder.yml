@@ -1,12 +1,12 @@
-appId: com.aionui.app
-productName: AionUi
-executableName: AionUi
-copyright: Copyright © 2024 AionUi
+appId: com.loksystem.app
+productName: LokSystem
+executableName: LokSystem
+copyright: Copyright © 2024 LokSystem
 
 protocols:
-  - name: AionUi Protocol
+  - name: LokSystem Protocol
     schemes:
-      - aionui
+      - loksystem
 
 asar:
   smartUnpack: true
@@ -172,17 +172,17 @@ linux:
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
-  maintainer: aionui
-  vendor: aionui
+  maintainer: loksystem
+  vendor: loksystem
   synopsis: ${description}
   description: ${description}
   desktop:
     entry:
-      Name: AionUi
+      Name: LokSystem
       Comment: ${description}
-      Icon: aionui
+      Icon: loksystem
       Categories: Office;Utility;
-      MimeType: x-scheme-handler/aionui;
+      MimeType: x-scheme-handler/loksystem;
 
 npmRebuild: false
 buildDependenciesFromSource: false
@@ -225,6 +225,6 @@ electronDownload:
 publish:
   provider: github
   owner: iOfficeAI
-  repo: AionUi
+  repo: LokSystem
   publishAutoUpdate: true
   releaseType: release

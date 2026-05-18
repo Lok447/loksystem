@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -209,7 +209,7 @@ const AionrsSendBox: React.FC<{
             conversation_id,
             files,
           });
-          assertBridgeSuccess(result, 'Failed to send message to Aion CLI');
+          assertBridgeSuccess(result, 'Failed to send message to Lok CLI');
         }
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {

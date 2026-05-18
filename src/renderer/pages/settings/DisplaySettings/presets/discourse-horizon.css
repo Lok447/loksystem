@@ -1,4 +1,4 @@
-/* Discourse Horizon Theme - AionUi Adaptation */
+/* Discourse Horizon Theme - LokSystem Adaptation */
 /* Inspired by the official Horizon theme for Discourse */
 /* Spacious surfaces, soft indigo accents, pill controls, and quiet contrast */
 
@@ -1331,78 +1331,78 @@ body {
   border-top: 1px solid color-mix(in srgb, var(--border-base) 82%, transparent) !important;
 }
 
-.aionui-modal:not(.conversation-search-modal) .arco-modal-content {
+.loksystem-modal:not(.conversation-search-modal) .arco-modal-content {
   overflow: visible !important;
   padding-bottom: 12px !important;
   box-sizing: border-box !important;
 }
 
-.aionui-modal:has(.cm-editor),
-.aionui-modal:has(.arco-steps) {
+.loksystem-modal:has(.cm-editor),
+.loksystem-modal:has(.arco-steps) {
   height: auto !important;
   min-height: min(560px, calc(100vh - 32px)) !important;
   max-height: calc(100vh - 32px) !important;
 }
 
-.aionui-modal-wrapper,
-.aionui-modal-wrapper .aionui-modal-title,
-.aionui-modal-wrapper .aionui-modal-body-content,
-.aionui-modal-wrapper .arco-btn,
-.aionui-modal-wrapper .arco-input,
-.aionui-modal-wrapper .arco-textarea,
-.aionui-modal-wrapper .arco-alert,
-.aionui-modal-wrapper .arco-alert-content {
+.loksystem-modal-wrapper,
+.loksystem-modal-wrapper .loksystem-modal-title,
+.loksystem-modal-wrapper .loksystem-modal-body-content,
+.loksystem-modal-wrapper .arco-btn,
+.loksystem-modal-wrapper .arco-input,
+.loksystem-modal-wrapper .arco-textarea,
+.loksystem-modal-wrapper .arco-alert,
+.loksystem-modal-wrapper .arco-alert-content {
   font-family: 'Plus Jakarta Sans', 'Segoe UI Variable', 'Segoe UI', sans-serif !important;
 }
 
-.aionui-modal-wrapper .cm-theme-light,
-.aionui-modal-wrapper .cm-editor,
-.aionui-modal-wrapper .cm-scroller,
-.aionui-modal-wrapper .cm-content,
-.aionui-modal-wrapper .cm-line,
-.aionui-modal-wrapper .cm-gutters {
+.loksystem-modal-wrapper .cm-theme-light,
+.loksystem-modal-wrapper .cm-editor,
+.loksystem-modal-wrapper .cm-scroller,
+.loksystem-modal-wrapper .cm-content,
+.loksystem-modal-wrapper .cm-line,
+.loksystem-modal-wrapper .cm-gutters {
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
 }
 
-.aionui-modal-wrapper .arco-btn {
+.loksystem-modal-wrapper .arco-btn {
   border-radius: 8px !important;
 }
 
-.aionui-modal-wrapper .aionui-modal-body-content .cm-theme-light,
-.aionui-modal-wrapper .aionui-modal-body-content .cm-editor {
+.loksystem-modal-wrapper .loksystem-modal-body-content .cm-theme-light,
+.loksystem-modal-wrapper .loksystem-modal-body-content .cm-editor {
   box-shadow: none !important;
 }
 
-.aionui-modal-wrapper:has(.cm-editor),
-.aionui-modal-wrapper:has(.arco-steps) {
+.loksystem-modal-wrapper:has(.cm-editor),
+.loksystem-modal-wrapper:has(.arco-steps) {
   display: flex;
   flex-direction: column;
   min-height: 0;
   height: 100% !important;
 }
 
-.aionui-modal-wrapper:has(.cm-editor) .aionui-modal-body-content,
-.aionui-modal-wrapper:has(.arco-steps) .aionui-modal-body-content {
+.loksystem-modal-wrapper:has(.cm-editor) .loksystem-modal-body-content,
+.loksystem-modal-wrapper:has(.arco-steps) .loksystem-modal-body-content {
   height: auto !important;
   min-height: 360px;
   padding-bottom: 16px !important;
   overflow: auto !important;
 }
 
-.aionui-modal-wrapper:has(.cm-editor) > .flex-shrink-0.bg-transparent,
-.aionui-modal-wrapper:has(.arco-steps) > .flex-shrink-0.bg-transparent {
+.loksystem-modal-wrapper:has(.cm-editor) > .flex-shrink-0.bg-transparent,
+.loksystem-modal-wrapper:has(.arco-steps) > .flex-shrink-0.bg-transparent {
   margin-top: auto;
   padding-top: 12px;
   padding-bottom: 12px;
 }
 
-.aionui-modal-wrapper:has(.arco-steps) .aionui-modal-body-content > .flex.flex-col {
+.loksystem-modal-wrapper:has(.arco-steps) .loksystem-modal-body-content > .flex.flex-col {
   height: auto !important;
   min-height: 320px;
 }
 
-.aionui-modal-wrapper:has(.arco-steps) .aionui-modal-body-content > .flex.flex-col > .mb-6.flex-1 {
+.loksystem-modal-wrapper:has(.arco-steps) .loksystem-modal-body-content > .flex.flex-col > .mb-6.flex-1 {
   min-height: 220px !important;
   padding-bottom: 8px;
 }
@@ -1544,6 +1544,6 @@ body {
   }
 }
 
-/* AionUi Theme Background Start */
+/* LokSystem Theme Background Start */
 /* Preview cover only: do not auto-inject full-page background image */
-/* AionUi Theme Background End */
+/* LokSystem Theme Background End */

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  *
  * AgentSetupCard - A card component displayed above the SendBox when the current
@@ -28,7 +28,6 @@ import GeminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
 import QwenLogo from '@/renderer/assets/logos/ai-china/qwen.svg';
 import DroidLogo from '@/renderer/assets/logos/brand/droid.svg';
 import GooseLogo from '@/renderer/assets/logos/tools/goose.svg';
-import AuggieLogo from '@/renderer/assets/logos/brand/auggie.svg';
 import KimiLogo from '@/renderer/assets/logos/ai-china/kimi.svg';
 import SnowLogo from '@/renderer/assets/logos/tools/coding/snow.png';
 import { applyDefaultConversationName } from '@/renderer/pages/conversation/utils/newConversationName';
@@ -42,7 +41,6 @@ const AGENT_LOGOS: Partial<Record<AgentBackend, string>> = {
   qwen: QwenLogo,
   droid: DroidLogo,
   goose: GooseLogo,
-  auggie: AuggieLogo,
   kimi: KimiLogo,
   snow: SnowLogo,
 };

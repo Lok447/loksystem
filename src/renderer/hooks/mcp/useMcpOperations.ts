@@ -4,6 +4,7 @@ import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import type { IMcpServer } from '@/common/config/storage';
 import { globalMessageQueue } from './messageQueue';
+import { filterVisibleMcpAgents } from './mcpAgentFilter';
 
 /**
  * 截断过长的错误消息，保持可读性
@@ -103,10 +104,11 @@ export const useMcpOperations = (
     async (serverName: string, successMessage?: string, transportType?: string) => {
       const agentsResponse = await acpConversation.getAvailableAgents.invoke();
       if (agentsResponse.success && agentsResponse.data) {
+        const visibleAgents = filterVisibleMcpAgents(agentsResponse.data);
         // Filter agents by transport type support if transport type is known
         const compatibleCount = transportType
-          ? agentsResponse.data.filter((a) => a.supportedTransports?.includes(transportType)).length
-          : agentsResponse.data.length;
+          ? visibleAgents.filter((a) => a.supportedTransports?.includes(transportType)).length
+          : visibleAgents.length;
 
         // 显示开始移除的消息（通过队列）
         await globalMessageQueue.add(() => {
@@ -115,7 +117,7 @@ export const useMcpOperations = (
 
         const removeResponse = await mcpService.removeMcpFromAgents.invoke({
           mcpServerName: serverName,
-          agents: agentsResponse.data,
+          agents: visibleAgents,
         });
         await handleMcpOperationResult(removeResponse, 'remove', successMessage, true); // 跳过重新检测
       }
@@ -128,10 +130,10 @@ export const useMcpOperations = (
     async (server: IMcpServer, skipRecheck = false) => {
       const agentsResponse = await acpConversation.getAvailableAgents.invoke();
       if (agentsResponse.success && agentsResponse.data) {
+        const visibleAgents = filterVisibleMcpAgents(agentsResponse.data);
         // Filter agents by transport type support to show accurate count
-        const compatibleCount = agentsResponse.data.filter((a) =>
-          a.supportedTransports?.includes(server.transport.type)
-        ).length;
+        const compatibleCount = visibleAgents.filter((a) => a.supportedTransports?.includes(server.transport.type))
+          .length;
 
         // 显示开始同步的消息（通过队列）
         await globalMessageQueue.add(() => {
@@ -140,7 +142,7 @@ export const useMcpOperations = (
 
         const syncResponse = await mcpService.syncMcpToAgents.invoke({
           mcpServers: [server],
-          agents: agentsResponse.data,
+          agents: visibleAgents,
         });
 
         await handleMcpOperationResult(syncResponse, 'sync', undefined, skipRecheck);

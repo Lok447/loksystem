@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="../../resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
+  <img src="../../resources/loksystem-banner-1.png" alt="LokSystem - Cowork with AI Agents" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/iOfficeAI/AionUi?style=flat-square&color=32CD32" alt="Version">
+  <img src="https://img.shields.io/github/v/release/iOfficeAI/LokSystem?style=flat-square&color=32CD32" alt="Version">
   &nbsp;
   <img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="License">
   &nbsp;
@@ -24,13 +24,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/iOfficeAI/AionUi/releases">
+  <a href="https://github.com/iOfficeAI/LokSystem/releases">
     <img src="https://img.shields.io/badge/⬇️%20Baixar%20agora-Última%20versão-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Baixar a última versão" height="50">
   </a>
 </p>
 
 <p align="center">
-  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <strong>Português</strong> | <a href="./readme_tr.md">Türkçe</a> | <a href="./readme_ru.md">Русский</a> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.aionui.com" target="_blank">Site oficial</a>
+  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <strong>Português</strong> | <a href="./readme_tr.md">Türkçe</a> | <a href="./readme_ru.md">Русский</a> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.loksystem.com" target="_blank">Site oficial</a>
 </p>
 
 <p align="center">
@@ -44,7 +44,7 @@
 <p align="center">
 
 [✨ Cowork em ação](#-cowork-em-ação) ·
-[🤔 Por que escolher AionUi?](#-por-que-escolher-aionui-sobre-claude-cowork) ·
+[🤔 Por que escolher LokSystem?](#-por-que-escolher-loksystem-sobre-claude-cowork) ·
 [🚀 Início rápido](#-início-rápido) ·
 [💬 Comunidade](#-comunidade-e-suporte)
 
@@ -54,9 +54,9 @@
 
 ## Cowork — AI Agents que trabalham com você
 
-**AionUi é mais que um cliente de chat.** É uma plataforma Cowork onde os AI Agents trabalham com você no seu computador — lendo arquivos, escrevendo código, navegando na web e automatizando tarefas. Você pode ver tudo que o Agent faz e sempre está no controle.
+**LokSystem é mais que um cliente de chat.** É uma plataforma Cowork onde os AI Agents trabalham com você no seu computador — lendo arquivos, escrevendo código, navegando na web e automatizando tarefas. Você pode ver tudo que o Agent faz e sempre está no controle.
 
-|                                              | Clientes de chat AI tradicionais | **AionUi (Cowork)**                                                                                                                        |
+|                                              | Clientes de chat AI tradicionais | **LokSystem (Cowork)**                                                                                                                        |
 | :------------------------------------------- | :------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------- |
 | AI pode operar em seus arquivos              | Limitado ou Não                  | **Sim — Agent integrado com acesso completo a arquivos**                                                                                   |
 | AI pode executar tarefas de múltiplas etapas | Limitado                         | **Sim — autônomo com sua aprovação**                                                                                                       |
@@ -66,14 +66,14 @@
 | Preço                                        | Grátis / Pago                    | **Gratuito e de código aberto**                                                                                                            |
 
 <p align="center">
-  <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
+  <img src="../../resources/offica-ai BANNER-function.png" alt="LokSystem Cowork Platform" width="800">
 </p>
 
 ---
 
 ## Agent integrado — Instale e use, configuração zero
 
-AionUi vem com um motor de Agent AI completo. Diferente de ferramentas que exigem instalar CLI Agents separadamente, **AionUi funciona no momento em que você o instala**.
+LokSystem vem com um motor de Agent AI completo. Diferente de ferramentas que exigem instalar CLI Agents separadamente, **LokSystem funciona no momento em que você o instala**.
 
 - **Sem ferramentas CLI para instalar** — o motor Agent está integrado
 - **Sem configuração complexa** — faça login com Google ou cole qualquer chave API
@@ -88,9 +88,9 @@ AionUi vem com um motor de Agent AI completo. Diferente de ferramentas que exige
 
 ## Modo Multi-Agent — Já tem CLI Agents? Traga-os
 
-Se você já usa Claude Code, Codex, Hermes Agent ou OpenClaw, AionUi os detecta automaticamente e permite fazer Cowork com todos eles — junto com o Agent integrado.
+Se você já usa Claude Code, Codex, Hermes Agent ou OpenClaw, LokSystem os detecta automaticamente e permite fazer Cowork com todos eles — junto com o Agent integrado.
 
-**Agents compatíveis:** Agent integrado (configuração zero) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, o serviço backend em Rust incluído com o AionUi) • Snow CLI • Kiro • Hermes Agent • Cursor Agent e mais
+**Agents compatíveis:** Agent integrado (configuração zero) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Lok CLI (aionrs, o serviço backend em Rust incluído com o LokSystem) • Snow CLI • Kiro • Hermes Agent • Cursor Agent e mais
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
@@ -107,11 +107,11 @@ Se você já usa Claude Code, Codex, Hermes Agent ou OpenClaw, AionUi os detecta
 Execute múltiplos AI Agents como uma equipe organizada: um agente **Leader** recebe suas instruções, as divide em subtarefas e delega para agentes **Teammate** via um Team MCP Server integrado. Os Teammates executam em paralelo, compartilham resultados através de uma caixa de entrada assíncrona e escrevem em um quadro de tarefas compartilhado.
 
 <p align="center">
-  <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
+  <img src="../../resources/LokSystem_team.gif" alt="Team Mode overview" width="800">
 </p>
 
-- **Execução paralela multi-agent** — Leader divide as tarefas em subtarefas e delega para agentes Teammate que executam em paralelo; cada Teammate usa seu próprio modelo via ACP (Agent Communication Protocol, a camada de coordenação multi-agent do AionUi), Gemini ou Aionrs
-- **Orquestração do Leader** — Leader atribui, rastreia e agrega resultados; backends suportados: Claude Code, Codex, Hermes Agent, Gemini, Snow CLI e Aion CLI
+- **Execução paralela multi-agent** — Leader divide as tarefas em subtarefas e delega para agentes Teammate que executam em paralelo; cada Teammate usa seu próprio modelo via ACP (Agent Communication Protocol, a camada de coordenação multi-agent do LokSystem), Gemini ou Aionrs
+- **Orquestração do Leader** — Leader atribui, rastreia e agrega resultados; backends suportados: Claude Code, Codex, Hermes Agent, Gemini, Snow CLI e Lok CLI
 - **Workspace isolado por equipe** — todos os Agents compartilham a mesma pasta; cada um tem seu próprio diálogo de permissões com badge na barra lateral para aprovações pendentes
 
 <details>
@@ -120,7 +120,7 @@ Execute múltiplos AI Agents como uma equipe organizada: um agente **Leader** re
 <br>
 
 - **Workspace compartilhado** — todos os Agents leem/escrevem na mesma pasta; o painel de arquivos fica visível durante todo o processo
-- **Backends suportados** — Claude Code, Codex, Gemini, Snow CLI, Aion CLI (aionrs); outros backends ACP com `mcpCapabilities.stdio` são suportados automaticamente
+- **Backends suportados** — Claude Code, Codex, Gemini, Snow CLI, Lok CLI (aionrs); outros backends ACP com `mcpCapabilities.stdio` são suportados automaticamente
 - **Escalabilidade dinâmica** — adicione ou remova Teammates enquanto a equipe estiver em execução; agentes silenciosos são automaticamente escalados para falha com remoção em um clique
 - **Permissões granulares** — cada Agent tem seu próprio diálogo de confirmação de permissões; badge na barra lateral mostra aprovações pendentes
 - **Compartilhamento de arquivos** — Leader pode passar anexos de arquivo para Teammates
@@ -131,7 +131,7 @@ Execute múltiplos AI Agents como uma equipe organizada: um agente **Leader** re
 
 ## Qualquer chave API, poder completo do Cowork Agent
 
-Outros apps de AI te dão uma caixa de chat com sua chave API. **AionUi te dá um Cowork Agent completo.**
+Outros apps de AI te dão uma caixa de chat com sua chave API. **LokSystem te dá um Cowork Agent completo.**
 
 | Sua chave API                               | O que você obtém                   |
 | :------------------------------------------ | :--------------------------------- |
@@ -141,7 +141,7 @@ Outros apps de AI te dão uma caixa de chat com sua chave API. **AionUi te dá u
 | Ollama / LM Studio (local)                  | Cowork Agent de modelo local       |
 | NewAPI Gateway                              | Acesso unificado a 20+ modelos     |
 
-As mesmas capacidades do Agent — leitura/escrita de arquivos, busca na web, geração de imagens, uso de ferramentas — independentemente do modelo que o alimenta. AionUi suporta **20+ plataformas AI** incluindo serviços em nuvem e implantações locais.
+As mesmas capacidades do Agent — leitura/escrita de arquivos, busca na web, geração de imagens, uso de ferramentas — independentemente do modelo que o alimenta. LokSystem suporta **20+ plataformas AI** incluindo serviços em nuvem e implantações locais.
 
 <p align="center">
   <img src="../../resources/llm_newapi.png" alt="Multi-Model Support" width="800">
@@ -160,7 +160,7 @@ As mesmas capacidades do Agent — leitura/escrita de arquivos, busca na web, ge
 - **Plataformas internacionais** — DeepSeek, MiniMax, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
 - **Modelos locais** — Ollama, LM Studio (através de plataforma personalizada com endpoint API local)
 
-AionUi também suporta o serviço de gateway [NewAPI](https://github.com/QuantumNous/new-api) — um hub unificado de modelos AI que agrega e distribui vários LLMs. Alterne flexivelmente entre diferentes modelos na mesma interface para atender a vários requisitos de tarefas.
+LokSystem também suporta o serviço de gateway [NewAPI](https://github.com/QuantumNous/new-api) — um hub unificado de modelos AI que agrega e distribui vários LLMs. Alterne flexivelmente entre diferentes modelos na mesma interface para atender a vários requisitos de tarefas.
 
 </details>
 
@@ -171,7 +171,7 @@ AionUi também suporta o serviço de gateway [NewAPI](https://github.com/Quantum
 _Sistema de assistentes extensível com 20 assistentes profissionais integrados e um sistema de habilidades de três camadas. Crie e gerencie seus próprios assistentes e habilidades._
 
 - **Criar assistentes personalizados** — Defina seus próprios assistentes com regras e capacidades personalizadas
-- **Habilidades de três camadas** — Habilidades integradas (incluídas com o AionUi), habilidades personalizadas (suas próprias) e habilidades de Extension (contribuídas por extensões de terceiros); habilite/desabilite por conversa com o indicador de habilidades
+- **Habilidades de três camadas** — Habilidades integradas (incluídas com o LokSystem), habilidades personalizadas (suas próprias) e habilidades de Extension (contribuídas por extensões de terceiros); habilite/desabilite por conversa com o indicador de habilidades
 - **Controle por conversa** — Um indicador de habilidades no cabeçalho do chat mostra as habilidades ativas para a conversa atual; pesquise e exclua habilidades conforme necessário
 
 <p align="center">
@@ -183,7 +183,7 @@ _Sistema de assistentes extensível com 20 assistentes profissionais integrados 
 
 <br>
 
-AionUi inclui **20 assistentes profissionais** com capacidades predefinidas, extensíveis através de habilidades personalizadas:
+LokSystem inclui **20 assistentes profissionais** com capacidades predefinidas, extensíveis através de habilidades personalizadas:
 
 - **🤝 Cowork** — Execução autônoma de tarefas (operações de arquivos, processamento de documentos, planejamento de fluxo de trabalho)
 - **📊 PPT Creator / Morph PPT / Morph PPT 3D** — Gera e anima apresentações PPTX com transições Morph
@@ -205,7 +205,7 @@ AionUi inclui **20 assistentes profissionais** com capacidades predefinidas, ext
 - **🔧 Configuração OpenClaw** — Assistente de configuração e instalação para integração OpenClaw
 - **📖 Roleplay de história** — Roleplay de história imersivo com cartas de personagens e informações do mundo (compatível com SillyTavern)
 
-**Habilidades personalizadas**: Crie habilidades no diretório `skills/`, habilite/desabilite habilidades para assistentes para estender as capacidades AI. As habilidades vêm de três fontes: integradas (incluídas com o AionUi), personalizadas (suas próprias) e Extension (contribuídas através do SDK de Extension). As habilidades integradas incluem `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` e mais.
+**Habilidades personalizadas**: Crie habilidades no diretório `skills/`, habilite/desabilite habilidades para assistentes para estender as capacidades AI. As habilidades vêm de três fontes: integradas (incluídas com o LokSystem), personalizadas (suas próprias) e Extension (contribuídas através do SDK de Extension). As habilidades integradas incluem `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` e mais.
 
 > 💡 Cada assistente é definido por um arquivo markdown. Verifique o diretório `assistant/` para exemplos.
 
@@ -215,7 +215,7 @@ AionUi inclui **20 assistentes profissionais** com capacidades predefinidas, ext
 
 ## Cowork de qualquer lugar
 
-_Seu assistente AI 24/7 — acesse AionUi de qualquer dispositivo, em qualquer lugar._
+_Seu assistente AI 24/7 — acesse LokSystem de qualquer dispositivo, em qualquer lugar._
 
 - **Modo WebUI** — acesse via navegador de telefone, tablet ou qualquer computador. Suporta LAN, rede cruzada e implantação em servidor. Login com código QR ou senha.
 
@@ -227,7 +227,7 @@ _Seu assistente AI 24/7 — acesse AionUi de qualquer dispositivo, em qualquer l
   - **WeCom (企业微信)** — Bot empresarial do WeChat para colaboração em equipe
   - **Slack** e mais plataformas em breve
 
-> **Configuração:** AionUi Settings → WebUI Settings → Channel, configure o Bot Token.
+> **Configuração:** LokSystem Settings → WebUI Settings → Channel, configure o Bot Token.
 
 <p align="center">
   <img src="../../resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
@@ -235,7 +235,7 @@ _Seu assistente AI 24/7 — acesse AionUi de qualquer dispositivo, em qualquer l
 
 <p align="center"><em>Controle e monitore seu agente remotamente — Claude, Gemini, Codex. Pelo navegador ou celular, como o Claude Code remote.</em></p>
 
-> [Tutorial de acesso remoto à Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+> [Tutorial de acesso remoto à Internet](https://github.com/iOfficeAI/LokSystem/wiki/Remote-Internet-Access-Guide-Chinese)
 
 ## ✨ Cowork em ação
 
@@ -273,7 +273,7 @@ _Configure uma vez, o AI Agent executa automaticamente conforme o cronograma —
 - **Vinculado à conversa** — Cada tarefa agendada está vinculada a uma conversa, mantendo contexto e histórico
 - **Execução automática** — As tarefas são executadas automaticamente nos horários agendados, enviando mensagens para a conversa
 - **Gerenciamento fácil** — Crie, modifique, habilite/desabilite, exclua e visualize tarefas agendadas a qualquer momento
-- **Evitar suspensão** — O AionUi previne automaticamente a suspensão do sistema enquanto as tarefas estão ativas e detecta acionamentos perdidos após o despertar
+- **Evitar suspensão** — O LokSystem previne automaticamente a suspensão do sistema enquanto as tarefas estão ativas e detecta acionamentos perdidos após o despertar
 - **Configuração avançada** — cada tarefa pode ter seu próprio modelo, diretório de workspace e configurações de esforço de raciocínio
 
 **Exemplos do mundo real:**
@@ -322,7 +322,7 @@ _10+ formatos: PDF, Word, Excel, PPT, código, Markdown, imagens, HTML, Diff —
 _Renomeação em lote, organização automática, classificação inteligente, mesclagem de arquivos — o Cowork Agent cuida disso para você._
 
 <p align="center">
-  <img src="../../resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
+  <img src="../../resources/loksystem sort file 2.gif" alt="Smart File Management" width="800">
 </p>
 
 <details>
@@ -394,7 +394,7 @@ _Geração, edição e reconhecimento inteligente de imagens, alimentado por Gem
 
 </details>
 
-> [Guia de configuração do modelo de geração de imagens](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
+> [Guia de configuração do modelo de geração de imagens](https://github.com/iOfficeAI/LokSystem/wiki/LokSystem-Image-Generation-Tool-Model-Configuration-Guide)
 
 ---
 
@@ -451,16 +451,16 @@ _Abra múltiplas conversas, as tarefas não se misturam, memória independente, 
 
 ---
 
-## 🤔 Por que escolher AionUi sobre Claude Cowork?
+## 🤔 Por que escolher LokSystem sobre Claude Cowork?
 
 <details>
 <summary><strong>Clique para ver a comparação detalhada</strong></summary>
 
 <br>
 
-AionUi é um **Desktop Multi-AI Agent gratuito e de código aberto**. Comparado ao Claude Cowork que só roda no macOS e está bloqueado ao Claude, AionUi é sua versão aprimorada de modelo completo e multiplataforma.
+LokSystem é um **Desktop Multi-AI Agent gratuito e de código aberto**. Comparado ao Claude Cowork que só roda no macOS e está bloqueado ao Claude, LokSystem é sua versão aprimorada de modelo completo e multiplataforma.
 
-| Dimensão           | Claude Cowork  | AionUi                                              |
+| Dimensão           | Claude Cowork  | LokSystem                                              |
 | :----------------- | :------------- | :-------------------------------------------------- |
 | SO                 | Apenas macOS   | macOS / Windows / Linux                             |
 | Suporte de modelos | Apenas Claude  | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...       |
@@ -483,17 +483,17 @@ Suporte a cenários de escritório AI profundos:
 
 <details>
 <summary><strong>P: Preciso instalar primeiro Gemini CLI ou Claude Code?</strong></summary>
-R: <strong>Não.</strong> AionUi tem um AI Agent integrado que funciona imediatamente após a instalação. Basta fazer login com Google ou inserir qualquer chave API. Se você também tiver ferramentas CLI como Claude Code ou Gemini CLI instaladas, AionUi as detectará e integrará automaticamente para ainda mais capacidades.
+R: <strong>Não.</strong> LokSystem tem um AI Agent integrado que funciona imediatamente após a instalação. Basta fazer login com Google ou inserir qualquer chave API. Se você também tiver ferramentas CLI como Claude Code ou Gemini CLI instaladas, LokSystem as detectará e integrará automaticamente para ainda mais capacidades.
 </details>
 
 <details>
-<summary><strong>P: O que posso fazer com AionUi?</strong></summary>
-R: AionUi é seu <strong>espaço de trabalho Cowork privado</strong>. O Agent integrado pode organizar pastas em lote, processar dados do Excel, gerar documentos, buscar na web e gerar imagens. Com o Modo Multi-Agent, você também pode aproveitar Claude Code, Codex e outros Agents CLI poderosos através da mesma interface.
+<summary><strong>P: O que posso fazer com LokSystem?</strong></summary>
+R: LokSystem é seu <strong>espaço de trabalho Cowork privado</strong>. O Agent integrado pode organizar pastas em lote, processar dados do Excel, gerar documentos, buscar na web e gerar imagens. Com o Modo Multi-Agent, você também pode aproveitar Claude Code, Codex e outros Agents CLI poderosos através da mesma interface.
 </details>
 
 <details>
 <summary><strong>P: É gratuito?</strong></summary>
-R: AionUi é completamente gratuito e de código aberto. Você pode fazer login com Google para usar Gemini gratuitamente, ou usar chaves API de qualquer provedor que preferir.
+R: LokSystem é completamente gratuito e de código aberto. Você pode fazer login com Google para usar Gemini gratuitamente, ou usar chaves API de qualquer provedor que preferir.
 </details>
 
 <details>
@@ -503,7 +503,7 @@ R: Todos os dados são armazenados localmente em um banco de dados SQLite. Nada 
 
 ---
 
-## Veja como as pessoas usam AionUi
+## Veja como as pessoas usam LokSystem
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=vWxE6VO9TKo" target="_blank">
@@ -537,7 +537,7 @@ R: Todos os dados são armazenados localmente em um banco de dados SQLite. Nada 
 - [Fazer pessoas comuns usarem Claude Code como um APP](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — Gato preguiçoso ama pescar
 - [5500 Stars: Como o código aberto quebra o fosso de ferramentas AI da Anthropic](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — Momento de silício AI
 
-> **Fez um vídeo sobre AionUi?** [Avise-nos no X](https://x.com/AionUi) e vamos destacá-lo aqui!
+> **Fez um vídeo sobre LokSystem?** [Avise-nos no X](https://x.com/LokSystem) e vamos destacá-lo aqui!
 
 ---
 
@@ -554,7 +554,7 @@ R: Todos os dados são armazenados localmente em um banco de dados SQLite. Nada 
 ### Instalar
 
 <p>
-  <a href="https://github.com/iOfficeAI/AionUi/releases">
+  <a href="https://github.com/iOfficeAI/LokSystem/releases">
     <img src="https://img.shields.io/badge/Baixar-Última%20versão-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Baixar a última versão" height="50">
   </a>
 </p>
@@ -563,12 +563,12 @@ Clique no botão acima para ir à página de Releases e baixar o instalador para
 
 ```bash
 # Ou, macOS via Homebrew
-brew install aionui
+brew install loksystem
 ```
 
 ### Comece em 3 passos
 
-1. **Instale** AionUi
+1. **Instale** LokSystem
 2. **Faça login** com conta Google ou insira qualquer chave API
 3. **Comece a fazer Cowork** — o AI Agent integrado está pronto para usar
 
@@ -581,23 +581,23 @@ brew install aionui
 
 **🚀 Início rápido**
 
-- [📖 Guia de instalação completo](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started) — Passos detalhados do download à configuração
-- [⚙️ Guia de configuração LLM](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) — Configuração de modelos AI multiplataforma
-- [🤖 Configuração do modo Multi-Agent](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) — Integrar Agents AI de terminal
-- [🔌 Configuração de ferramentas MCP](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) — Configuração do servidor Model Context Protocol
-- [🌐 Guia de configuração WebUI](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) — Tutorial completo de configuração e instalação do WebUI
+- [📖 Guia de instalação completo](https://github.com/iOfficeAI/LokSystem/wiki/Getting-Started) — Passos detalhados do download à configuração
+- [⚙️ Guia de configuração LLM](https://github.com/iOfficeAI/LokSystem/wiki/LLM-Configuration) — Configuração de modelos AI multiplataforma
+- [🤖 Configuração do modo Multi-Agent](https://github.com/iOfficeAI/LokSystem/wiki/ACP-Setup) — Integrar Agents AI de terminal
+- [🔌 Configuração de ferramentas MCP](https://github.com/iOfficeAI/LokSystem/wiki/MCP-Configuration-Guide) — Configuração do servidor Model Context Protocol
+- [🌐 Guia de configuração WebUI](https://github.com/iOfficeAI/LokSystem/wiki/WebUI-Configuration-Guide) — Tutorial completo de configuração e instalação do WebUI
 
 **🎯 Casos de uso**
 
-- [📁 Gerenciamento de arquivos](https://github.com/iOfficeAI/AionUi/wiki/file-management) — Organização inteligente de arquivos
-- [📊 Processamento de Excel](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) — Processamento de dados alimentado por AI
-- [🎨 Geração de imagens](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — Criação de imagens AI
-- [📚 Mais casos de uso](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+- [📁 Gerenciamento de arquivos](https://github.com/iOfficeAI/LokSystem/wiki/file-management) — Organização inteligente de arquivos
+- [📊 Processamento de Excel](https://github.com/iOfficeAI/LokSystem/wiki/excel-processing) — Processamento de dados alimentado por AI
+- [🎨 Geração de imagens](https://github.com/iOfficeAI/LokSystem/wiki/LokSystem-Image-Generation-Tool-Model-Configuration-Guide) — Criação de imagens AI
+- [📚 Mais casos de uso](https://github.com/iOfficeAI/LokSystem/wiki/Use-Cases-Overview)
 
 **❓ Suporte e ajuda**
 
-- [❓ FAQ](https://github.com/iOfficeAI/AionUi/wiki/FAQ) — Perguntas e solução de problemas
-- [🔧 Tutoriais de configuração e uso](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides) — Documentação de configuração completa
+- [❓ FAQ](https://github.com/iOfficeAI/LokSystem/wiki/FAQ) — Perguntas e solução de problemas
+- [🔧 Tutoriais de configuração e uso](https://github.com/iOfficeAI/LokSystem/wiki/Configuration-Guides) — Documentação de configuração completa
 
 </details>
 
@@ -608,14 +608,14 @@ brew install aionui
 **Suas ideias importam!** Valorizamos cada sugestão e feedback.
 
 <p align="center">
-  <a href="https://x.com/AionUi" target="_blank">
+  <a href="https://x.com/LokSystem" target="_blank">
     <img src="../../resources/contactus-x.png" alt="Contact Us on X" width="600">
   </a>
 </p>
 
-- [GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) — compartilhe ideias e troque dicas
-- [Reportar problemas](https://github.com/iOfficeAI/AionUi/issues) — bugs e solicitações de recursos
-- [Atualizações de lançamento](https://github.com/iOfficeAI/AionUi/releases) — obtenha a última versão
+- [GitHub Discussions](https://github.com/iOfficeAI/LokSystem/discussions) — compartilhe ideias e troque dicas
+- [Reportar problemas](https://github.com/iOfficeAI/LokSystem/issues) — bugs e solicitações de recursos
+- [Atualizações de lançamento](https://github.com/iOfficeAI/LokSystem/releases) — obtenha a última versão
 - [Comunidade Discord](https://discord.gg/2QAwJn7Egx) — comunidade em inglês
 - [Grupo WeChat](../../resources/wx-9.png) — comunidade chinesa
 
@@ -650,16 +650,16 @@ Este projeto está licenciado sob [Apache-2.0](../../LICENSE).
 ## Contribuidores
 
 <p align="center">
-  <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=100" alt="Contributors" />
+  <a href="https://github.com/iOfficeAI/LokSystem/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/LokSystem&max=100" alt="Contributors" />
   </a>
 </p>
 
 ## Histórico de estrelas
 
 <p align="center">
-  <a href="https://www.star-history.com/#iOfficeAI/aionui&Date" target="_blank">
-    <img src="https://api.star-history.com/svg?repos=iOfficeAI/aionui&type=Date" alt="Star History" width="600">
+  <a href="https://www.star-history.com/#iOfficeAI/loksystem&Date" target="_blank">
+    <img src="https://api.star-history.com/svg?repos=iOfficeAI/loksystem&type=Date" alt="Star History" width="600">
   </a>
 </p>
 
@@ -667,6 +667,6 @@ Este projeto está licenciado sob [Apache-2.0](../../LICENSE).
 
 **Se você gostou, nos dê uma estrela**
 
-[Reportar bug](https://github.com/iOfficeAI/AionUi/issues) · [Solicitar recurso](https://github.com/iOfficeAI/AionUi/issues)
+[Reportar bug](https://github.com/iOfficeAI/LokSystem/issues) · [Solicitar recurso](https://github.com/iOfficeAI/LokSystem/issues)
 
 </div>

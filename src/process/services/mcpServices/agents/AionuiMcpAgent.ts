@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +10,7 @@ import type { IMcpServer } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
 
 /**
- * AionUi 本地 MCP 代理实现
+ * LokSystem 本地 MCP 代理实现
  *
  * 专门用于管理通过 @office-ai/aioncli-core 运行的本地 Gemini CLI 的 MCP 配置
  *
@@ -21,13 +21,13 @@ import { ProcessConfig } from '@process/utils/initStorage';
  *
  * 与其他 ACP Backend MCP Agents 的区别：
  * - ACP Backend Agents: 管理真实的 CLI 工具的 MCP 配置 (如 claude mcp, qwen mcp 命令)
- * - AionuiMcpAgent: 管理 AionUi 本地 @office-ai/aioncli-core 的运行时 MCP 配置
+ * - AionuiMcpAgent: 管理 LokSystem 本地 @office-ai/aioncli-core 的运行时 MCP 配置
  */
 export class AionuiMcpAgent extends AbstractMcpAgent {
   constructor() {
-    // 使用 'aionui' 作为 backend type 来区分真实的 Gemini CLI
+    // 使用 'loksystem' 作为 backend type 来区分真实的 Gemini CLI
     // 虽然配置最终被 GeminiAgentManager 使用，但在 MCP 管理层面它是独立的 agent
-    super('aionui');
+    super('loksystem');
   }
 
   getSupportedTransports(): string[] {
@@ -37,7 +37,7 @@ export class AionuiMcpAgent extends AbstractMcpAgent {
   }
 
   /**
-   * 检测 AionUi 管理的 MCP 配置
+   * 检测 LokSystem 管理的 MCP 配置
    * 从 ProcessConfig 的统一配置中读取
    */
   async detectMcpServers(_cliPath?: string): Promise<IMcpServer[]> {
@@ -60,7 +60,7 @@ export class AionuiMcpAgent extends AbstractMcpAgent {
   }
 
   /**
-   * 安装 MCP 服务器到 AionUi 配置
+   * 安装 MCP 服务器到 LokSystem 配置
    * 实际上是将配置合并到 ProcessConfig 的统一配置中
    */
   async installMcpServers(mcpServers: IMcpServer[]): Promise<McpOperationResult> {
@@ -103,9 +103,9 @@ export class AionuiMcpAgent extends AbstractMcpAgent {
   }
 
   /**
-   * 从 AionUi 配置中移除 MCP 服务器
+   * 从 LokSystem 配置中移除 MCP 服务器
    *
-   * 注意：AionUi 的 MCP 配置由前端（renderer 层）统一管理
+   * 注意：LokSystem 的 MCP 配置由前端（renderer 层）统一管理
    * 这里不做任何操作，因为：
    * 1. Toggle 关闭时：前端已经设置 enabled: false，不需要后端再次修改
    * 2. 删除服务器时：前端已经从配置中删除，不需要后端再次删除

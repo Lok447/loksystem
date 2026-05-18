@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,7 +17,7 @@ import {
 const originalOpencodeConfig = process.env.OPENCODE_CONFIG;
 
 function createTempConfigPath(filename: string): string {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-opencode-'));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'loksystem-opencode-'));
   return path.join(tempDir, filename);
 }
 

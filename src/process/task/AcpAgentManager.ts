@@ -8,7 +8,7 @@ import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { transformMessage } from '@/common/chat/chatLib';
 import type { IConfigStorageRefer } from '@/common/config/storage';
-import { AIONUI_FILES_MARKER } from '@/common/config/constants';
+import { LOKSYSTEM_FILES_MARKER } from '@/common/config/constants';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
 import type {
@@ -44,6 +44,9 @@ import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
+import { existsSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -83,7 +86,10 @@ type BufferedStreamTextMessage = {
   timer: ReturnType<typeof setTimeout>;
 };
 
-type CustomAgentLaunchConfig = Pick<AcpBackendConfig, 'id' | 'name' | 'defaultCliPath' | 'acpArgs' | 'env'>;
+type CustomAgentLaunchConfig = Pick<
+  AcpBackendConfig,
+  'id' | 'name' | 'defaultCliPath' | 'acpArgs' | 'env' | 'isPreset' | 'presetAgentType'
+>;
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
   workspace: string;
@@ -467,6 +473,22 @@ ${collectedResponses.join('\n')}`;
     return this.resolveBuiltinBackendConfig(data);
   }
 
+  private resolveHermesCliPath(): string | undefined {
+    const candidates = [
+      process.env.HERMES_CLI_PATH,
+      path.join(
+        os.homedir(),
+        'hermes-agent-main',
+        '.venv',
+        process.platform === 'win32' ? 'Scripts' : 'bin',
+        process.platform === 'win32' ? 'hermes.exe' : 'hermes'
+      ),
+      process.platform === 'win32' ? 'D:\\AI\\hermes-agent-main\\.venv\\Scripts\\hermes.exe' : undefined,
+    ].filter((candidate): candidate is string => Boolean(candidate));
+
+    return candidates.find((candidate) => existsSync(candidate));
+  }
+
   /**
    * Resolve CLI config for a custom agent backend.
    * Looks up assistants config by UUID, falling back to extension-contributed adapters.
@@ -505,6 +527,10 @@ ${collectedResponses.join('\n')}`;
       }
     }
 
+    if (customAgentConfig?.isPreset || data.presetAssistantId || data.presetContext) {
+      return this.resolveBuiltinBackendConfig(data);
+    }
+
     if (!customAgentConfig?.defaultCliPath) {
       return { cliPath: data.cliPath };
     }
@@ -531,6 +557,9 @@ ${collectedResponses.join('\n')}`;
     let cliPath = data.cliPath;
     if (!cliPath && config?.[data.backend]?.cliPath) {
       cliPath = config[data.backend].cliPath;
+    }
+    if (!cliPath && data.backend === 'hermes') {
+      cliPath = this.resolveHermesCliPath();
     }
 
     // yoloMode priority: data.yoloMode (from CronService) > config setting
@@ -559,7 +588,7 @@ ${collectedResponses.join('\n')}`;
     // the user's explicit mode choice. data.yoloMode (cron jobs) always takes priority.
     const yoloMode = data.yoloMode ?? this.isYoloMode(this.currentMode);
 
-    // Get acpArgs from backend config (for goose, auggie, opencode, etc.)
+    // Get acpArgs from backend config (for goose, opencode, etc.)
     const backendConfig = ACP_BACKENDS_ALL[data.backend];
     let customArgs: string[] | undefined;
     if (backendConfig?.acpArgs) {
@@ -798,9 +827,9 @@ ${collectedResponses.join('\n')}`;
         return;
       }
 
-      // Auto-approve team MCP tools — internal tools provided by AionUi.
+      // Auto-approve team MCP tools — internal tools provided by LokSystem.
       const toolTitle = toolCall.title || '';
-      if (toolTitle.includes('aionui-team') && options.length > 0) {
+      if (toolTitle.includes('loksystem-team') && options.length > 0) {
         const autoOption = options[0];
         setTimeout(() => {
           void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);
@@ -824,7 +853,7 @@ ${collectedResponses.join('\n')}`;
         type: 'error',
         conversation_id: this.conversation_id,
         msg_id: v.msg_id,
-        data: 'Permission required. Please open AionUi and confirm the pending request in the conversation panel.',
+        data: 'Permission required. Please open LokSystem and confirm the pending request in the conversation panel.',
       });
       return;
     }
@@ -1009,8 +1038,8 @@ ${collectedResponses.join('\n')}`;
 
       if (data.msg_id && data.content) {
         let contentToSend = data.content;
-        if (contentToSend.includes(AIONUI_FILES_MARKER)) {
-          contentToSend = contentToSend.split(AIONUI_FILES_MARKER)[0].trimEnd();
+        if (contentToSend.includes(LOKSYSTEM_FILES_MARKER)) {
+          contentToSend = contentToSend.split(LOKSYSTEM_FILES_MARKER)[0].trimEnd();
         }
 
         // 首条消息时注入预设规则和 skills

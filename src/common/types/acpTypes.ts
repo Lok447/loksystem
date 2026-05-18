@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -23,7 +23,6 @@ export type AcpBackendAll =
   | 'codebuddy' // Tencent CodeBuddy Code CLI
   | 'droid' // Factory Droid CLI (ACP via `droid exec --output-format acp`)
   | 'goose' // Block's Goose CLI
-  | 'auggie' // Augment Code CLI
   | 'kimi' // Kimi CLI (Moonshot)
   | 'opencode' // OpenCode CLI
   | 'copilot' // GitHub Copilot CLI
@@ -204,13 +203,13 @@ export interface AcpBackendConfig {
    * 启用 ACP 模式时的参数
    * 不同 CLI 使用不同约定：
    *   - ['--experimental-acp'] 用于 claude（未指定时的默认值）
-   *   - ['--acp'] 用于 qwen, auggie
+   *   - ['--acp'] 用于 qwen
    *   - ['acp'] 用于 goose（子命令）
    *
    * Arguments to enable ACP mode when spawning the CLI.
    * Different CLIs use different conventions:
    *   - ['--experimental-acp'] for claude (default if not specified)
-   *   - ['--acp'] for qwen, auggie
+   *   - ['--acp'] for qwen
    *   - ['acp'] for goose (subcommand)
    * If not specified, defaults to ['--experimental-acp'].
    */
@@ -364,15 +363,6 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     supportsStreaming: false,
     acpArgs: ['acp'], // goose 使用子命令而非 flag
     skillsDirs: ['.goose/skills'],
-  },
-  auggie: {
-    id: 'auggie',
-    name: 'Augment Code',
-    cliCommand: 'auggie',
-    authRequired: false,
-    enabled: true, // ✅ Augment Code CLI，使用 `auggie --acp` 启动
-    supportsStreaming: false,
-    acpArgs: ['--acp'], // auggie 使用 --acp flag
   },
   kimi: {
     id: 'kimi',

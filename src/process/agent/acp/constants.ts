@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -21,7 +21,7 @@ export const GOOSE_YOLO_ENV_VAR = 'GOOSE_MODE' as const;
 export const GOOSE_YOLO_ENV_VALUE = 'auto' as const;
 
 /**
- * OpenCode: AionUi integrates with the TypeScript version (anomalyco/opencode)
+ * OpenCode: LokSystem integrates with the TypeScript version (anomalyco/opencode)
  * which has full ACP protocol support via `opencode acp` command.
  *
  * Note: There are two OpenCode projects:
@@ -31,5 +31,5 @@ export const GOOSE_YOLO_ENV_VALUE = 'auto' as const;
  * Both versions support `opencode acp` command, so the integration is compatible with either.
  * Currently, OpenCode does not support --yolo flag for auto-approve mode.
  *
- * @see https://github.com/iOfficeAI/AionUi/issues/788
+ * @see https://github.com/iOfficeAI/LokSystem/issues/788
  */

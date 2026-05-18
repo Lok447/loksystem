@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -58,10 +58,10 @@ export interface AionStepsProps extends StepsProps {
  * </AionSteps>
  * ```
  *
- * @see arco-override.css for custom styles (.aionui-steps)
+ * @see arco-override.css for custom styles (.loksystem-steps)
  */
 const AionSteps: React.FC<AionStepsProps> & { Step: typeof Steps.Step } = ({ className, ...props }) => {
-  return <Steps {...props} className={classNames('aionui-steps', className)} />;
+  return <Steps {...props} className={classNames('loksystem-steps', className)} />;
 };
 
 AionSteps.displayName = 'AionSteps';

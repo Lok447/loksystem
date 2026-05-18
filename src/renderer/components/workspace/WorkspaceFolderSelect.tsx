@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +10,7 @@ import { Check, Close, Down, Folder, FolderOpen, FolderPlus } from '@icon-park/r
 import { isElectronDesktop } from '@renderer/utils/platform';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-const DEFAULT_RECENT_WS_KEY = 'aionui:recent-workspaces';
+const DEFAULT_RECENT_WS_KEY = 'loksystem:recent-workspaces';
 const MENU_GAP = 4;
 const VIEWPORT_MARGIN = 8;
 const MAX_MENU_HEIGHT = 320;

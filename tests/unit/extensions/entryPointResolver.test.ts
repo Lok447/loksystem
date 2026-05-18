@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,7 +14,7 @@ describe('extensions/entryPointResolver', () => {
   let extensionDir = '';
 
   beforeEach(async () => {
-    extensionDir = await fs.mkdtemp(path.join(os.tmpdir(), 'aionui-ext-entry-resolver-'));
+    extensionDir = await fs.mkdtemp(path.join(os.tmpdir(), 'loksystem-ext-entry-resolver-'));
   });
 
   afterEach(async () => {

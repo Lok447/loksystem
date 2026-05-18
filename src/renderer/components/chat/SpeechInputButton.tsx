@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -36,7 +36,7 @@ const SpeechStopIcon = () => (
 
 const SpeechLoaderIcon = () => <span className='speech-loader-spinner' aria-hidden='true' />;
 
-const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'aionui:speech-to-text-config-changed';
+const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'loksystem:speech-to-text-config-changed';
 
 const getAvailabilityMessageKey = (availability: SpeechInputAvailability) => {
   switch (availability) {

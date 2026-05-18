@@ -1,13 +1,13 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
  * Channel Module
  *
- * Provides remote interaction with AionUi through messaging platforms.
+ * Provides remote interaction with LokSystem through messaging platforms.
  * MVP: Telegram integration with Gemini Agent.
  */
 
@@ -25,7 +25,6 @@ export { PluginManager, registerPlugin } from './gateway/PluginManager';
 // Plugin exports
 export { BasePlugin } from './plugins/BasePlugin';
 export type { PluginMessageHandler } from './plugins/BasePlugin';
-export { TelegramPlugin } from './plugins/telegram/TelegramPlugin';
 export { DingTalkPlugin } from './plugins/dingtalk/DingTalkPlugin';
 export { WeixinPlugin } from './plugins/weixin/WeixinPlugin';
 export { WecomPlugin } from './plugins/wecom/WecomPlugin';

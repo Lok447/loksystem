@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,7 +9,7 @@
 /**
  * Built-in platform types for channel plugins.
  */
-export type BuiltinPluginType = 'telegram' | 'slack' | 'discord' | 'lark' | 'dingtalk' | 'weixin' | 'wecom';
+export type BuiltinPluginType = 'lark' | 'dingtalk' | 'weixin' | 'wecom';
 
 /**
  * Supported platform types for plugins.
@@ -36,7 +36,6 @@ export type PluginStatus =
  * Built-in fields for known platforms + index signature for extension plugins.
  */
 export interface IPluginCredentials {
-  // Telegram
   token?: string;
   // Lark/Feishu
   appId?: string;
@@ -64,7 +63,6 @@ export function hasPluginCredentials(type: PluginType, credentials?: IPluginCred
   if (!credentials) return false;
   if (type === 'lark') return !!(credentials.appId && credentials.appSecret);
   if (type === 'dingtalk') return !!(credentials.clientId && credentials.clientSecret);
-  if (type === 'telegram') return !!credentials.token;
   if (type === 'weixin') return !!(credentials.accountId && credentials.botToken);
   if (type === 'wecom') {
     const key = credentials.encodingAesKey;
@@ -538,7 +536,7 @@ export function pairingRequestToRow(request: IChannelPairingRequest): IChannelPa
  * Channel platform type for model configuration.
  * Includes built-in platforms and extension-contributed platforms (string).
  */
-export type ChannelPlatform = 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom' | (string & {});
+export type ChannelPlatform = 'lark' | 'dingtalk' | 'weixin' | 'wecom' | (string & {});
 
 /**
  * Type guard to check if a string is a known built-in ChannelPlatform.
@@ -546,8 +544,8 @@ export type ChannelPlatform = 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wec
  */
 export function isBuiltinChannelPlatform(
   value: string
-): value is 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom' {
-  return value === 'telegram' || value === 'lark' || value === 'dingtalk' || value === 'weixin' || value === 'wecom';
+): value is 'lark' | 'dingtalk' | 'weixin' | 'wecom' {
+  return value === 'lark' || value === 'dingtalk' || value === 'weixin' || value === 'wecom';
 }
 
 /**
@@ -576,7 +574,7 @@ export function resolveChannelConvType(backend: string): {
 /**
  * Build a structured conversation name for a channel platform.
  * Format: {shortPlatform}-{type}-{backend}-{chatIdPrefix}
- * - platform is shortened: telegram -> tg, dingtalk -> ding, lark -> lark
+ * - platform is shortened: dingtalk -> ding, weixin -> wx, lark -> lark
  * - backend is only included when type === 'acp'
  * - chatIdPrefix is the first 8 characters of chatId
  * - empty segments are omitted
@@ -588,7 +586,6 @@ export function getChannelConversationName(
   chatId?: string
 ): string {
   const shortPlatform: Record<string, string> = {
-    telegram: 'tg',
     dingtalk: 'ding',
     weixin: 'wx',
     wecom: 'wecom',

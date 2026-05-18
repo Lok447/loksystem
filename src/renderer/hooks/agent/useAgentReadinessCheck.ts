@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -55,7 +55,6 @@ const AGENT_NAMES: Partial<Record<AgentBackend, string>> = {
   qwen: 'Qwen Code',
   droid: 'Droid',
   goose: 'Goose',
-  auggie: 'Auggie',
   kimi: 'Kimi',
 };
 

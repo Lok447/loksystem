@@ -1,14 +1,11 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import ChannelDingTalkLogo from '@/renderer/assets/channel-logos/dingtalk.svg';
-import ChannelDiscordLogo from '@/renderer/assets/channel-logos/discord.svg';
 import ChannelLarkLogo from '@/renderer/assets/channel-logos/lark.svg';
-import ChannelSlackLogo from '@/renderer/assets/channel-logos/slack.svg';
-import ChannelTelegramLogo from '@/renderer/assets/channel-logos/telegram.svg';
 import ChannelWecomLogo from '@/renderer/assets/channel-logos/wecom.svg';
 import ChannelWeixinLogo from '@/renderer/assets/channel-logos/weixin.svg';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
@@ -25,11 +22,8 @@ interface ChannelHeaderProps {
 const ChannelHeader: React.FC<ChannelHeaderProps> = ({ channel, onToggleEnabled }) => {
   const { t } = useTranslation();
   const channelLogoMap: Record<string, { src: string; alt: string }> = {
-    telegram: { src: ChannelTelegramLogo, alt: 'Telegram' },
     lark: { src: ChannelLarkLogo, alt: 'Lark' },
     dingtalk: { src: ChannelDingTalkLogo, alt: 'DingTalk' },
-    slack: { src: ChannelSlackLogo, alt: 'Slack' },
-    discord: { src: ChannelDiscordLogo, alt: 'Discord' },
     weixin: { src: ChannelWeixinLogo, alt: 'WeChat' },
     wecom: { src: ChannelWecomLogo, alt: 'WeCom' },
   };

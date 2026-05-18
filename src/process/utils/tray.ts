@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -36,10 +36,6 @@ export const setIsQuitting = (quitting: boolean): void => {
   isQuitting = quitting;
 };
 
-/**
- * Get tray icon.
- * macOS uses Template image to adapt to dark/light menu bar.
- */
 const getTrayIcon = (): Electron.NativeImage => {
   const resourcesPath = app.isPackaged ? process.resourcesPath : path.join(process.cwd(), 'resources');
   const icon = nativeImage.createFromPath(path.join(resourcesPath, 'app.png'));
@@ -49,9 +45,6 @@ const getTrayIcon = (): Electron.NativeImage => {
   return icon.resize({ width: 32, height: 32 });
 };
 
-/**
- * Build tray context menu (async to support dynamic content).
- */
 const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   const getRecentConversations = async (): Promise<Array<{ id: string; title: string }>> => {
     try {
@@ -154,58 +147,6 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
 
   template.push({ type: 'separator' });
   template.push({
-    label: `🐾 ${i18n.t('pet.desktopPet')}`,
-    submenu: [
-      {
-        label: i18n.t('pet.showHide'),
-        click: async () => {
-          try {
-            const petManager = await import('../pet/petManager');
-            // Toggle: if pet windows exist, hide; otherwise show/create
-            petManager.showPetWindow();
-          } catch {
-            /* pet not available */
-          }
-        },
-      },
-      { type: 'separator' as const },
-      {
-        label: i18n.t('pet.sizeSmall', { px: 200 }),
-        click: async () => {
-          try {
-            const { resizePetWindow } = await import('../pet/petManager');
-            resizePetWindow(200);
-          } catch {
-            /* ignore */
-          }
-        },
-      },
-      {
-        label: i18n.t('pet.sizeMedium', { px: 280 }),
-        click: async () => {
-          try {
-            const { resizePetWindow } = await import('../pet/petManager');
-            resizePetWindow(280);
-          } catch {
-            /* ignore */
-          }
-        },
-      },
-      {
-        label: i18n.t('pet.sizeLarge', { px: 360 }),
-        click: async () => {
-          try {
-            const { resizePetWindow } = await import('../pet/petManager');
-            resizePetWindow(360);
-          } catch {
-            /* ignore */
-          }
-        },
-      },
-    ],
-  });
-  template.push({ type: 'separator' });
-  template.push({
     label: i18n.t('common.tray.checkUpdate'),
     click: () => {
       showAndFocus();
@@ -240,9 +181,6 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   return Menu.buildFromTemplate(template);
 };
 
-/**
- * Create system tray (idempotent — no-op if already exists).
- */
 export const createOrUpdateTray = (): void => {
   if (tray) {
     return;
@@ -250,7 +188,7 @@ export const createOrUpdateTray = (): void => {
   try {
     const icon = getTrayIcon();
     tray = new Tray(icon);
-    tray.setToolTip('AionUi');
+    tray.setToolTip('LokSystem');
     void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
 
     tray.on('double-click', () => {
@@ -276,9 +214,6 @@ export const createOrUpdateTray = (): void => {
   }
 };
 
-/**
- * Refresh tray context menu labels (called on language change).
- */
 export const refreshTrayMenu = async (): Promise<void> => {
   if (tray) {
     const menu = await buildTrayContextMenu();
@@ -286,9 +221,6 @@ export const refreshTrayMenu = async (): Promise<void> => {
   }
 };
 
-/**
- * Destroy system tray.
- */
 export const destroyTray = (): void => {
   if (tray) {
     tray.destroy();

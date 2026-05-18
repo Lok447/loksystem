@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -165,7 +165,7 @@ describe('createConversationParams', () => {
     const params = await buildCliAgentParams(
       {
         backend: 'aionrs',
-        name: 'Aion CLI Agent',
+        name: 'Lok CLI Agent',
       },
       '/tmp/workspace'
     );
@@ -182,7 +182,7 @@ describe('createConversationParams', () => {
       buildCliAgentParams(
         {
           backend: 'aionrs',
-          name: 'Aion CLI Agent',
+          name: 'Lok CLI Agent',
         },
         '/tmp/workspace'
       )
@@ -301,7 +301,7 @@ describe('createConversationParams', () => {
   it('throws error for aionrs if no enabled provider', async () => {
     configGet.mockResolvedValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
     await expect(buildCliAgentParams({ backend: 'aionrs', name: 'Agent' }, '/tmp')).rejects.toThrow(
-      'No enabled model provider for Aion CLI'
+      'No enabled model provider for Lok CLI'
     );
   });
 

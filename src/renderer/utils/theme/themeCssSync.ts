@@ -9,12 +9,12 @@ export const CSS_SYNC_RECENT_UPDATE_WINDOW_MS = 2000;
 
 /**
  * Extension themes cache.
- * Populated by CssThemeSettings when it loads extension themes from main process.
+ * Populated by the display settings page when it loads extension themes from main process.
  * This avoids requiring async IPC calls in the sync resolution path.
  */
 let extensionThemesCache: ICssTheme[] = [];
 
-/** Update the extension themes cache (called by CssThemeSettings after loading) */
+/** Update the extension themes cache (called by the display settings page after loading) */
 export const setExtensionThemesCache = (themes: ICssTheme[]): void => {
   extensionThemesCache = themes;
 };

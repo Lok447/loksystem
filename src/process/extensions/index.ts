@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -46,7 +46,7 @@ export type { ExtPermissions, PermissionSummary, PermissionLevel } from './sandb
 export {
   validateEngineCompatibility,
   filterByEngineCompatibility,
-  AIONUI_VERSION,
+  LOKSYSTEM_VERSION,
   EXTENSION_API_VERSION,
 } from './resolvers/utils/engineValidator';
 

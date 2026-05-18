@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -235,7 +235,6 @@ export class AcpConnection {
       case 'qwen':
       case 'droid':
       case 'goose':
-      case 'auggie':
       case 'kimi':
       case 'opencode':
       case 'copilot':

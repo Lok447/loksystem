@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -31,13 +31,14 @@ import {
   useMcpServerCRUD,
   useMcpOAuth,
 } from '@/renderer/hooks/mcp';
+import { filterVisibleMcpAgents } from '@/renderer/hooks/mcp/mcpAgentFilter';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 
 type MessageInstance = ReturnType<typeof Message.useMessage>[0];
 
 const isBuiltinImageGenServer = (server: IMcpServer) => server.builtin === true && server.id === BUILTIN_IMAGE_GEN_ID;
-const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'aionui:speech-to-text-config-changed';
+const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'loksystem:speech-to-text-config-changed';
 const DEFAULT_SPEECH_TO_TEXT_CONFIG: SpeechToTextConfig = {
   enabled: false,
   provider: 'openai',
@@ -345,7 +346,7 @@ const ModalMcpManagementSection: React.FC<{
         const response = await acpConversation.getAvailableAgents.invoke();
         if (response.success && response.data) {
           setDetectedAgents(
-            response.data.map((agent) => ({
+            filterVisibleMcpAgents(response.data).map((agent) => ({
               backend: agent.backend,
               name: agent.name,
             }))
@@ -606,24 +607,24 @@ const ToolsModalContent: React.FC = () => {
 
       const env: Record<string, string> = { ...builtinServer.transport.env };
       if (model.platform) {
-        env.AIONUI_IMG_PLATFORM = model.platform;
+        env.LOKSYSTEM_IMG_PLATFORM = model.platform;
       } else {
-        delete env.AIONUI_IMG_PLATFORM;
+        delete env.LOKSYSTEM_IMG_PLATFORM;
       }
       if (model.baseUrl) {
-        env.AIONUI_IMG_BASE_URL = model.baseUrl;
+        env.LOKSYSTEM_IMG_BASE_URL = model.baseUrl;
       } else {
-        delete env.AIONUI_IMG_BASE_URL;
+        delete env.LOKSYSTEM_IMG_BASE_URL;
       }
       if (model.apiKey) {
-        env.AIONUI_IMG_API_KEY = model.apiKey;
+        env.LOKSYSTEM_IMG_API_KEY = model.apiKey;
       } else {
-        delete env.AIONUI_IMG_API_KEY;
+        delete env.LOKSYSTEM_IMG_API_KEY;
       }
       if (model.useModel) {
-        env.AIONUI_IMG_MODEL = model.useModel;
+        env.LOKSYSTEM_IMG_MODEL = model.useModel;
       } else {
-        delete env.AIONUI_IMG_MODEL;
+        delete env.LOKSYSTEM_IMG_MODEL;
       }
 
       const updatedServer: IMcpServer = {
@@ -831,7 +832,7 @@ const ToolsModalContent: React.FC = () => {
                         <div>
                           {t('settings.needHelpTooltip')}
                           <a
-                            href='https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide'
+                            href='https://github.com/iOfficeAI/LokSystem/wiki/LokSystem-Image-Generation-Tool-Model-Configuration-Guide'
                             target='_blank'
                             rel='noopener noreferrer'
                             className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px'
@@ -843,7 +844,7 @@ const ToolsModalContent: React.FC = () => {
                       }
                     >
                       <a
-                        href='https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide'
+                        href='https://github.com/iOfficeAI/LokSystem/wiki/LokSystem-Image-Generation-Tool-Model-Configuration-Guide'
                         target='_blank'
                         rel='noopener noreferrer'
                         className='ml-8px text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] cursor-pointer'

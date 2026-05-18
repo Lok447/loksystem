@@ -213,7 +213,7 @@ describe('TeamCreateModal', () => {
   });
 
   it('uses brighter surface tokens for workspace picker', () => {
-    localStorage.setItem('aionui:recent-workspaces', JSON.stringify(['/tmp/workspace-one']));
+    localStorage.setItem('loksystem:recent-workspaces', JSON.stringify(['/tmp/workspace-one']));
 
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
 

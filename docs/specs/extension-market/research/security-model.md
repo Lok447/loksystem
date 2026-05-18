@@ -140,7 +140,7 @@ flowchart LR
 
 **状态: 消息通道已修复, 隔离未完成, 未接入**
 
-> 消息路由修复详情见 [sandbox-architecture.md](sandbox-architecture.md) 和 PR [#1991](https://github.com/iOfficeAI/AionUi/pull/1991)。
+> 消息路由修复详情见 [sandbox-architecture.md](sandbox-architecture.md) 和 PR [#1991](https://github.com/iOfficeAI/LokSystem/pull/1991)。
 
 ```mermaid
 flowchart TD

@@ -1,6 +1,7 @@
 // src/process/acp/session/InputPreprocessor.ts
 import type { PromptContent } from '@process/acp/types';
 import type { ContentBlock } from '@agentclientprotocol/sdk';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -66,6 +67,8 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   '.xls': 'application/vnd.ms-excel',
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 };
+const PARSABLE_DOCUMENT_EXTENSIONS = new Set(['.docx', '.pptx', '.xlsx', '.odt', '.odp', '.ods', '.pdf']);
+
 export class InputPreprocessor {
   constructor(private readonly readFile: (path: string) => string) {}
 
@@ -108,6 +111,35 @@ export class InputPreprocessor {
     return items;
   }
 
+  async processAsync(text: string, files?: string[]): Promise<PromptContent> {
+    const items: ContentBlock[] = [{ type: 'text', text }];
+    const readPaths = new Set<string>();
+
+    if (files) {
+      for (const filePath of files) {
+        if (readPaths.has(filePath)) continue;
+        items.push(...(await this.tryReadFileAsync(filePath)));
+        readPaths.add(filePath);
+      }
+    }
+
+    const matches = text.matchAll(AT_FILE_REGEX);
+    for (const match of matches) {
+      const filePath = match[1] ?? match[2];
+      if (!filePath || readPaths.has(filePath)) continue;
+
+      const basename = filePath.split(/[\\/]/).pop();
+      if (files?.some((f) => f === filePath || f.endsWith(`/${basename}`) || f.endsWith(`\\${basename}`))) {
+        continue;
+      }
+
+      items.push(...(await this.tryReadFileAsync(filePath)));
+      readPaths.add(filePath);
+    }
+
+    return items;
+  }
+
   private tryReadFile(filePath: string): ContentBlock | null {
     if (this.shouldKeepAsFileReference(filePath)) {
       return this.buildResourceLink(filePath);
@@ -121,6 +153,52 @@ export class InputPreprocessor {
       return { type: 'text', text: `[File: ${filePath}]\n${content}` };
     } catch {
       // Binary files or missing files — skip silently (consistent with V1 behavior)
+      return null;
+    }
+  }
+
+  private async tryReadFileAsync(filePath: string): Promise<ContentBlock[]> {
+    if (this.shouldParseDocument(filePath)) {
+      const parsed = await this.tryParseDocument(filePath);
+      if (parsed) {
+        return [
+          {
+            type: 'text',
+            text: `[File: ${filePath}]\n${parsed}`,
+          },
+        ];
+      }
+      return [
+        {
+          type: 'text',
+          text:
+            `[File: ${filePath}]\n` +
+            `This attachment could not be converted to text automatically. Use the file path above to inspect it with an appropriate document tool.`,
+        },
+        this.buildResourceLink(filePath),
+      ];
+    }
+
+    const item = this.tryReadFile(filePath);
+    return item ? [item] : [];
+  }
+
+  private shouldParseDocument(filePath: string): boolean {
+    return PARSABLE_DOCUMENT_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+  }
+
+  private async tryParseDocument(filePath: string): Promise<string | null> {
+    try {
+      await fs.access(filePath);
+      const officeParser = await import('officeparser');
+      const content = await officeParser.parseOfficeAsync(filePath, {
+        newlineDelimiter: '\n',
+        outputErrorToConsole: false,
+      });
+      const trimmed = content.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    } catch (error) {
+      console.warn('[InputPreprocessor] Failed to parse document attachment:', filePath, error);
       return null;
     }
   }

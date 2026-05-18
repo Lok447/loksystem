@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -61,10 +61,10 @@ export interface WebFetchToolParams {
 }
 
 /**
- * Implementation of the WebFetch tool for AionUi - replaces built-in web_fetch for all models
+ * Implementation of the WebFetch tool for LokSystem - replaces built-in web_fetch for all models
  */
 export class WebFetchTool extends BaseDeclarativeTool<WebFetchToolParams, ToolResult> {
-  static readonly Name: string = 'aionui_web_fetch';
+  static readonly Name: string = 'loksystem_web_fetch';
 
   constructor(
     private readonly geminiClient: GeminiClient,

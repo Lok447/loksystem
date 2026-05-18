@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  *
  * 统一的 Agent Logo 映射工具
@@ -11,7 +11,6 @@
  */
 
 import AionLogo from '@/renderer/assets/logos/brand/aion.svg';
-import AuggieLogo from '@/renderer/assets/logos/brand/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/ai-major/claude.svg';
 import CursorLogo from '@/renderer/assets/logos/tools/coding/cursor.png';
 import CodeBuddyLogo from '@/renderer/assets/logos/tools/coding/codebuddy.svg';
@@ -49,7 +48,6 @@ const AGENT_LOGO_MAP = {
   goose: GooseLogo,
   hermes: HermesLogo,
   snow: SnowLogo,
-  auggie: AuggieLogo,
   kimi: KimiLogo,
   opencode: OpenCodeLogoLight,
   copilot: GitHubLogo,
