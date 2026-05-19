@@ -179,3 +179,88 @@
 - Phase 2 UI / 品牌 / 功能删除改造已完成，并经过手动 UI 验收、目标单测和打包构建验证。
 - “发现外部技能”模块按用户最新要求保留，界面仅去除 Gemini CLI、Claude Code 等国外按钮。
 - 阶段二已满足进入第三阶段 Hermes 深度集成优化的前置条件。
+
+## Phase 3 - Hermes 深度集成优化
+
+日期：2026-05-19
+
+### 改造目标
+
+- 深化 LokSystem 与 Hermes/Lok CLI 的 workspace 集成，确保 Hermes 通过 ACP 文件能力访问的是 LokSystem 当前工作空间。
+- 统一 WebUI 与桌面端的 LokSystem 品牌表达，清理 WebUI 启动与登录流程中的 AionUI 残留。
+- 为后续桌面端、WebUI、助手、团队任务共享同一工作空间打基础。
+
+### 已完成改造
+
+- `src/process/acp/session/AcpSession.ts`
+  - ACP `readTextFile` / `writeTextFile` 文件能力现在将相对路径解析到 session `cwd`，不再错误依赖主进程当前目录。
+  - 写文件前自动创建父目录，保证 Hermes 生成 `reports/summary.md` 等相对路径产物时可直接落到当前 workspace。
+  - 路径安全校验继续限制在 `cwd + additionalDirectories` 内，阻止 `../` 越权访问。
+- `src/process/task/AcpAgentManager.ts`
+  - Hermes/Lok CLI 启动时显式注入 `LOKSYSTEM_WORKSPACE`、`HERMES_WORKSPACE`、`HERMES_PROJECT_ROOT`、`PWD` 等工作空间环境变量。
+  - 保留用户/配置环境变量，并以当前 conversation workspace 作为 Hermes 项目根。
+- `src/process/webserver/index.ts`
+  - WebUI 控制台启动文案从 AionUI 改为 LokSystem。
+- `src/process/webserver/routes/authRoutes.ts`
+  - QR 登录页标题与视觉风格改为 LokSystem WebUI。
+
+### 验证记录
+
+- 目标单测：
+  - `npx vitest run tests/unit/process/acp/session/AcpSessionWorkspaceFs.test.ts tests/unit/process/acp/compat/typeBridge.test.ts`
+  - 结果：2 个测试文件通过，27 个测试通过。
+- 类型检查：
+  - `npx tsc --noEmit`
+  - 结果：通过。
+- 构建验证：
+  - `npm run package`
+  - 结果：通过；仅存在 Vite chunk/dynamic import 相关已知警告。
+
+### 当前进展结论
+
+- Phase 3 已开始落地，首批完成 Hermes workspace 文件读写打通与 WebUI 品牌残留清理。
+- 后续建议继续补充端到端验收：上传文件 → Hermes 读取 → Hermes 生成文件 → 桌面端 Workspace 展示 → WebUI 访问同一文件。
+
+
+
+### Attachment Analysis Timeout Fix
+
+Date: 2026-05-19
+
+- Issue: large Office/PDF/text attachments were fully inlined into the ACP prompt. Requests like `please analyze the key points in the attachment` could keep Hermes silent long enough to trigger `Prompt timed out`.
+- Fix: `InputPreprocessor` now sends a balanced excerpt for attachments over 30000 characters (beginning + middle + end) and keeps the original file as a `resource_link` for deeper inspection.
+- Fix: Hermes/Lok CLI default prompt timeout is increased from 300 seconds to 900 seconds. User config can still override it with `acp.config.hermes.promptTimeout` or global `acp.promptTimeout`.
+- Validation: added large-attachment excerpt tests to ensure beginning/middle/end signals are preserved and the full attachment link is still sent.
+
+
+### Brand Logo Replacement
+
+Date: 2026-05-19
+
+- Replaced desktop, WebUI/PWA, mobile, installer, tray, notification, login, and agent-brand logo assets with the provided Lok logo.
+- Updated the mobile titlebar brand mark to render the shared Lok image asset instead of the legacy inline Aion mark.
+- Regenerated Windows ICO and macOS ICNS resources from the same Lok source image so package metadata and platform icons stay aligned.
+- Follow-up: added explicit Lok logo rendering for the desktop titlebar, QR login page, PWA tab icon filenames, and mobile connection/splash configuration to avoid stale legacy logo paths.
+- Follow-up: replaced the main desktop sidebar header logo with the packaged Lok image asset instead of the old inline Aion SVG mark.
+- Follow-up: added a cropped Lok wordmark asset for the desktop sidebar header so the full LOK letters remain visible at sidebar scale.
+- Follow-up: changed the desktop sidebar brand block to a stacked layout with the Lok logo on top and `LokSystem` text below, avoiding title truncation after enlarging the logo.
+
+### Latest Sync Snapshot
+
+Date: 2026-05-19
+
+- This sync snapshot consolidates the latest secondary development changes into the fork repository `Lok447/loksystem`, so subsequent desktop or server deployments can pull the newest LokSystem code and assets directly from Git.
+- Hermes / Lok CLI integration is now complete for the first two stages and has entered deep integration optimization in Phase 3:
+  - conversation workspace paths are passed through to Hermes consistently;
+  - ACP file reads and writes resolve against the current workspace and create parent directories when needed;
+  - Hermes startup receives explicit workspace environment variables for consistent file access behavior.
+- Attachment handling was optimized for long-file analysis requests:
+  - oversized Office/PDF/text attachments now use balanced excerpts plus a source link instead of blindly inlining the full content;
+  - Hermes prompt timeout was raised to reduce `Prompt timed out` failures during attachment analysis.
+- Brand migration is now end-to-end across desktop, WebUI/PWA, login pages, QR login, mobile, tray, package icons, and sidebar branding:
+  - all visible logo entry points have been replaced with packaged Lok assets tracked inside the repository;
+  - build output verification confirms the new renderer assets are bundled into `out/renderer/assets`, so deployment to other terminals no longer depends on the original local desktop image file.
+- Current recommended acceptance path for new terminals:
+  - pull the latest fork branch;
+  - run dependency install and packaging/build steps;
+  - verify desktop sidebar branding, WebUI tab icon, login page branding, attachment analysis, and workspace file generation with Hermes.

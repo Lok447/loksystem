@@ -25,14 +25,16 @@ const QR_LOGIN_PAGE_HTML = `<!DOCTYPE html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>QR Login - AionUI</title>
+  <title>QR Login - LokSystem</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f5f5f5; }
-    .container { text-align: center; padding: 40px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 400px; }
-    .loading { color: #3498db; font-size: 18px; }
+    body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #edf7f2 0%, #f8f1df 100%); }
+    .container { text-align: center; padding: 40px; background: rgba(255,255,255,0.92); border: 1px solid rgba(20,94,67,0.12); border-radius: 18px; box-shadow: 0 18px 50px rgba(20,94,67,0.16); max-width: 400px; }
+    .logo { width: 72px; height: 72px; object-fit: contain; border-radius: 12px; margin-bottom: 14px; }
+    .brand { color: #145e43; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 12px; }
+    .loading { color: #145e43; font-size: 18px; }
     .success { color: #27ae60; }
     .error { color: #e74c3c; }
-    .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+    .spinner { border: 3px solid #dce8df; border-top: 3px solid #145e43; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     h2 { margin-bottom: 16px; }
     p { color: #666; margin-top: 12px; }
@@ -40,6 +42,8 @@ const QR_LOGIN_PAGE_HTML = `<!DOCTYPE html>
 </head>
 <body>
   <div class="container" id="content">
+    <img class="logo" src="/pwa/lok-icon-192.png" alt="Lok logo">
+    <div class="brand">LokSystem WebUI</div>
     <div class="spinner"></div>
     <p class="loading">Verifying... / 验证中...</p>
   </div>

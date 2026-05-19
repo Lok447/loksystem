@@ -69,7 +69,8 @@
   width: 26px;
   height: 26px;
   display: block;
-  color: inherit;
+  object-fit: contain;
+  border-radius: 4px;
 }
 
 .app-titlebar--mobile .app-titlebar__brand-logo {
@@ -95,6 +96,16 @@
   white-space: nowrap;
 }
 
+.app-titlebar__brand-desktop {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
 .app-titlebar__brand-text {
   display: block;
   font-size: 16px;
@@ -105,6 +116,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 42vw;
+}
+
+.app-titlebar__brand-desktop .app-titlebar__brand-text {
+  font-size: 13px;
+  font-weight: 600;
+  max-width: none;
 }
 
 .app-titlebar__menu {

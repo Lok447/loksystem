@@ -473,6 +473,18 @@ ${collectedResponses.join('\n')}`;
     return this.resolveBuiltinBackendConfig(data);
   }
 
+  private buildHermesWorkspaceEnv(workspace?: string, baseEnv?: Record<string, string>): Record<string, string> {
+    const resolvedWorkspace = path.resolve(workspace || process.cwd());
+    return {
+      ...baseEnv,
+      LOKSYSTEM_WORKSPACE: resolvedWorkspace,
+      LOKSYSTEM_BRAND: 'LokSystem',
+      HERMES_WORKSPACE: resolvedWorkspace,
+      HERMES_PROJECT_ROOT: resolvedWorkspace,
+      PWD: resolvedWorkspace,
+    };
+  }
+
   private resolveHermesCliPath(): string | undefined {
     const candidates = [
       process.env.HERMES_CLI_PATH,
@@ -549,6 +561,7 @@ ${collectedResponses.join('\n')}`;
   private async resolveBuiltinBackendConfig(data: AcpAgentManagerData): Promise<{
     cliPath?: string;
     customArgs?: string[];
+    customEnv?: Record<string, string>;
     yoloMode?: boolean;
   }> {
     const config = await ProcessConfig.get('acp.config');
@@ -609,7 +622,11 @@ ${collectedResponses.join('\n')}`;
       data.sandboxMode = sandboxMode;
     }
 
-    return { cliPath, customArgs, yoloMode };
+    const configuredEnv = (config?.[data.backend] as { env?: Record<string, string> } | undefined)?.env;
+    const customEnv =
+      data.backend === 'hermes' ? this.buildHermesWorkspaceEnv(data.workspace, configuredEnv) : configuredEnv;
+
+    return { cliPath, customArgs, customEnv, yoloMode };
   }
 
   // ── initAgent callback handlers ──────────────────────────────────────

@@ -272,15 +272,22 @@ export class AcpSession {
    * Verify that an agent-requested file path is within the allowed directories
    * (cwd + additionalDirectories). Prevents path traversal attacks.
    */
-  private assertPathAllowed(filePath: string): void {
-    const resolved = path.resolve(filePath);
-    const allowedRoots = [this.agentConfig.cwd, ...(this.agentConfig.additionalDirectories ?? [])];
+  private resolveAgentFilePath(filePath: string): string {
+    return path.isAbsolute(filePath) ? path.resolve(filePath) : path.resolve(this.agentConfig.cwd, filePath);
+  }
+
+  private assertPathAllowed(filePath: string): string {
+    const resolved = this.resolveAgentFilePath(filePath);
+    const allowedRoots = [this.agentConfig.cwd, ...(this.agentConfig.additionalDirectories ?? [])].map((root) =>
+      this.resolveAgentFilePath(root)
+    );
     const withinAllowed = allowedRoots.some(
-      (root) => resolved.startsWith(path.resolve(root) + path.sep) || resolved === path.resolve(root)
+      (root) => resolved.startsWith(root + path.sep) || resolved === root
     );
     if (!withinAllowed) {
       throw new Error(`Path not allowed: ${filePath} is outside permitted directories`);
     }
+    return resolved;
   }
 
   // ─── Protocol handlers (glue) ─────────────────────────────────
@@ -290,18 +297,19 @@ export class AcpSession {
       onSessionUpdate: (notification) => this.handleMessage(notification),
       onRequestPermission: (request) => this.handlePermissionRequest(request),
       onReadTextFile: async (req) => {
-        this.assertPathAllowed(req.path);
+        const resolvedPath = this.assertPathAllowed(req.path);
         try {
-          const content = fs.readFileSync(req.path, 'utf-8');
+          const content = fs.readFileSync(resolvedPath, 'utf-8');
           return { content };
         } catch {
           throw new Error(`File not found: ${req.path}`);
         }
       },
       onWriteTextFile: async (req) => {
-        this.assertPathAllowed(req.path);
+        const resolvedPath = this.assertPathAllowed(req.path);
         try {
-          fs.writeFileSync(req.path, req.content, 'utf-8');
+          fs.mkdirSync(path.dirname(resolvedPath), { recursive: true });
+          fs.writeFileSync(resolvedPath, req.content, 'utf-8');
           return {};
         } catch {
           throw new Error(`Write failed: ${req.path}`);

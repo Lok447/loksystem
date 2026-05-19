@@ -1,5 +1,15 @@
 import React, { useState, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useRouter } from 'expo-router';
@@ -9,6 +19,8 @@ import { ThemedText } from '../src/components/ui/ThemedText';
 import { useConnection } from '../src/context/ConnectionContext';
 import { useThemeColor } from '../src/hooks/useThemeColor';
 import { wsService } from '../src/services/websocket';
+
+const lokLogo = require('../assets/images/lok-icon.png');
 
 function parseQrLoginUrl(data: string): { host: string; port: string; qrToken: string } | null {
   try {
@@ -111,6 +123,7 @@ export default function ConnectScreen() {
   if (!permission.granted) {
     return (
       <SafeAreaView style={[styles.container, styles.center, { backgroundColor: background }]}>
+        <Image source={lokLogo} style={styles.logo} resizeMode='contain' />
         <ThemedText type='title' style={styles.permissionTitle}>
           {t('connect.cameraPermissionTitle')}
         </ThemedText>
@@ -131,6 +144,7 @@ export default function ConnectScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
         <View style={[styles.container, styles.center]}>
+          <Image source={lokLogo} style={styles.logo} resizeMode='contain' />
           <ThemedText type='title' style={styles.permissionTitle}>
             {t('connect.pasteLink')}
           </ThemedText>
@@ -221,6 +235,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
+  },
+  logo: {
+    width: 92,
+    height: 92,
+    borderRadius: 18,
+    marginBottom: 18,
   },
   camera: {
     flex: 1,

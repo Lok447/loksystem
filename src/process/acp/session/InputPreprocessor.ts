@@ -68,6 +68,10 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 };
 const PARSABLE_DOCUMENT_EXTENSIONS = new Set(['.docx', '.pptx', '.xlsx', '.odt', '.odp', '.ods', '.pdf']);
+const MAX_INLINE_ATTACHMENT_CHARS = 30_000;
+const EXCERPT_HEAD_CHARS = 18_000;
+const EXCERPT_MIDDLE_CHARS = 6_000;
+const EXCERPT_TAIL_CHARS = 6_000;
 
 export class InputPreprocessor {
   constructor(private readonly readFile: (path: string) => string) {}
@@ -82,9 +86,9 @@ export class InputPreprocessor {
     if (files) {
       for (const filePath of files) {
         if (readPaths.has(filePath)) continue;
-        const item = this.tryReadFile(filePath);
-        if (item) {
-          items.push(item);
+        const fileItems = this.tryReadFile(filePath);
+        if (fileItems) {
+          items.push(...fileItems);
           readPaths.add(filePath);
         }
       }
@@ -102,9 +106,9 @@ export class InputPreprocessor {
         continue;
       }
 
-      const item = this.tryReadFile(filePath);
-      if (item) {
-        items.push(item);
+      const fileItems = this.tryReadFile(filePath);
+      if (fileItems) {
+        items.push(...fileItems);
         readPaths.add(filePath);
       }
     }
@@ -140,19 +144,19 @@ export class InputPreprocessor {
     return items;
   }
 
-  private tryReadFile(filePath: string): ContentBlock | null {
+  private tryReadFile(filePath: string): ContentBlock[] | null {
     if (this.shouldKeepAsFileReference(filePath)) {
-      return this.buildResourceLink(filePath);
+      return [this.buildResourceLink(filePath)];
     }
 
     try {
       const content = this.readFile(filePath);
       if (this.isLikelyBinaryContent(content)) {
-        return this.buildResourceLink(filePath);
+        return [this.buildResourceLink(filePath)];
       }
-      return { type: 'text', text: `[File: ${filePath}]\n${content}` };
+      return this.buildTextAttachmentBlocks(filePath, content);
     } catch {
-      // Binary files or missing files — skip silently (consistent with V1 behavior)
+      // Binary files or missing files - skip silently (consistent with V1 behavior)
       return null;
     }
   }
@@ -161,12 +165,7 @@ export class InputPreprocessor {
     if (this.shouldParseDocument(filePath)) {
       const parsed = await this.tryParseDocument(filePath);
       if (parsed) {
-        return [
-          {
-            type: 'text',
-            text: `[File: ${filePath}]\n${parsed}`,
-          },
-        ];
+        return this.buildTextAttachmentBlocks(filePath, parsed, true);
       }
       return [
         {
@@ -180,7 +179,53 @@ export class InputPreprocessor {
     }
 
     const item = this.tryReadFile(filePath);
-    return item ? [item] : [];
+    return item ?? [];
+  }
+
+  private buildTextAttachmentBlocks(filePath: string, content: string, parsedDocument = false): ContentBlock[] {
+    const text =
+      content.length > MAX_INLINE_ATTACHMENT_CHARS
+        ? this.buildAttachmentExcerpt(filePath, content, parsedDocument)
+        : `[File: ${filePath}]\n${content}`;
+
+    const blocks: ContentBlock[] = [{ type: 'text', text }];
+    if (content.length > MAX_INLINE_ATTACHMENT_CHARS) {
+      blocks.push(this.buildResourceLink(filePath));
+    }
+    return blocks;
+  }
+
+  private buildAttachmentExcerpt(filePath: string, content: string, parsedDocument: boolean): string {
+    const excerpt = this.createBalancedExcerpt(content);
+    const sourceLabel = parsedDocument ? 'converted document text' : 'text content';
+    return (
+      `[File: ${filePath}]\n` +
+      `[Attachment ${sourceLabel} excerpt]\n` +
+      `The original attachment has ${content.length} characters. To avoid ACP prompt timeout, ` +
+      `LokSystem sent a balanced excerpt of ${excerpt.length} characters (beginning, middle, and end). ` +
+      `The full attachment is still available at the file path above for deeper inspection.\n\n` +
+      `${excerpt}\n\n` +
+      `[End of excerpt for ${filePath}]`
+    );
+  }
+
+  private createBalancedExcerpt(content: string): string {
+    if (content.length <= MAX_INLINE_ATTACHMENT_CHARS) return content;
+
+    const head = content.slice(0, EXCERPT_HEAD_CHARS);
+    const middleStart = Math.max(EXCERPT_HEAD_CHARS, Math.floor(content.length / 2 - EXCERPT_MIDDLE_CHARS / 2));
+    const middle = content.slice(middleStart, middleStart + EXCERPT_MIDDLE_CHARS);
+    const tail = content.slice(-EXCERPT_TAIL_CHARS);
+    const omittedBeforeMiddle = middleStart - EXCERPT_HEAD_CHARS;
+    const omittedBeforeTail = Math.max(0, content.length - middleStart - EXCERPT_MIDDLE_CHARS - EXCERPT_TAIL_CHARS);
+
+    return [
+      head,
+      `\n\n[... ${omittedBeforeMiddle} characters omitted before middle excerpt ...]\n\n`,
+      middle,
+      `\n\n[... ${omittedBeforeTail} characters omitted before ending excerpt ...]\n\n`,
+      tail,
+    ].join('');
   }
 
   private shouldParseDocument(filePath: string): boolean {

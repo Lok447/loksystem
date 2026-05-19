@@ -7,6 +7,7 @@ import type { OldAcpAgentConfig } from '@process/acp/compat/typeBridge';
 
 // Mock dependencies
 let capturedCallbacks: SessionCallbacks;
+let capturedSessionOptions: { promptTimeoutMs?: number } | undefined;
 let mockSessionMethods: {
   start: ReturnType<typeof vi.fn>;
   stop: ReturnType<typeof vi.fn>;
@@ -21,8 +22,9 @@ let mockSessionMethods: {
 
 vi.mock('@process/acp/session/AcpSession', () => ({
   AcpSession: class MockAcpSession {
-    constructor(_config: unknown, _factory: unknown, callbacks: SessionCallbacks) {
+    constructor(_config: unknown, _factory: unknown, callbacks: SessionCallbacks, options?: { promptTimeoutMs?: number }) {
       capturedCallbacks = callbacks;
+      capturedSessionOptions = options;
     }
 
     start = mockSessionMethods.start;
@@ -61,6 +63,7 @@ vi.mock('@process/acp/compat/typeBridge', async (importOriginal) => {
 
 describe('AcpAgentV2 - Lifecycle Methods', () => {
   beforeEach(() => {
+    capturedSessionOptions = undefined;
     mockSessionMethods = {
       start: vi.fn(),
       stop: vi.fn().mockResolvedValue(undefined),
@@ -208,6 +211,18 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       const promise = agent.start();
       await expect(promise).resolves.toBeUndefined();
+    });
+
+    it('uses a longer default prompt timeout for Hermes/Lok CLI attachment analysis', async () => {
+      const agent = createAgent({ backend: 'hermes' });
+
+      mockSessionMethods.start.mockImplementation(() => {
+        setTimeout(() => capturedCallbacks.onStatusChange('active'), 0);
+      });
+
+      await agent.start();
+
+      expect(capturedSessionOptions?.promptTimeoutMs).toBe(900_000);
     });
   });
 

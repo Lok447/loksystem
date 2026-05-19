@@ -9,7 +9,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     slug: 'loksystem-mobile',
     version: VERSION.version,
     orientation: 'portrait',
-    icon: './assets/images/icon.png',
+    icon: './assets/images/lok-icon.png',
     scheme: 'loksystem-mobile',
     userInterfaceStyle: 'automatic',
     ios: {
@@ -23,15 +23,20 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: './assets/images/icon.png',
-        backgroundColor: '#000000',
+        foregroundImage: './assets/images/lok-icon.png',
+        backgroundColor: '#f9f9f7',
       },
       package: 'ai.resopod.loksystem',
       versionCode: VERSION.buildNumber,
     },
     web: {
       output: 'static',
-      favicon: './assets/images/icon.png',
+      favicon: './assets/images/lok-icon.png',
+    },
+    splash: {
+      image: './assets/images/lok-icon.png',
+      resizeMode: 'contain',
+      backgroundColor: '#f9f9f7',
     },
     plugins: ['expo-router', 'expo-secure-store', 'expo-dev-client', 'expo-camera'],
     experiments: {

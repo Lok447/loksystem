@@ -1,12 +1,12 @@
-const CACHE_NAME = 'loksystem-webui-v1';
+const CACHE_NAME = 'loksystem-webui-v2-lok-logo';
 const NON_CACHEABLE_PATHS = new Set(['/qr-login']);
 const OFFLINE_PAGE_URL = new URL('./index.html', self.location.href).toString();
 const PRECACHE_URLS = [
   new URL('./', self.location.href).toString(),
   OFFLINE_PAGE_URL,
   new URL('./manifest.webmanifest', self.location.href).toString(),
-  new URL('./pwa/icon-192.png', self.location.href).toString(),
-  new URL('./pwa/icon-512.png', self.location.href).toString(),
+  new URL('./pwa/lok-icon-192.png', self.location.href).toString(),
+  new URL('./pwa/lok-icon-512.png', self.location.href).toString(),
 ];
 
 self.addEventListener('install', (event) => {

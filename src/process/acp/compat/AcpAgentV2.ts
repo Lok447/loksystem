@@ -197,7 +197,8 @@ export class AcpAgentV2 {
     const acpConfig = (await ProcessConfig.get('acp.config')) as Record<string, { promptTimeout?: number }> | undefined;
     const backendTimeout = acpConfig?.[this.agentConfig.agentBackend]?.promptTimeout;
     const globalTimeout = await ProcessConfig.get('acp.promptTimeout');
-    const timeoutSec = backendTimeout || globalTimeout || 300;
+    const defaultTimeoutSec = this.agentConfig.agentBackend === 'hermes' ? 900 : 300;
+    const timeoutSec = backendTimeout || globalTimeout || defaultTimeoutSec;
     const promptTimeoutMs = Math.max(30, timeoutSec) * 1000;
 
     const sessionOptions: SessionOptions = {

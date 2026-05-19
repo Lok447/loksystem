@@ -112,4 +112,31 @@ describe('InputPreprocessor', () => {
     expect(readFile).toHaveBeenCalledTimes(2); // /a.ts once + /b.ts once
     expect(result).toHaveLength(3); // text + 2 files
   });
+
+  it('sends a balanced excerpt and resource link for very large text attachments', () => {
+    const largeContent = [
+      'BEGIN-IMPORTANT\n',
+      'a'.repeat(40_000),
+      '\nMIDDLE-IMPORTANT\n',
+      'b'.repeat(40_000),
+      '\nEND-IMPORTANT',
+    ].join('');
+    const readFile = vi.fn(() => largeContent);
+    const pp = new InputPreprocessor(readFile);
+    const result = pp.process('请分析附件重点提了哪些内容', ['/workspace/report.txt']);
+
+    expect(result).toHaveLength(3);
+    expect(result[1]).toMatchObject({ type: 'text' });
+    const text = result[1].type === 'text' ? result[1].text : '';
+    expect(text).toContain('To avoid ACP prompt timeout');
+    expect(text).toContain('BEGIN-IMPORTANT');
+    expect(text).toContain('MIDDLE-IMPORTANT');
+    expect(text).toContain('END-IMPORTANT');
+    expect(text.length).toBeLessThan(32_000);
+    expect(result[2]).toEqual({
+      type: 'resource_link',
+      name: 'report.txt',
+      uri: toExpectedResourceUri('/workspace/report.txt'),
+    });
+  });
 });

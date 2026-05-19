@@ -132,7 +132,7 @@ runOrSkip('includes manifest and apple touch icon links in the built renderer en
   const html = fs.readFileSync(rendererIndexPath, 'utf8');
 
   expect(html).toContain('rel="manifest" href="./manifest.webmanifest"');
-  expect(html).toContain('rel="apple-touch-icon" href="./pwa/icon-180.png"');
+  expect(html).toContain('rel="apple-touch-icon" href="./pwa/lok-icon-180.png"');
   expect(html).toContain('name="theme-color" content="#4E5969"');
 });
 
@@ -140,9 +140,9 @@ runOrSkip('copies PWA assets into renderer output and packaged app.asar', () => 
   const expectedAssets = [
     'out/renderer/manifest.webmanifest',
     'out/renderer/sw.js',
-    'out/renderer/pwa/icon-180.png',
-    'out/renderer/pwa/icon-192.png',
-    'out/renderer/pwa/icon-512.png',
+    'out/renderer/pwa/lok-icon-180.png',
+    'out/renderer/pwa/lok-icon-192.png',
+    'out/renderer/pwa/lok-icon-512.png',
   ];
 
   for (const relativeAsset of expectedAssets) {
@@ -159,8 +159,8 @@ runOrSkip('copies PWA assets into renderer output and packaged app.asar', () => 
   expect(manifest.display).toBe('standalone');
   expect(manifest.icons).toEqual(
     expect.arrayContaining([
-      expect.objectContaining({ sizes: '192x192', src: './pwa/icon-192.png' }),
-      expect.objectContaining({ sizes: '512x512', src: './pwa/icon-512.png' }),
+      expect.objectContaining({ sizes: '192x192', src: './pwa/lok-icon-192.png' }),
+      expect.objectContaining({ sizes: '512x512', src: './pwa/lok-icon-512.png' }),
     ])
   );
 
