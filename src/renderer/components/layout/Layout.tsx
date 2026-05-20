@@ -25,7 +25,7 @@ import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/theme/themeCssSync';
-import lokWordmark from '@/renderer/assets/logos/brand/lok-wordmark.png';
+import lokLogo from '@/renderer/assets/logos/brand/lok.png';
 import '@renderer/styles/layout.css';
 
 const useDebug = () => {
@@ -449,25 +449,27 @@ const Layout: React.FC<{
                 )}
               >
                 <div
-                  className={classNames('flex flex-1 min-w-0 flex-col items-start justify-center gap-4px', {
-                    'items-center': collapsed,
+                  className={classNames('flex mr-auto min-w-0 items-center gap-12px', {
+                    'justify-center': collapsed,
                   })}
                 >
                   <div
-                    className={classNames('shrink-0 w-96px h-44px relative rd-0.5rem overflow-visible', {
-                      '!w-42px !h-24px': collapsed,
+                    className={classNames('shrink-0 size-40px relative rd-0.5rem overflow-hidden', {
+                      '!size-24px': collapsed,
                     })}
                     onClick={onClick}
                   >
                     <img
-                      src={lokWordmark}
+                      src={lokLogo}
                       alt=''
                       aria-hidden='true'
                       draggable={false}
                       className='size-full object-contain absolute inset-0 m-auto'
                     />
                   </div>
-                  <div className='max-w-full text-15px leading-18px text-1 collapsed-hidden font-bold'>LokSystem</div>
+                  <div className='collapsed-hidden min-w-0 whitespace-nowrap text-18px leading-none text-1 font-bold'>
+                    LokSystem
+                  </div>
                 </div>
                 {isMobile && !collapsed && (
                   <button
