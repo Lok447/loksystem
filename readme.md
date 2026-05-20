@@ -627,6 +627,32 @@ Click the button above to go to the Releases page and download the installer for
 brew install loksystem
 ```
 
+### One-Click WebUI Deployment
+
+After installation, LokSystem also ships with deployment launchers for running WebUI directly from a terminal:
+
+- **Windows installer** adds a desktop shortcut and a Start Menu entry named **`LokSystem Deploy WebUI`**
+- The Start Menu deployment entry is placed inside the **`LokSystem`** folder together with the main app shortcut
+- **Windows app directory** includes `LokSystem-Deploy.ps1` and `LokSystem-Deploy.cmd`
+- **macOS app bundle** includes `loksystem-deploy.sh` and `loksystem-deploy.command` under `LokSystem.app/Contents/MacOS/`
+
+These launchers automatically start LokSystem in `--webui` mode, keep logs visible in the terminal, and support options such as `--local`, `--remote`, `--port <port>`, and `--browser`.
+
+```powershell
+# Windows PowerShell
+.\LokSystem-Deploy.ps1 --port 25808
+```
+
+```bat
+:: Windows Command Prompt
+LokSystem-Deploy.cmd --local --port 3000
+```
+
+```bash
+# macOS Terminal / iTerm
+./loksystem-deploy.sh --browser
+```
+
 ### Get Started in 3 Steps
 
 1. **Install** LokSystem

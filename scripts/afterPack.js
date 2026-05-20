@@ -8,6 +8,7 @@ const {
   verifyModuleBinary,
   getModulesToRebuild,
 } = require('./rebuildNativeModules');
+const prepareDeploymentLaunchers = require('./prepareDeploymentLaunchers');
 
 /**
  * afterPack hook for electron-builder
@@ -211,5 +212,6 @@ module.exports = async function afterPack(context) {
     throw new Error(`Failed to rebuild modules for ${electronPlatformName}-${targetArch}: ${failedModules.join(', ')}`);
   }
 
+  prepareDeploymentLaunchers(context);
   console.log(`✅ All native modules rebuilt successfully for ${targetArch}\n`);
 };

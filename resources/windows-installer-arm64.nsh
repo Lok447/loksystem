@@ -2,6 +2,7 @@
 ; Prevents installation on non-ARM64 systems
 
 !include "x64.nsh"
+!include "windows-installer-shortcuts.nsh"
 
 ; Check architecture when installer validates install directory
 ; This is called early in the installer lifecycle and won't conflict with electron-builder
