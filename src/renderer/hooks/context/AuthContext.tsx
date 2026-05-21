@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { withCsrfToken, hasValidCsrfToken, clearCookie } from '@process/webserver/middleware/csrfClient';
 import { CSRF_COOKIE_NAME } from '@process/webserver/config/constants';
+import { resolveWebRuntimeServerPath } from '@/common/utils/webRuntimeOrigin';
 
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 
@@ -72,7 +73,7 @@ function clearAuthCache(): void {
 
 async function fetchCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> {
   try {
-    const response = await fetch(AUTH_USER_ENDPOINT, {
+    const response = await fetch(resolveWebRuntimeServerPath(AUTH_USER_ENDPOINT, window.location), {
       method: 'GET',
       credentials: 'include',
       signal,
@@ -153,7 +154,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       }
 
       // P1 安全修复：登录请求需要 CSRF Token / P1 Security fix: Login needs CSRF token
-      const response = await fetch('/login', {
+      const response = await fetch(resolveWebRuntimeServerPath('/login', window.location), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -247,7 +248,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     }
 
     try {
-      await fetch('/logout', {
+      await fetch(resolveWebRuntimeServerPath('/logout', window.location), {
         method: 'POST',
         // Logout also needs CSRF token / 登出同样需要 CSRF Token
         headers: {

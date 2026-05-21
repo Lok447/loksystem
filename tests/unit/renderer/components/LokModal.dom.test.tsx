@@ -29,7 +29,7 @@ vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
 }));
 
 vi.mock('@icon-park/react', () => ({
-  Close: ({ size = 20 }: { size?: number }) => <span data-testid='aion-modal-close' data-size={size} />,
+  Close: ({ size = 20 }: { size?: number }) => <span data-testid='lok-modal-close' data-size={size} />,
 }));
 
 vi.mock('@arco-design/web-react', () => ({
@@ -58,16 +58,16 @@ vi.mock('@arco-design/web-react', () => ({
   }) => <button onClick={onClick}>{children}</button>,
 }));
 
-import AionModal from '@/renderer/components/base/AionModal';
+import LokModal from '@/renderer/components/base/LokModal';
 
 const arcoOverrideCss = readFileSync(resolve(process.cwd(), 'src/renderer/styles/arco-override.css'), 'utf8');
 
-describe('AionModal', () => {
+describe('LokModal', () => {
   it('uses dialog fill as the default content background', () => {
     const { container } = render(
-      <AionModal visible onCancel={vi.fn()} header='Modal title'>
+      <LokModal visible onCancel={vi.fn()} header='Modal title'>
         content
-      </AionModal>
+      </LokModal>
     );
 
     const body = container.querySelector('.loksystem-modal-body-content');
@@ -78,9 +78,9 @@ describe('AionModal', () => {
 
   it('preserves an explicit content background override', () => {
     const { container } = render(
-      <AionModal visible onCancel={vi.fn()} header='Modal title' contentStyle={{ background: 'rgb(var(--primary-1))' }}>
+      <LokModal visible onCancel={vi.fn()} header='Modal title' contentStyle={{ background: 'rgb(var(--primary-1))' }}>
         content
-      </AionModal>
+      </LokModal>
     );
 
     const body = container.querySelector('.loksystem-modal-body-content');

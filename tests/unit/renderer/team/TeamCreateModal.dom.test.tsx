@@ -98,7 +98,7 @@ vi.mock('@/common/config/storage', () => ({
   },
 }));
 
-vi.mock('@/renderer/components/base/AionModal', () => ({
+vi.mock('@/renderer/components/base/LokModal', () => ({
   default: ({
     children,
     visible,

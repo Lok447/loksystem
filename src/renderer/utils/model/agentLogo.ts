@@ -10,7 +10,7 @@
  * All places that need to display agent icons should use this utility instead of maintaining separate lists
  */
 
-import LokCliLogo from '@/renderer/assets/logos/brand/aion.svg';
+import LokCliLogo from '@/renderer/assets/logos/brand/lok.svg';
 import ClaudeLogo from '@/renderer/assets/logos/ai-major/claude.svg';
 import CursorLogo from '@/renderer/assets/logos/tools/coding/cursor.png';
 import CodeBuddyLogo from '@/renderer/assets/logos/tools/coding/codebuddy.svg';

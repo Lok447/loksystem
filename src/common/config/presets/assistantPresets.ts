@@ -510,29 +510,29 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'uk-UA': 'Помічник Star Office',
     },
     descriptionI18n: {
-      'en-US': 'Install, connect, and troubleshoot Star-Office-UI visualization for Aion preview.',
-      'zh-CN': '用于在 Aion 预览中安装、连接并排查 Star-Office-UI 可视化问题。',
+      'en-US': 'Install, connect, and troubleshoot Star-Office-UI visualization for Lok preview.',
+      'zh-CN': '用于在 Lok 预览中安装、连接并排查 Star-Office-UI 可视化问题。',
       'ru-RU':
-        'Помогает установить, подключить и диагностировать визуализацию Star-Office-UI для предпросмотра в Aion.',
+        'Помогает установить, подключить и диагностировать визуализацию Star-Office-UI для предпросмотра в Lok.',
       'uk-UA':
-        'Допомагає встановлювати, підключати та діагностувати візуалізацію Star-Office-UI для попереднього перегляду в Aion.',
+        'Допомагає встановлювати, підключати та діагностувати візуалізацію Star-Office-UI для попереднього перегляду в Lok.',
     },
     promptsI18n: {
       'en-US': [
         'Set up Star Office on my machine',
         'Fix Unauthorized on Star Office page',
-        'Connect Aion preview to http://127.0.0.1:19000',
+        'Connect Lok preview to http://127.0.0.1:19000',
       ],
-      'zh-CN': ['帮我安装 Star Office', '排查 Star Office Unauthorized', '把 Aion 预览连接到 http://127.0.0.1:19000'],
+      'zh-CN': ['帮我安装 Star Office', '排查 Star Office Unauthorized', '把 Lok 预览连接到 http://127.0.0.1:19000'],
       'ru-RU': [
         'Настрой Star Office на моём компьютере',
         'Исправь ошибку Unauthorized на странице Star Office',
-        'Подключи предпросмотр Aion к http://127.0.0.1:19000',
+        'Подключи предпросмотр Lok к http://127.0.0.1:19000',
       ],
       'uk-UA': [
         "Налаштувати Star Office на моєму комп'ютері",
         'Виправити помилку Unauthorized на сторінці Star Office',
-        'Підключити попередній перегляд Aion до http://127.0.0.1:19000',
+        'Підключити попередній перегляд Lok до http://127.0.0.1:19000',
       ],
     },
   },

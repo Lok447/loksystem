@@ -86,5 +86,5 @@ Checklist:
    python3 -m venv .venv && .venv/bin/python -m pip install -r backend/requirements.txt
 2) If browser shows Unauthorized, backend may be running but not initialized/session missing.
 3) If frontend opens but no animation, verify OpenClaw events are actually flowing to Star Office backend.
-4) In Aion preview panel, use exact URL of running frontend (usually http://127.0.0.1:19000).
+4) In Lok preview panel, use exact URL of running frontend (usually http://127.0.0.1:19000).
 EOF

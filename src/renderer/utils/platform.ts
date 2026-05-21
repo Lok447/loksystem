@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { resolveWebRuntimeServerPath } from '@/common/utils/webRuntimeOrigin';
+
 /**
  * Platform detection utilities
  * 平台检测工具函数
@@ -88,7 +90,7 @@ export const resolveExtensionAssetUrl = (url: string | undefined): string | unde
   }
 
   if (absPath) {
-    return `/api/ext-asset?path=${encodeURIComponent(absPath)}`;
+    return resolveWebRuntimeServerPath(`/api/ext-asset?path=${encodeURIComponent(absPath)}`, window.location);
   }
 
   // WebUI: file:///{absPath} -> /api/ext-asset
@@ -98,7 +100,7 @@ export const resolveExtensionAssetUrl = (url: string | undefined): string | unde
     if (/^\/[A-Za-z]:/.test(filePath)) {
       filePath = filePath.slice(1);
     }
-    return `/api/ext-asset?path=${encodeURIComponent(filePath)}`;
+    return resolveWebRuntimeServerPath(`/api/ext-asset?path=${encodeURIComponent(filePath)}`, window.location);
   }
 
   return url;

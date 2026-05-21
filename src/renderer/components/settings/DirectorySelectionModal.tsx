@@ -6,6 +6,7 @@
 
 import { Button, Modal, Spin } from '@arco-design/web-react';
 import { IconFile, IconFolder, IconUp } from '@arco-design/web-react/icon';
+import { resolveWebRuntimeServerPath } from '@/common/utils/webRuntimeOrigin';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -49,7 +50,10 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
       try {
         const showFiles = isFileMode ? 'true' : 'false';
         const response = await fetch(
-          `/api/directory/browse?path=${encodeURIComponent(dirPath)}&showFiles=${showFiles}`,
+          resolveWebRuntimeServerPath(
+            `/api/directory/browse?path=${encodeURIComponent(dirPath)}&showFiles=${showFiles}`,
+            window.location
+          ),
           {
             method: 'GET',
             credentials: 'include',

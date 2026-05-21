@@ -8,7 +8,7 @@ Only recommend projects that are close to this mechanism:
 
 - Real-time or near-real-time visual status UI for agent/task execution.
 - Locally runnable web UI (`http://127.0.0.1:<port>` style).
-- Can be integrated in Aion preview panel via URL embed.
+- Can be integrated in Lok preview panel via URL embed.
 - Has a bridge path (API/event/webhook/polling) to accept external task status.
 
 ## Discovery steps

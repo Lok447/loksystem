@@ -9,10 +9,10 @@ import fs from 'fs';
 import path from 'path';
 
 /**
- * Current AionUI extension API version.
+ * Current LokSystem extension API version.
  * Increment major for breaking changes, minor for new features, patch for fixes.
  */
-export const LOKSYSTEM_VERSION = getAionUIVersion();
+export const LOKSYSTEM_VERSION = getLokSystemVersion();
 export const EXTENSION_API_VERSION = '1.0.0';
 
 type ParsedVersion = { major: number; minor: number; patch: number };
@@ -65,10 +65,10 @@ function satisfiesVersion(version: string, range: string): boolean {
 }
 
 /**
- * Get the AionUI version from package.json.
+ * Get the LokSystem version from package.json.
  * Falls back to '0.0.0' if not available.
  */
-function getAionUIVersion(): string {
+function getLokSystemVersion(): string {
   // Prefer Electron runtime version when available (desktop / packaged mode).
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
@@ -111,10 +111,10 @@ export interface EngineValidationResult {
 }
 
 /**
- * Validate that an extension's engine requirements are satisfied by the current AionUI version.
+ * Validate that an extension's engine requirements are satisfied by the current LokSystem version.
  *
  * Checks:
- * 1. engine.loksystem — does the running AionUI version satisfy the required range?
+ * 1. engine.loksystem — does the running LokSystem version satisfy the required range?
  * 2. engine.extensionApi — (future) does the extension API version match?
  */
 export function validateEngineCompatibility(extension: LoadedExtension): EngineValidationResult {
@@ -127,12 +127,12 @@ export function validateEngineCompatibility(extension: LoadedExtension): EngineV
   const engine = extension.manifest.engine;
   const apiVersion = extension.manifest.apiVersion;
 
-  // Check AionUI core version compatibility
+  // Check LokSystem core version compatibility
   if (engine?.loksystem) {
     if (!satisfiesVersion(LOKSYSTEM_VERSION, engine.loksystem)) {
       result.valid = false;
       result.issues.push(
-        `Extension "${extension.manifest.name}" requires AionUI ${engine.loksystem} but current version is ${LOKSYSTEM_VERSION}`
+        `Extension "${extension.manifest.name}" requires LokSystem ${engine.loksystem} but current version is ${LOKSYSTEM_VERSION}`
       );
     }
   }

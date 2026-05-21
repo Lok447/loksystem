@@ -70,16 +70,16 @@ export class AcpRuntime {
     // agent has the aion_create_team tool available.
     if (!config.teamMcpConfig) {
       if (await shouldInjectTeamGuideMcp(config.agentBackend)) {
-        const aionStdioConfig = getTeamGuideStdioConfig();
-        if (aionStdioConfig) {
+        const lokStdioConfig = getTeamGuideStdioConfig();
+        if (lokStdioConfig) {
           const guideServer: McpServer = {
-            name: aionStdioConfig.name,
-            command: aionStdioConfig.command,
-            args: aionStdioConfig.args,
+            name: lokStdioConfig.name,
+            command: lokStdioConfig.command,
+            args: lokStdioConfig.args,
             env: [
-              ...aionStdioConfig.env,
-              { name: 'AION_MCP_BACKEND', value: config.agentBackend },
-              { name: 'AION_MCP_CONVERSATION_ID', value: convId },
+              ...lokStdioConfig.env,
+              { name: 'LOK_MCP_BACKEND', value: config.agentBackend },
+              { name: 'LOK_MCP_CONVERSATION_ID', value: convId },
             ],
           };
           config.presetMcpServers = [...(config.presetMcpServers || []), guideServer];

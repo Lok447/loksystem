@@ -1,6 +1,6 @@
 ﻿import type { IProvider } from '@/common/config/storage';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
-import AionModal from '@/renderer/components/base/AionModal';
+import LokModal from '@/renderer/components/base/LokModal';
 import { Select } from '@arco-design/web-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -25,7 +25,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
     }, [data, existingModels, model, onSubmit, modalCtrl]);
 
     return (
-      <AionModal
+      <LokModal
         visible={modalProps.visible}
         onCancel={modalCtrl.close}
         header={{ title: t('settings.addModel'), showClose: true }}
@@ -55,7 +55,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
             />
           </div>
         </div>
-      </AionModal>
+      </LokModal>
     );
   }
 );

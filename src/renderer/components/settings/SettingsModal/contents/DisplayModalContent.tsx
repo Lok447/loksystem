@@ -8,7 +8,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import FontSizeControl from '@/renderer/components/settings/FontSizeControl';
 import { ThemeSwitcher } from '@/renderer/components/settings/ThemeSwitcher';
-import AionScrollArea from '@/renderer/components/base/AionScrollArea';
+import LokScrollArea from '@/renderer/components/base/LokScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
 
 const PreferenceRow: React.FC<{
@@ -33,7 +33,7 @@ const DisplayModalContent: React.FC = () => {
 
   return (
     <div className='flex flex-col h-full w-full'>
-      <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
+      <LokScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
         <div className='px-16px md:px-24px lg:px-28px py-14px md:py-16px bg-2 rd-16px space-y-10px md:space-y-12px'>
           <div className='w-full flex flex-col divide-y divide-border-2'>
             {displayItems.map((item) => (
@@ -43,7 +43,7 @@ const DisplayModalContent: React.FC = () => {
             ))}
           </div>
         </div>
-      </AionScrollArea>
+      </LokScrollArea>
     </div>
   );
 };

@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { resolveWebRuntimeServerPath } from '@/common/utils/webRuntimeOrigin';
 import WebviewHost from '@/renderer/components/media/WebviewHost';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Spin } from '@arco-design/web-react';
@@ -113,7 +114,7 @@ const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, filePath
           let resolvedUrl = url;
           if (!isElectronDesktop()) {
             const port = new URL(url).port;
-            resolvedUrl = `${PROXY_PATH[docType]}/${port}/`;
+            resolvedUrl = resolveWebRuntimeServerPath(`${PROXY_PATH[docType]}/${port}/`, window.location);
           }
           setWatchUrl(resolvedUrl);
           setLoading(false);

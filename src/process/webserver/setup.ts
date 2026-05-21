@@ -120,6 +120,12 @@ function normalizeOrigin(origin: string): string | null {
 function getConfiguredOrigins(port: number, allowRemote: boolean): Set<string> {
   const baseOrigins = new Set<string>([`http://localhost:${port}`, `http://127.0.0.1:${port}`]);
 
+  if (process.env.NODE_ENV !== 'production') {
+    // Allow the Vite renderer dev server to talk directly to the WebUI backend.
+    baseOrigins.add('http://localhost:5173');
+    baseOrigins.add('http://127.0.0.1:5173');
+  }
+
   // 允许远程访问时，自动添加所有网络接口 IP（LAN、VPN、Tailscale 等）
   // When remote access is enabled, add all network interface IPs (LAN, VPN, Tailscale, etc.)
   if (allowRemote) {

@@ -12,7 +12,7 @@ import React from 'react';
 /**
  * 步骤条组件属性 / Steps component props
  */
-export interface AionStepsProps extends StepsProps {
+export interface LokStepsProps extends StepsProps {
   /** 额外的类名 / Additional class name */
   className?: string;
 }
@@ -31,42 +31,42 @@ export interface AionStepsProps extends StepsProps {
  * @example
  * ```tsx
  * // 基本用法 / Basic usage
- * <AionSteps current={1}>
- *   <AionSteps.Step title="步骤1" description="这是描述" />
- *   <AionSteps.Step title="步骤2" description="这是描述" />
- *   <AionSteps.Step title="步骤3" description="这是描述" />
- * </AionSteps>
+ * <LokSteps current={1}>
+ *   <LokSteps.Step title="步骤1" description="这是描述" />
+ *   <LokSteps.Step title="步骤2" description="这是描述" />
+ *   <LokSteps.Step title="步骤3" description="这是描述" />
+ * </LokSteps>
  *
  * // 垂直步骤条 / Vertical steps
- * <AionSteps current={1} direction="vertical">
- *   <AionSteps.Step title="步骤1" description="描述" />
- *   <AionSteps.Step title="步骤2" description="描述" />
- * </AionSteps>
+ * <LokSteps current={1} direction="vertical">
+ *   <LokSteps.Step title="步骤1" description="描述" />
+ *   <LokSteps.Step title="步骤2" description="描述" />
+ * </LokSteps>
  *
  * // 带图标的步骤条 / Steps with icons
- * <AionSteps current={1}>
- *   <AionSteps.Step title="完成" icon={<IconCheck />} />
- *   <AionSteps.Step title="进行中" icon={<IconLoading />} />
- *   <AionSteps.Step title="待处理" icon={<IconClock />} />
- * </AionSteps>
+ * <LokSteps current={1}>
+ *   <LokSteps.Step title="完成" icon={<IconCheck />} />
+ *   <LokSteps.Step title="进行中" icon={<IconLoading />} />
+ *   <LokSteps.Step title="待处理" icon={<IconClock />} />
+ * </LokSteps>
  *
  * // 迷你版步骤条 / Mini steps
- * <AionSteps current={1} size="small" type="dot">
- *   <AionSteps.Step title="步骤1" />
- *   <AionSteps.Step title="步骤2" />
- *   <AionSteps.Step title="步骤3" />
- * </AionSteps>
+ * <LokSteps current={1} size="small" type="dot">
+ *   <LokSteps.Step title="步骤1" />
+ *   <LokSteps.Step title="步骤2" />
+ *   <LokSteps.Step title="步骤3" />
+ * </LokSteps>
  * ```
  *
  * @see arco-override.css for custom styles (.loksystem-steps)
  */
-const AionSteps: React.FC<AionStepsProps> & { Step: typeof Steps.Step } = ({ className, ...props }) => {
+const LokSteps: React.FC<LokStepsProps> & { Step: typeof Steps.Step } = ({ className, ...props }) => {
   return <Steps {...props} className={classNames('loksystem-steps', className)} />;
 };
 
-AionSteps.displayName = 'AionSteps';
+LokSteps.displayName = 'LokSteps';
 
 // 导出子组件 / Export sub-component
-AionSteps.Step = Steps.Step;
+LokSteps.Step = Steps.Step;
 
-export default AionSteps;
+export default LokSteps;

@@ -523,9 +523,9 @@ try {
     const winUnpackedDir = path.join(outDir, 'win-unpacked');
     let cleaned = tryRemoveDir(winUnpackedDir);
     if (!cleaned) {
-      const aionRunning = isProcessRunningWindows('LokSystem.exe');
+      const lokSystemRunning = isProcessRunningWindows('LokSystem.exe');
       const electronRunning = isProcessRunningWindows('electron.exe');
-      if (aionRunning || electronRunning) {
+      if (lokSystemRunning || electronRunning) {
         console.log('⚠️  Detected running LokSystem/Electron process. Attempting to close...');
         killWindowsProcesses(['LokSystem.exe', 'electron.exe']);
         cleaned = tryRemoveDir(winUnpackedDir);

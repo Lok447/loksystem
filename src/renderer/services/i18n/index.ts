@@ -42,6 +42,29 @@ const localeData: LocaleData = {
 };
 
 const fallbackLocale = localeData[DEFAULT_LANGUAGE] ?? {};
+const DEFAULT_WEB_LANGUAGE = 'zh-CN';
+const LANGUAGE_EXPLICIT_SELECTION_KEY = 'loksystem.language.explicit';
+const initialRendererLanguage =
+  typeof window !== 'undefined' && !window.electronAPI ? DEFAULT_WEB_LANGUAGE : DEFAULT_LANGUAGE;
+
+const isBrowserWebRuntime = typeof window !== 'undefined' && !window.electronAPI;
+
+function hasExplicitLanguageSelection(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  return localStorage.getItem(LANGUAGE_EXPLICIT_SELECTION_KEY) === '1';
+}
+
+function getInitialLanguageHint(): string {
+  if (typeof localStorage === 'undefined') {
+    return initialRendererLanguage;
+  }
+
+  if (isBrowserWebRuntime && !hasExplicitLanguageSelection()) {
+    return DEFAULT_WEB_LANGUAGE;
+  }
+
+  return localStorage.getItem('i18nextLng') || initialRendererLanguage;
+}
 
 // Cache for loaded translations
 const loadedTranslations = new Map<string, Record<string, unknown>>();
@@ -77,12 +100,15 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
+      'zh-CN': {
+        translation: localeData['zh-CN'],
+      },
       [DEFAULT_LANGUAGE]: {
         translation: fallbackLocale,
       },
     },
-    lng: (typeof localStorage !== 'undefined' ? localStorage.getItem('i18nextLng') : null) || DEFAULT_LANGUAGE,
-    fallbackLng: DEFAULT_LANGUAGE,
+    lng: getInitialLanguageHint(),
+    fallbackLng: isBrowserWebRuntime ? ['zh-CN', DEFAULT_LANGUAGE] : DEFAULT_LANGUAGE,
     debug: false,
     interpolation: { escapeValue: false },
   })
@@ -94,7 +120,8 @@ i18n
 async function initLanguage(): Promise<void> {
   try {
     const savedLanguage = await ConfigStorage.get('language');
-    const language = savedLanguage || normalizeLanguageCode(navigator.language || DEFAULT_LANGUAGE);
+    const shouldForceWebChinese = isBrowserWebRuntime && !hasExplicitLanguageSelection();
+    const language = shouldForceWebChinese ? DEFAULT_WEB_LANGUAGE : savedLanguage || initialRendererLanguage;
     await ensureAndSwitch(i18n, language, loadLocaleModules);
     // Sync to localStorage so next page load can use it as a fast hint
     if (typeof localStorage !== 'undefined') {
@@ -144,6 +171,7 @@ export async function changeLanguage(lang: string): Promise<void> {
   // Keep localStorage in sync so WebUI can use it as a fast hint on next load
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem('i18nextLng', normalized);
+    localStorage.setItem(LANGUAGE_EXPLICIT_SELECTION_KEY, '1');
   }
   // Notify main process to sync i18n (for tray menu, etc.)
   ipcBridge.systemSettings.changeLanguage.invoke({ language: normalized }).catch(() => {});

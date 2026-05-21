@@ -381,7 +381,7 @@ test.describe('Conversation Full Cycle', () => {
     await agentSelect.click();
 
     // CLI agents appear in OptGroup "CLI Agents"; pick the first one
-    const cliOptions = page.locator('.arco-select-option').filter({ hasText: /Claude|Codex|Gemini|Aion/ });
+    const cliOptions = page.locator('.arco-select-option').filter({ hasText: /Claude|Codex|Gemini|Lok/ });
     if ((await cliOptions.count()) === 0) {
       await page.keyboard.press('Escape');
       await page.keyboard.press('Escape');

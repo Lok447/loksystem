@@ -96,7 +96,7 @@ vi.mock('@process/webserver/routes/apiRoutes', () => ({
 
 vi.mock('@process/webserver/routes/staticRoutes', () => ({
   registerStaticRoutes: registerStaticRoutesMock,
-  resolveRendererPath: vi.fn(() => ({ staticRoot: '/mock/root', indexHtml: '/mock/root/index.html' })),
+  shouldProxyRendererToViteDevServer: vi.fn(() => false),
   VITE_DEV_PORT: 5173,
 }));
 

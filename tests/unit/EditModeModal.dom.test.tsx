@@ -132,13 +132,13 @@ vi.mock('@/renderer/utils/ui/ModalHOC', () => ({
   },
 }));
 
-// Mock AionModal to expose the onOk handler
+// Mock LokModal to expose the onOk handler
 let capturedOnOk: (() => Promise<void>) | undefined;
-vi.mock('@/renderer/components/base/AionModal', () => ({
+vi.mock('@/renderer/components/base/LokModal', () => ({
   default: ({ children, onOk, ...props }: any) => {
     capturedOnOk = onOk;
     return (
-      <div data-testid='aion-modal' data-visible={props.visible}>
+      <div data-testid='lok-modal' data-visible={props.visible}>
         {children}
         <button data-testid='modal-ok-btn' onClick={onOk}>
           {props.okText || 'OK'}

@@ -31,6 +31,14 @@ export const VITE_DEV_PORT = (() => {
 })();
 
 /**
+ * In electron-vite dev, always proxy WebUI page requests to the live Vite renderer
+ * so http://<host>:25809 stays visually consistent with http://localhost:5173.
+ */
+export function shouldProxyRendererToViteDevServer(): boolean {
+  return process.env.NODE_ENV !== 'production' && Boolean(process.env['ELECTRON_RENDERER_URL']);
+}
+
+/**
  * Try to resolve built renderer assets path, return null if not found
  */
 export const resolveRendererPath = (): {
@@ -156,8 +164,14 @@ function registerProductionStaticRoutes(expressApp: Express, staticRoot: string,
  * In development: proxy to Vite dev server (localhost:5173)
  */
 export function registerStaticRoutes(expressApp: Express): void {
-  const resolved = resolveRendererPath();
+  if (shouldProxyRendererToViteDevServer()) {
+    console.log(`[WebUI] Development mode detected, proxying renderer to Vite dev server at http://localhost:${VITE_DEV_PORT}`);
+    const proxy = createViteDevProxy();
+    expressApp.use(proxy);
+    return;
+  }
 
+  const resolved = resolveRendererPath();
   if (resolved) {
     console.log(`[WebUI] Serving renderer from: ${resolved.staticRoot}`);
     registerProductionStaticRoutes(expressApp, resolved.staticRoot, resolved.indexHtml);

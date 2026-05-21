@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
-import AionModal from '@/renderer/components/base/AionModal';
+import LokModal from '@/renderer/components/base/LokModal';
 import { Button, Typography } from '@arco-design/web-react';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -119,7 +119,7 @@ const LocalAgents: React.FC = () => {
         </div>
       )}
 
-      <AionModal
+      <LokModal
         visible={editorVisible}
         onCancel={() => {
           setEditorVisible(false);
@@ -148,7 +148,7 @@ const LocalAgents: React.FC = () => {
             setEditingAgent(null);
           }}
         />
-      </AionModal>
+      </LokModal>
 
       <div className='flex flex-col gap-4px px-0'>
         {customAgents?.map((agent) => (

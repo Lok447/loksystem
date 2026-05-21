@@ -1291,7 +1291,7 @@ body::after {
   border-color: var(--aou-4) !important;
 }
 
-.aion-file-changes-panel {
+.lok-file-changes-panel {
   border: 1.5px solid #ccb8e0 !important;
   border-radius: 12px !important;
   box-shadow:
@@ -1299,18 +1299,18 @@ body::after {
     0 8px 18px rgba(152, 120, 184, 0.16) !important;
 }
 
-.aion-file-changes-panel > div:first-child {
+.lok-file-changes-panel > div:first-child {
   box-shadow: inset 0 -1px 0 rgba(184, 156, 210, 0.5);
 }
 
-[data-theme='dark'] .aion-file-changes-panel {
+[data-theme='dark'] .lok-file-changes-panel {
   border-color: #7f61a0 !important;
   box-shadow:
     0 0 0 1px rgba(177, 136, 212, 0.26),
     0 10px 22px rgba(58, 34, 88, 0.5) !important;
 }
 
-[data-theme='dark'] .aion-file-changes-panel > div:first-child {
+[data-theme='dark'] .lok-file-changes-panel > div:first-child {
   box-shadow: inset 0 -1px 0 rgba(148, 112, 186, 0.44);
 }
 

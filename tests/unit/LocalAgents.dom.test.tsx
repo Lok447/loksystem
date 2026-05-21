@@ -67,7 +67,7 @@ vi.mock('@arco-design/web-react', () => ({
   ),
 }));
 
-vi.mock('@/renderer/components/base/AionModal', () => ({
+vi.mock('@/renderer/components/base/LokModal', () => ({
   default: ({
     children,
     visible,
@@ -78,7 +78,7 @@ vi.mock('@/renderer/components/base/AionModal', () => ({
     contentStyle?: { background?: string };
   }) =>
     visible ? (
-      <div data-testid='aion-modal' data-background={contentStyle?.background ?? ''}>
+      <div data-testid='lok-modal' data-background={contentStyle?.background ?? ''}>
         {children}
       </div>
     ) : null,
@@ -178,7 +178,7 @@ describe('LocalAgents', () => {
 
     fireEvent.click(screen.getByText('settings.agentManagement.detectCustomAgent'));
 
-    expect(screen.getByTestId('aion-modal')).toHaveAttribute('data-background', 'var(--dialog-fill-0)');
+    expect(screen.getByTestId('lok-modal')).toHaveAttribute('data-background', 'var(--dialog-fill-0)');
     expect(screen.getByTestId('inline-agent-editor')).toBeTruthy();
   });
 });

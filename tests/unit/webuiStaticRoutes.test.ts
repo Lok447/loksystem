@@ -60,4 +60,44 @@ describe('registerStaticRoutes', () => {
 
     expect(getRegisteredGetRoutePaths(app)).not.toContain('/favicon.ico');
   });
+
+  it('prefers the Vite dev proxy over stale built assets when electron-vite dev is active', async () => {
+    const packagedRoot = createPackagedRendererRoot();
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousRendererUrl = process.env.ELECTRON_RENDERER_URL;
+    try {
+      process.env.NODE_ENV = 'development';
+      process.env.ELECTRON_RENDERER_URL = 'http://localhost:5173';
+
+      vi.doMock('electron', () => ({
+        app: {
+          setName: vi.fn(),
+          getAppPath: () => packagedRoot,
+        },
+      }));
+      vi.doMock('@process/webserver/auth/middleware/TokenMiddleware', () => ({
+        TokenMiddleware: {
+          extractToken: () => null,
+          isTokenValid: () => true,
+        },
+      }));
+      vi.doMock('@process/webserver/middleware/security', () => ({
+        createRateLimiter: () => (_req: express.Request, _res: express.Response, next: express.NextFunction) => next(),
+      }));
+
+      const { registerStaticRoutes } = await import('@process/webserver/routes/staticRoutes');
+      const app = express();
+
+      registerStaticRoutes(app);
+
+      expect(getRegisteredGetRoutePaths(app)).toEqual([]);
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+      if (previousRendererUrl === undefined) {
+        delete process.env.ELECTRON_RENDERER_URL;
+      } else {
+        process.env.ELECTRON_RENDERER_URL = previousRendererUrl;
+      }
+    }
+  });
 });

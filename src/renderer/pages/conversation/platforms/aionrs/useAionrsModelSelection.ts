@@ -33,7 +33,7 @@ export const useAionrsModelSelection = ({
 
   const { providers: allProviders, getAvailableModels, formatModelLabel } = useModelProviderList();
 
-  // AionCLI does not support Google Auth — filter it out
+  // Lok CLI does not support Google Auth — filter it out
   const providers = useMemo(() => allProviders, [allProviders]);
 
   const handleSelectModel = useCallback(

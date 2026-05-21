@@ -186,8 +186,8 @@ describe('McpService Gemini detection', () => {
     const emptyDetect = vi.fn(async () => []);
 
     mockUnrelatedMcpAgents(emptyDetect);
-    vi.doMock('../../src/process/services/mcpServices/agents/AionuiMcpAgent', () => ({
-      AionuiMcpAgent: makeAgentClass(builtinDetect),
+    vi.doMock('../../src/process/services/mcpServices/agents/LokSystemMcpAgent', () => ({
+      LokSystemMcpAgent: makeAgentClass(builtinDetect),
     }));
 
     const { McpService } = await import('../../src/process/services/mcpServices/McpService');
@@ -211,8 +211,8 @@ describe('McpService OpenCode detection', () => {
     const emptyDetect = vi.fn(async () => []);
 
     mockUnrelatedMcpAgents(emptyDetect);
-    vi.doMock('../../src/process/services/mcpServices/agents/AionuiMcpAgent', () => ({
-      AionuiMcpAgent: makeAgentClass(emptyDetect),
+    vi.doMock('../../src/process/services/mcpServices/agents/LokSystemMcpAgent', () => ({
+      LokSystemMcpAgent: makeAgentClass(emptyDetect),
     }));
     vi.doMock('../../src/process/services/mcpServices/agents/OpencodeMcpAgent', () => ({
       OpencodeMcpAgent: makeAgentClass(opencodeDetect),

@@ -71,8 +71,8 @@ export interface ModalContentStyleConfig {
   maxHeight?: string | number;
 }
 
-/** AionModal 组件 Props */
-export interface AionModalProps extends Omit<ModalProps, 'title' | 'footer'> {
+/** LokModal 组件 Props */
+export interface LokModalProps extends Omit<ModalProps, 'title' | 'footer'> {
   children?: React.ReactNode;
 
   /** 预设尺寸，会被 style 中的 width/height 覆盖 */
@@ -118,17 +118,17 @@ const FOOTER_BASE_CLASS = 'flex-shrink-0 bg-transparent';
  * @example
  * ```tsx
  * // 基本用法 / Basic usage
- * <AionModal visible={true} onCancel={handleClose} header="标题">
+ * <LokModal visible={true} onCancel={handleClose} header="标题">
  *   内容
- * </AionModal>
+ * </LokModal>
  *
  * // 预设尺寸 / Preset size
- * <AionModal visible={true} size="large" header="大型弹窗">
+ * <LokModal visible={true} size="large" header="大型弹窗">
  *   内容
- * </AionModal>
+ * </LokModal>
  *
  * // 自定义 header / Custom header
- * <AionModal
+ * <LokModal
  *   visible={true}
  *   header={{
  *     title: "自定义标题",
@@ -137,10 +137,10 @@ const FOOTER_BASE_CLASS = 'flex-shrink-0 bg-transparent';
  *   }}
  * >
  *   内容
- * </AionModal>
+ * </LokModal>
  *
  * // 自定义 footer / Custom footer
- * <AionModal
+ * <LokModal
  *   visible={true}
  *   header="标题"
  *   footer={
@@ -151,7 +151,7 @@ const FOOTER_BASE_CLASS = 'flex-shrink-0 bg-transparent';
  *   }
  * >
  *   内容
- * </AionModal>
+ * </LokModal>
  * ```
  */
 const dimensionKeys = ['width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight'] as const;
@@ -162,7 +162,7 @@ const formatDimensionValue = (value?: string | number) => {
   return typeof value === 'number' ? `${value}px` : value;
 };
 
-const AionModal: React.FC<AionModalProps> = ({
+const LokModal: React.FC<LokModalProps> = ({
   children,
   size,
   header,
@@ -393,6 +393,6 @@ const AionModal: React.FC<AionModalProps> = ({
   );
 };
 
-AionModal.displayName = 'AionModal';
+LokModal.displayName = 'LokModal';
 
-export default AionModal;
+export default LokModal;

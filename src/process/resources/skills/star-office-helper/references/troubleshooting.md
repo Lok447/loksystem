@@ -32,11 +32,11 @@ Avoid:
 
 - `--break-system-packages` unless user explicitly requires system install.
 
-## 3. Aion connected but preview does not move
+## 3. Lok connected but preview does not move
 
 Cause:
 
-- Aion can talk to OpenClaw, but Star Office is only a visualization layer.
+- Lok can talk to OpenClaw, but Star Office is only a visualization layer.
 - No event bridge from OpenClaw task stream to Star Office backend.
 - Wrong preview URL.
 
@@ -44,7 +44,7 @@ Checklist:
 
 1. Confirm Star Office frontend port (default `19000`) is reachable.
 2. Confirm backend is running and receiving events.
-3. Confirm Aion preview panel URL exactly matches frontend URL.
+3. Confirm Lok preview panel URL exactly matches frontend URL.
 4. Trigger a real OpenClaw task and observe backend logs.
 
 ## 4. Port confusion (`18791` vs `19000`)
@@ -56,4 +56,4 @@ Typical mapping:
 
 Rule:
 
-- In Aion preview panel, use frontend URL.
+- In Lok preview panel, use frontend URL.

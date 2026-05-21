@@ -14,7 +14,7 @@ import { AbstractMcpAgent, type McpOperationResult } from '../McpProtocol';
  * This agent manages MCP configuration consumed by the bundled Lok CLI runtime
  * powered by `@office-ai/aioncli-core`.
  */
-export class AionuiMcpAgent extends AbstractMcpAgent {
+export class LokSystemMcpAgent extends AbstractMcpAgent {
   constructor() {
     // Use a dedicated backend id so runtime-managed MCP config stays separate
     // from MCP settings that belong to external ACP-compatible CLIs.
@@ -42,7 +42,7 @@ export class AionuiMcpAgent extends AbstractMcpAgent {
         return supportedTypes.includes(server.transport.type);
       });
     } catch (error) {
-      console.warn('[AionuiMcpAgent] Failed to detect MCP servers:', error);
+      console.warn('[LokSystemMcpAgent] Failed to detect MCP servers:', error);
       return [];
     }
   }
@@ -67,17 +67,17 @@ export class AionuiMcpAgent extends AbstractMcpAgent {
             updatedAt: Date.now(),
           });
         } else {
-          console.warn(`[AionuiMcpAgent] Skipping ${server.name}: unsupported transport type ${server.transport.type}`);
+          console.warn(`[LokSystemMcpAgent] Skipping ${server.name}: unsupported transport type ${server.transport.type}`);
         }
       });
 
       const mergedServers = Array.from(serverMap.values());
       await ProcessConfig.set('mcp.config', mergedServers);
 
-      console.log('[AionuiMcpAgent] Installed MCP servers:', mcpServers.map((server) => server.name).join(', '));
+      console.log('[LokSystemMcpAgent] Installed MCP servers:', mcpServers.map((server) => server.name).join(', '));
       return { success: true };
     } catch (error) {
-      console.error('[AionuiMcpAgent] Failed to install MCP servers:', error);
+      console.error('[LokSystemMcpAgent] Failed to install MCP servers:', error);
       return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
@@ -87,7 +87,7 @@ export class AionuiMcpAgent extends AbstractMcpAgent {
    * intentionally a no-op.
    */
   removeMcpServer(mcpServerName: string): Promise<McpOperationResult> {
-    console.log(`[AionuiMcpAgent] Skip removing '${mcpServerName}' - config managed by renderer`);
+    console.log(`[LokSystemMcpAgent] Skip removing '${mcpServerName}' - config managed by renderer`);
     return Promise.resolve({ success: true });
   }
 }

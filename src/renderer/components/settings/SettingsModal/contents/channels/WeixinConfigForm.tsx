@@ -7,6 +7,7 @@
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
+import { resolveWebRuntimeServerPath } from '@/common/utils/webRuntimeOrigin';
 import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
 import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { Button, Dropdown, Empty, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
@@ -282,7 +283,9 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     setLoginState('loading_qr');
     setQrcodeDataUrl(null);
 
-    const es = new EventSource('/api/channel/weixin/login', { withCredentials: true });
+    const es = new EventSource(resolveWebRuntimeServerPath('/api/channel/weixin/login', window.location), {
+      withCredentials: true,
+    });
     eventSourceRef.current = es;
 
     es.addEventListener('qr', (e: MessageEvent) => {

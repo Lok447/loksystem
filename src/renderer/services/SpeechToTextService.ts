@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { resolveWebRuntimeServerPath } from '@/common/utils/webRuntimeOrigin';
 import type { SpeechToTextResult } from '@/common/types/speech';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 
@@ -78,7 +79,7 @@ export async function transcribeAudioBlob(blob: Blob, languageHint?: string): Pr
 
   return new Promise<SpeechToTextResult>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/stt');
+    xhr.open('POST', resolveWebRuntimeServerPath('/api/stt', window.location));
     xhr.withCredentials = true;
 
     xhr.addEventListener('load', () => {

@@ -7,7 +7,7 @@ import { LinkCloud, Edit, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
-import AionModal from '@/renderer/components/base/AionModal';
+import LokModal from '@/renderer/components/base/LokModal';
 import ApiKeyEditorModal from './ApiKeyEditorModal';
 import { MODEL_PLATFORMS, getPlatformByValue, isCustomOption, type PlatformConfig } from '@/renderer/utils/model/modelPlatforms';
 import type { DeepLinkAddProviderDetail } from '@/renderer/hooks/system/useDeepLink';
@@ -90,7 +90,7 @@ const AddPlatformModal = ModalHOC<{
   };
 
   return (
-    <AionModal
+    <LokModal
       visible={modalProps.visible}
       onCancel={modalCtrl.close}
       header={{ title: t('settings.addModel'), showClose: true }}
@@ -223,7 +223,7 @@ const AddPlatformModal = ModalHOC<{
           }
         }}
       />
-    </AionModal>
+    </LokModal>
   );
 });
 

@@ -154,16 +154,16 @@ export class AcpAgentV2 {
     // agent has the aion_create_team tool available — mirrors AcpAgent.loadBuiltinSessionMcpServers().
     if (!this.agentConfig.teamMcpConfig) {
       if (await shouldInjectTeamGuideMcp(this.agentConfig.agentBackend)) {
-        const aionStdioConfig = getTeamGuideStdioConfig();
-        if (aionStdioConfig) {
+        const lokStdioConfig = getTeamGuideStdioConfig();
+        if (lokStdioConfig) {
           const guideServer: McpServer = {
-            name: aionStdioConfig.name,
-            command: aionStdioConfig.command,
-            args: aionStdioConfig.args,
+            name: lokStdioConfig.name,
+            command: lokStdioConfig.command,
+            args: lokStdioConfig.args,
             env: [
-              ...aionStdioConfig.env,
-              { name: 'AION_MCP_BACKEND', value: this.agentConfig.agentBackend },
-              { name: 'AION_MCP_CONVERSATION_ID', value: this.conversationId },
+              ...lokStdioConfig.env,
+              { name: 'LOK_MCP_BACKEND', value: this.agentConfig.agentBackend },
+              { name: 'LOK_MCP_CONVERSATION_ID', value: this.conversationId },
             ],
           };
           (this.agentConfig as { presetMcpServers?: McpServer[] }).presetMcpServers = [

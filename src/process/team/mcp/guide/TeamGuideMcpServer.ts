@@ -27,7 +27,7 @@ import { getDatabase } from '@process/services/database';
 import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers';
 
 /**
- * Singleton in-process MCP server for Aion team management tools.
+ * Singleton in-process MCP server for Lok team management tools.
  * Uses TCP transport + a stdio bridge script, same as TeamMcpServer.
  * Call `start()` once on app boot; `stop()` on app quit.
  */
@@ -84,8 +84,8 @@ export class TeamGuideMcpServer {
       command: 'node',
       args: [scriptPath],
       env: [
-        { name: 'AION_MCP_PORT', value: String(this._port) },
-        { name: 'AION_MCP_TOKEN', value: this.authToken },
+        { name: 'LOK_MCP_PORT', value: String(this._port) },
+        { name: 'LOK_MCP_TOKEN', value: this.authToken },
       ],
     };
   }
@@ -99,7 +99,7 @@ export class TeamGuideMcpServer {
           tool?: string;
           args?: Record<string, unknown>;
           auth_token?: string;
-          /** Backend type of the calling agent, injected by team-guide-mcp-stdio via AION_MCP_BACKEND env var */
+          /** Backend type of the calling agent, injected by team-guide-mcp-stdio via LOK_MCP_BACKEND env var */
           backend?: string;
           /** Conversation ID of the calling agent, used to reuse conversation as team leader */
           conversation_id?: string;
@@ -186,7 +186,7 @@ export class TeamGuideMcpServer {
       }
     }
 
-    // Use system-injected backend (from AION_MCP_BACKEND env var) as the authoritative agent type.
+    // Use system-injected backend (from LOK_MCP_BACKEND env var) as the authoritative agent type.
     // Falls back to Hermes/Lok CLI when the backend is unknown or not in the whitelist.
     const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
     const agentType = backend && isTeamCapableBackend(backend, cachedInitResults) ? backend : 'hermes';

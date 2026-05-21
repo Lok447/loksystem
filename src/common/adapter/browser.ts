@@ -5,8 +5,8 @@
  */
 
 import { bridge, logger } from '@office-ai/platform';
-import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
 import type { ElectronBridgeAPI } from '@/common/types/electron';
+import { getWebRuntimeWebSocketUrl } from '@/common/utils/webRuntimeOrigin';
 
 interface CustomWindow extends Window {
   electronAPI?: ElectronBridgeAPI;
@@ -41,9 +41,7 @@ if (win.electronAPI) {
 } else {
   // Web 环境 - 使用 WebSocket 通信，并在登录后自动补上已获取 Cookie 的连接
   // Web runtime bridge: ensure the socket reconnects after login so session cookie can be sent
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const defaultHost = `${window.location.hostname}:${WEBUI_DEFAULT_PORT}`;
-  const socketUrl = `${protocol}//${window.location.host || defaultHost}`;
+  const socketUrl = getWebRuntimeWebSocketUrl(window.location);
 
   type QueuedMessage = { name: string; data: unknown };
 

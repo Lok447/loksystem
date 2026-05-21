@@ -115,8 +115,8 @@ export class SqliteTeamRepository implements ITeamRepository {
 
   private async getDb(): Promise<ISqliteDriver> {
     if (this._driver) return this._driver;
-    const aionDb = await getDatabase();
-    return aionDb.getDriver();
+    const lokDatabase = await getDatabase();
+    return lokDatabase.getDriver();
   }
 
   // -------------------------------------------------------------------------

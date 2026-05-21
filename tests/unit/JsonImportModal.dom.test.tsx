@@ -54,10 +54,10 @@ vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
   useThemeContext: () => ({ theme: 'light' }),
 }));
 
-vi.mock('@/renderer/components/base/AionModal', () => ({
+vi.mock('@/renderer/components/base/LokModal', () => ({
   default: ({ visible, children, onOk, onCancel, okButtonProps, header }: any) =>
     visible ? (
-      <div data-testid='aion-modal'>
+      <div data-testid='lok-modal'>
         <div data-testid='modal-title'>{header?.title}</div>
         <div>{children}</div>
         <button data-testid='ok-button' disabled={okButtonProps?.disabled} onClick={onOk}>

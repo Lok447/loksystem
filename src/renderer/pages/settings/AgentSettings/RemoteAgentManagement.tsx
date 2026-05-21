@@ -22,7 +22,7 @@ import {
   Tag,
   Typography,
 } from '@arco-design/web-react';
-import AionModal from '@/renderer/components/base/AionModal';
+import LokModal from '@/renderer/components/base/LokModal';
 import { Attention, Edit, Plus, ReduceOne, Robot, Speed } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -216,7 +216,7 @@ const RemoteAgentFormModal: React.FC<{
   // Render pairing waiting UI
   if (pairingState === 'pending' || pairingState === 'timeout') {
     return (
-      <AionModal
+      <LokModal
         visible={visible}
         onCancel={handleCancelPairing}
         header={{
@@ -259,12 +259,12 @@ const RemoteAgentFormModal: React.FC<{
             </>
           )}
         </div>
-      </AionModal>
+      </LokModal>
     );
   }
 
   return (
-    <AionModal
+    <LokModal
       visible={visible}
       onCancel={onClose}
       header={{
@@ -402,7 +402,7 @@ const RemoteAgentFormModal: React.FC<{
           </Button>
         </Form>
       </div>
-    </AionModal>
+    </LokModal>
   );
 };
 

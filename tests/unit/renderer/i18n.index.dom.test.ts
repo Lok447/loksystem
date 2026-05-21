@@ -98,6 +98,48 @@ describe('renderer i18n localStorage guards', () => {
     expect(mockI18n.changeLanguage).toHaveBeenCalledWith('ja-JP');
   });
 
+  it('defaults browser WebUI login to Chinese when the user has not explicitly chosen a language', async () => {
+    const storage = new Map<string, string>();
+    mockConfigStorageGet.mockResolvedValue('en-US');
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          storage.set(key, value);
+        },
+      },
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(window, 'electronAPI', {
+      value: undefined,
+      configurable: true,
+      writable: true,
+    });
+
+    await import('@/renderer/services/i18n');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mockI18n.init).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lng: 'zh-CN',
+        fallbackLng: ['zh-CN', 'en-US'],
+        resources: expect.objectContaining({
+          'zh-CN': expect.objectContaining({
+            translation: expect.objectContaining({
+              login: expect.objectContaining({
+                username: '用户名',
+              }),
+            }),
+          }),
+        }),
+      })
+    );
+    expect(mockI18n.changeLanguage).toHaveBeenCalledWith('zh-CN');
+    expect(storage.get('i18nextLng')).toBe('zh-CN');
+  });
+
   it('updates language from the main-process broadcast without touching localStorage', async () => {
     await import('@/renderer/services/i18n');
     await Promise.resolve();

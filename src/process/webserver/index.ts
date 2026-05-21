@@ -17,7 +17,7 @@ import { initWebAdapter } from './adapter';
 import { setupBasicMiddleware, setupCors, setupErrorHandler } from './setup';
 import { registerAuthRoutes } from './routes/authRoutes';
 import { registerApiRoutes } from './routes/apiRoutes';
-import { registerStaticRoutes, resolveRendererPath, VITE_DEV_PORT } from './routes/staticRoutes';
+import { registerStaticRoutes, shouldProxyRendererToViteDevServer, VITE_DEV_PORT } from './routes/staticRoutes';
 import { generateQRLoginUrlDirect } from '@process/bridge/webuiQR';
 
 // Express Request 类型扩展定义在 src/webserver/types/express.d.ts
@@ -258,7 +258,7 @@ export async function startWebServerWithInstance(port: number, allowRemote = fal
   // swallow every upgrade (including Vite HMR), causing the renderer to
   // enter an infinite reconnect loop and never finish loading.
   const wss = new WebSocketServer({ noServer: true });
-  const isDevMode = resolveRendererPath() === null;
+  const shouldProxyToVite = shouldProxyRendererToViteDevServer();
   server.on('upgrade', (req, socket, head) => {
     const protocolHeader = req.headers['sec-websocket-protocol'];
     const protocols = (Array.isArray(protocolHeader) ? protocolHeader.join(',') : protocolHeader || '')
@@ -267,7 +267,7 @@ export async function startWebServerWithInstance(port: number, allowRemote = fal
       .filter(Boolean);
     const isViteHmr = protocols.some((p) => p === 'vite-hmr' || p === 'vite-ping');
 
-    if (isViteHmr && isDevMode) {
+    if (isViteHmr && shouldProxyToVite) {
       // Tunnel the HMR upgrade to the Vite dev server so the renderer's
       // @vite/client can maintain its live-reload socket.
       const vite = net.connect(VITE_DEV_PORT, 'localhost', () => {

@@ -211,7 +211,7 @@ export class DingTalkPlugin extends BasePlugin {
     if (!this.clientId) return null;
     return {
       id: this.clientId,
-      displayName: 'Aion Assistant',
+      displayName: 'Lok Assistant',
     };
   }
 
@@ -449,7 +449,7 @@ export class DingTalkPlugin extends BasePlugin {
    */
   private async createAndDeliverAICard(chatType: 'user' | 'group', id: string, _initialText: string): Promise<string> {
     const token = await this.getAccessToken();
-    const outTrackId = `aion_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const outTrackId = `lok_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     // 1. Create AI Card instance with STREAM callback type and space models
     await this.apiRequest('POST', '/v1.0/card/instances', token, {

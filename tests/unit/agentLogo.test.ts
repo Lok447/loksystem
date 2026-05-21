@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('@/renderer/assets/logos/ai-major/claude.svg', () => ({ default: 'claude.svg' }));
 vi.mock('@/renderer/assets/logos/ai-major/gemini.svg', () => ({ default: 'gemini.svg' }));
 vi.mock('@/renderer/assets/logos/ai-china/qwen.svg', () => ({ default: 'qwen.svg' }));
-vi.mock('@/renderer/assets/logos/brand/aion.svg', () => ({ default: 'aion.svg' }));
+vi.mock('@/renderer/assets/logos/brand/lok.svg', () => ({ default: 'lok.svg' }));
 vi.mock('@/renderer/assets/logos/tools/coding/codex.svg', () => ({ default: 'codex.svg' }));
 vi.mock('@/renderer/assets/logos/tools/coding/codebuddy.svg', () => ({ default: 'codebuddy.svg' }));
 vi.mock('@/renderer/assets/logos/brand/droid.svg', () => ({ default: 'droid.svg' }));
@@ -42,7 +42,7 @@ describe('agentLogo', () => {
     it('should return logo for common agents', () => {
       expect(getAgentLogo('gemini')).toBe('gemini.svg');
       expect(getAgentLogo('qwen')).toBe('qwen.svg');
-      expect(getAgentLogo('auggie')).toBe('aion.svg');
+      expect(getAgentLogo('auggie')).toBe('lok.svg');
       expect(getAgentLogo('goose')).toBe('goose.svg');
       expect(getAgentLogo('copilot')).toBe('github.svg');
     });
@@ -82,7 +82,7 @@ describe('agentLogo', () => {
         customAgentId: 'ext:aionext-auggie:auggie',
         isExtension: true,
       });
-      expect(logo).toBe('aion.svg');
+      expect(logo).toBe('lok.svg');
     });
 
     it('should fall back to backend when adapter ID is unrecognized', () => {

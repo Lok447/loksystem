@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { resolveWebRuntimeServerPath } from '@/common/utils/webRuntimeOrigin';
 import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 
@@ -27,7 +28,7 @@ export async function uploadFileViaHttp(
 
   return new Promise<string>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/upload');
+    xhr.open('POST', resolveWebRuntimeServerPath('/api/upload', window.location));
     xhr.withCredentials = true;
 
     if (onProgress) {
@@ -153,15 +154,15 @@ export function getFileExtension(fileName: string): string {
 
 import { LOKSYSTEM_TIMESTAMP_REGEX } from '@/common/config/constants';
 
-// 清理AionUI时间戳后缀，返回原始文件名
-export function cleanAionUITimestamp(fileName: string): string {
+// 清理LokSystem时间戳后缀，返回原始文件名
+export function cleanLokSystemTimestamp(fileName: string): string {
   return fileName.replace(LOKSYSTEM_TIMESTAMP_REGEX, '$1');
 }
 
 // 从文件路径获取清理后的文件名（用于UI显示）
 export function getCleanFileName(filePath: string): string {
   const fileName = filePath.split(/[\\/]/).pop() || '';
-  return cleanAionUITimestamp(fileName);
+  return cleanLokSystemTimestamp(fileName);
 }
 
 // 从文件路径数组获取清理后的文件名数组（用于消息格式化）

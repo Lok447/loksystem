@@ -6,7 +6,7 @@
 
 import type { IMcpServer } from '@/common/config/storage';
 import { AionrsMcpAgent } from './agents/AionrsMcpAgent';
-import { AionuiMcpAgent } from './agents/AionuiMcpAgent';
+import { LokSystemMcpAgent } from './agents/LokSystemMcpAgent';
 import { CodebuddyMcpAgent } from './agents/CodebuddyMcpAgent';
 import { CodexMcpAgent } from './agents/CodexMcpAgent';
 import { OpencodeMcpAgent } from './agents/OpencodeMcpAgent';
@@ -46,7 +46,7 @@ export class McpService {
     this.agents = new Map([
       ['codebuddy', new CodebuddyMcpAgent()],
       ['qwen', new QwenMcpAgent()],
-      ['loksystem', new AionuiMcpAgent()],
+      ['loksystem', new LokSystemMcpAgent()],
       ['codex', new CodexMcpAgent()],
       ['opencode', new OpencodeMcpAgent()],
       ['aionrs', new AionrsMcpAgent()],

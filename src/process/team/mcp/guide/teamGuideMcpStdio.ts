@@ -3,10 +3,10 @@
  * Copyright 2025 LokSystem (loksystem.com)
  * SPDX-License-Identifier: Apache-2.0
  *
- * Standalone stdio MCP server for Aion team-guide tools.
+ * Standalone stdio MCP server for Lok team-guide tools.
  *
  * Spawned by Claude CLI as a stdio MCP server. Communicates with
- * the main process TCP server via AION_MCP_PORT environment variable.
+ * the main process TCP server via LOK_MCP_PORT environment variable.
  *
  * TCP protocol: 4-byte big-endian length header + UTF-8 JSON body.
  */
@@ -17,30 +17,30 @@ import { z } from 'zod';
 import { sendTcpRequest } from '../tcpHelpers';
 import { getCreateTeamToolDescription } from '@process/team/prompts/teamGuidePrompt.ts';
 
-const AION_MCP_TOKEN = process.env.AION_MCP_TOKEN || undefined;
+const LOK_MCP_TOKEN = process.env.LOK_MCP_TOKEN || undefined;
 /** Backend type of the agent that owns this stdio bridge (e.g. 'claude', 'codex', 'gemini'). */
-const AION_MCP_BACKEND = process.env.AION_MCP_BACKEND || '';
+const LOK_MCP_BACKEND = process.env.LOK_MCP_BACKEND || '';
 /** Conversation ID of the calling agent, used to reuse the conversation as team leader. */
-const AION_MCP_CONVERSATION_ID = process.env.AION_MCP_CONVERSATION_ID || '';
+const LOK_MCP_CONVERSATION_ID = process.env.LOK_MCP_CONVERSATION_ID || '';
 process.stderr.write(
-  `[team-guide-mcp-stdio] Script started. PID=${process.pid}, AION_MCP_PORT=${process.env.AION_MCP_PORT || 'unset'}, BACKEND=${AION_MCP_BACKEND || 'unset'}\n`
+  `[team-guide-mcp-stdio] Script started. PID=${process.pid}, LOK_MCP_PORT=${process.env.LOK_MCP_PORT || 'unset'}, BACKEND=${LOK_MCP_BACKEND || 'unset'}\n`
 );
-const AION_MCP_PORT = parseInt(process.env.AION_MCP_PORT || '0', 10);
+const LOK_MCP_PORT = parseInt(process.env.LOK_MCP_PORT || '0', 10);
 
-if (!AION_MCP_PORT) {
-  process.stderr.write('AION_MCP_PORT environment variable is required\n');
+if (!LOK_MCP_PORT) {
+  process.stderr.write('LOK_MCP_PORT environment variable is required\n');
   process.exit(1);
 }
 
-if (!AION_MCP_TOKEN) {
-  process.stderr.write('AION_MCP_TOKEN environment variable is required\n');
+if (!LOK_MCP_TOKEN) {
+  process.stderr.write('LOK_MCP_TOKEN environment variable is required\n');
   process.exit(1);
 }
 
 // ── Tool helper ──────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function createAionTool(
+function createLokTool(
   server: McpServer,
   toolName: string,
   description: string,
@@ -55,8 +55,8 @@ function createAionTool(
         tool: toolName,
         args,
         auth_token: authToken,
-        backend: AION_MCP_BACKEND,
-        conversation_id: AION_MCP_CONVERSATION_ID,
+        backend: LOK_MCP_BACKEND,
+        conversation_id: LOK_MCP_CONVERSATION_ID,
       };
       const response = await sendTcpRequest(tcpPort, payload);
 
@@ -84,7 +84,7 @@ function createAionTool(
 const server = new McpServer({ name: 'loksystem-team-guide', version: '1.0.0' }, { capabilities: { tools: {} } });
 
 // ---- aion_create_team ----
-createAionTool(
+createLokTool(
   server,
   'aion_create_team',
   getCreateTeamToolDescription(),
@@ -98,12 +98,12 @@ createAionTool(
         'Absolute path to the project workspace directory. Team agents will use this as their shared working directory. When omitted a temporary workspace is created.'
       ),
   },
-  AION_MCP_PORT,
-  AION_MCP_TOKEN
+  LOK_MCP_PORT,
+  LOK_MCP_TOKEN
 );
 
 // ---- aion_list_models ----
-createAionTool(
+createLokTool(
   server,
   'aion_list_models',
   `Query available models for team agent types. Returns the real-time model list that matches the frontend model selector.
@@ -116,8 +116,8 @@ Pass agent_type to query a specific backend, or omit it to see all.`,
       .optional()
       .describe('Agent type/backend to query (e.g. "gemini", "claude", "codex"). Shows all when omitted.'),
   },
-  AION_MCP_PORT,
-  AION_MCP_TOKEN
+  LOK_MCP_PORT,
+  LOK_MCP_TOKEN
 );
 
 async function main(): Promise<void> {

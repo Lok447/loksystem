@@ -205,8 +205,8 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       args: base.args,
       env: [
         ...base.env,
-        { name: 'AION_MCP_BACKEND', value: 'aionrs' },
-        { name: 'AION_MCP_CONVERSATION_ID', value: this.conversation_id },
+        { name: 'LOK_MCP_BACKEND', value: 'aionrs' },
+        { name: 'LOK_MCP_CONVERSATION_ID', value: this.conversation_id },
       ],
     };
   }

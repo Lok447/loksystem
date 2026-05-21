@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Tests for the team guide MCP injection capability check and prompt wording.
- * Covers: which agent backends get the Aion team guide MCP injected based on
+ * Covers: which agent backends get the Lok team guide MCP injected based on
  * cached ACP initialize results, which are excluded, and the solo-vs-team
  * guardrails in the prompt.
  *
