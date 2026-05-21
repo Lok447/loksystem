@@ -9,7 +9,7 @@
   },
   {
     "id": "loksystem-home",
-    "name": "AionUI Home",
+    "name": "LokSystem Home",
     "entryPoint": "https://loksystem.com/",
     "icon": "assets/star-office-icon.svg",
     "position": { "anchor": "display", "placement": "after" },
@@ -17,7 +17,7 @@
   },
   {
     "id": "loksystem-issues",
-    "name": "AionUI Issues",
+    "name": "LokSystem Issues",
     "entryPoint": "https://github.com/LokSystem/LokSystem/issues",
     "icon": "assets/star-office-icon.svg",
     "position": { "anchor": "display", "placement": "after" },

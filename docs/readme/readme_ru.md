@@ -302,7 +302,7 @@ _Настройте один раз, ИИ-агент работает автом
 - **Примеры использования:** запланированная агрегация данных, генерация отчётов, организация файлов, напоминания
 
 <p align="center">
-  <img src="./resources/alart/task.png" alt="Scheduled Tasks" width="800">
+  <img src="./resources/alart-task.png" alt="Scheduled Tasks" width="800">
 </p>
 
 <details>

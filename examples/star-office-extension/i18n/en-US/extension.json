@@ -3,7 +3,7 @@
   "description": "Star Office style activity visualization tab for all agents.",
   "settingsTabs": {
     "star-office": { "name": "Star Office" },
-    "loksystem-home": { "name": "AionUI Home" },
-    "loksystem-issues": { "name": "AionUI Issues" }
+    "loksystem-home": { "name": "LokSystem Home" },
+    "loksystem-issues": { "name": "LokSystem Issues" }
   }
 }

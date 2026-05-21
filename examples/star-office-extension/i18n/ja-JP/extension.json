@@ -3,7 +3,7 @@
   "description": "すべてのエージェントのアクティビティを可視化するStar Officeスタイルのタブ。",
   "settingsTabs": {
     "star-office": { "name": "Star Office" },
-    "loksystem-home": { "name": "AionUI ホーム" },
-    "loksystem-issues": { "name": "AionUI 課題" }
+    "loksystem-home": { "name": "LokSystem ホーム" },
+    "loksystem-issues": { "name": "LokSystem 課題" }
   }
 }

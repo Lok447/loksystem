@@ -3,7 +3,7 @@
   "description": "Tüm ajanların aktivitelerini görselleştiren Star Office tarzı sekme.",
   "settingsTabs": {
     "star-office": { "name": "Star Office" },
-    "loksystem-home": { "name": "AionUI Ana Sayfa" },
-    "loksystem-issues": { "name": "AionUI Sorunlar" }
+    "loksystem-home": { "name": "LokSystem Ana Sayfa" },
+    "loksystem-issues": { "name": "LokSystem Sorunlar" }
   }
 }

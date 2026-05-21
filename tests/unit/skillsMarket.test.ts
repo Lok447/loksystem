@@ -51,7 +51,7 @@ describe('Skills Market - Bundled SKILL.md', () => {
 
     const descMatch = frontmatter.match(/^description:\s*(.+)$/m);
     expect(descMatch).not.toBeNull();
-    expect(descMatch![1]).toContain('AionUI Skills');
+    expect(descMatch![1]).toContain('LokSystem Skills');
   });
 
   it('contains the curl command for fetching full SKILL.md', async () => {
@@ -82,7 +82,7 @@ describe('Skills Market - Bundled SKILL.md', () => {
     // Full SKILL.md contains detailed API endpoints; the bundled version should not
     expect(content).not.toContain('POST /api/v1/agents/register');
     expect(content).not.toContain('GET /api/v1/skills?q=');
-    expect(content).not.toContain('X-AionUI-Skills-Checksum');
+    expect(content).not.toContain('X-LokSystem-Skills-Checksum');
   });
 });
 

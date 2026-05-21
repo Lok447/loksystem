@@ -71,7 +71,7 @@ export const ExtensionMetaSchema = z
           .string()
           .regex(/^\^?\d+\.\d+\.\d+(-[\w.]+)?$/, 'Engine version must be semver format')
           .optional()
-          .describe('Compatible AionUI core version range'),
+          .describe('Compatible LokSystem core version range'),
       })
       .optional(),
     /**
@@ -113,7 +113,7 @@ export const ExtensionMetaSchema = z
      */
     permissions: z
       .object({
-        /** Read/write to AionUI persistent storage */
+        /** Read/write to LokSystem persistent storage */
         storage: z.boolean().default(false),
         /** Network access: false (none), true (all), or { allowedDomains: [...], reasoning?: string } */
         network: z

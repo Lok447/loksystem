@@ -413,7 +413,7 @@ export class WorkspaceSnapshotService {
       [
         ...gitArgs,
         '-c',
-        'user.name=AionUI',
+        'user.name=LokSystem',
         '-c',
         'user.email=snapshot@loksystem.local',
         'commit',

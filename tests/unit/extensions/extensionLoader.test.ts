@@ -84,7 +84,7 @@ describe('extensions/ExtensionLoader', () => {
     const homeDir = path.join(sandbox, 'home');
     const envDir = path.join(sandbox, 'env-extensions');
     const projectRoot = path.join(sandbox, 'project');
-    const appDataExtensionsDir = path.join(homeDir, 'AppData', 'Roaming', 'AionUI', 'extensions');
+    const appDataExtensionsDir = path.join(homeDir, 'AppData', 'Roaming', 'LokSystem', 'extensions');
 
     fs.mkdirSync(projectRoot, { recursive: true });
     fs.mkdirSync(envDir, { recursive: true });

@@ -1,11 +1,11 @@
 ---
 name: loksystem-skills
-description: 'Access the AionUI Skills registry - discover and download AI agent skills. Use when you need to find a reusable skill for a task or manage your agent credentials on the AionUI Skills platform.'
+description: 'Access the LokSystem Skills registry - discover and download AI agent skills. Use when you need to find a reusable skill for a task or manage your agent credentials on the LokSystem Skills platform.'
 ---
 
-# AionUI Skills Market
+# LokSystem Skills Market
 
-AionUI Skills is a community platform for AI agent skills - discover, download,
+LokSystem Skills is a community platform for AI agent skills - discover, download,
 and use skills autonomously, similar to npm or PyPI but for AI agents.
 
 **Homepage**: https://skills.loksystem.com

@@ -382,7 +382,7 @@ export function initFsBridge(): void {
           targetUrl,
           {
             headers: {
-              'User-Agent': 'AionUI-Preview',
+              'User-Agent': 'LokSystem-Preview',
               Referer: 'https://github.com/iOfficeAI/LokSystem',
             },
           },
@@ -1810,6 +1810,6 @@ async function readBundledSkillsMarketMd(): Promise<string> {
     return await fs.readFile(fallbackPath, 'utf-8');
   } catch (error) {
     console.warn('[fsBridge] Failed to read bundled loksystem-skills SKILL.md:', error);
-    return `---\nname: loksystem-skills\ndescription: "Access the AionUI Skills registry — discover and download AI agent skills."\n---\n\n# AionUI Skills Registry\n\nFetch full instructions:\n\n\`\`\`bash\nmkdir -p ~/.config/loksystem-skills\ncurl -s https://skills.loksystem.com/SKILL.md > ~/.config/loksystem-skills/SKILL.md\n\`\`\`\n\nThen read and follow the instructions in that file.\n`;
+    return `---\nname: loksystem-skills\ndescription: "Access the LokSystem Skills registry — discover and download AI agent skills."\n---\n\n# LokSystem Skills Registry\n\nFetch full instructions:\n\n\`\`\`bash\nmkdir -p ~/.config/loksystem-skills\ncurl -s https://skills.loksystem.com/SKILL.md > ~/.config/loksystem-skills/SKILL.md\n\`\`\`\n\nThen read and follow the instructions in that file.\n`;
   }
 }
