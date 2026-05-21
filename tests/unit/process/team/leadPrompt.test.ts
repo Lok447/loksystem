@@ -9,7 +9,7 @@ describe('buildLeaderPrompt', () => {
       unreadMessages: [],
       availableAgentTypes: [
         { type: 'claude', name: 'Claude Code' },
-        { type: 'gemini', name: 'Gemini CLI' },
+        { type: 'gemini', name: 'Lok CLI' },
       ],
     });
 

@@ -6,11 +6,8 @@ const mocks = vi.hoisted(() => ({
   initFileWatchBridge: vi.fn(),
   initFsBridge: vi.fn(),
   initConversationBridge: vi.fn(),
-  initGeminiConversationBridge: vi.fn(),
-  initGeminiBridge: vi.fn(),
   initBedrockBridge: vi.fn(),
   initAcpConversationBridge: vi.fn(),
-  initAuthBridge: vi.fn(),
   initModelBridge: vi.fn(),
   initPreviewHistoryBridge: vi.fn(),
   initDocumentBridge: vi.fn(),
@@ -74,20 +71,11 @@ vi.mock('@process/bridge/fsBridge', () => ({
 vi.mock('@process/bridge/conversationBridge', () => ({
   initConversationBridge: (...args: unknown[]) => mocks.initConversationBridge(...args),
 }));
-vi.mock('@process/bridge/geminiConversationBridge', () => ({
-  initGeminiConversationBridge: (...args: unknown[]) => mocks.initGeminiConversationBridge(...args),
-}));
-vi.mock('@process/bridge/geminiBridge', () => ({
-  initGeminiBridge: (...args: unknown[]) => mocks.initGeminiBridge(...args),
-}));
 vi.mock('@process/bridge/bedrockBridge', () => ({
   initBedrockBridge: (...args: unknown[]) => mocks.initBedrockBridge(...args),
 }));
 vi.mock('@process/bridge/acpConversationBridge', () => ({
   initAcpConversationBridge: (...args: unknown[]) => mocks.initAcpConversationBridge(...args),
-}));
-vi.mock('@process/bridge/authBridge', () => ({
-  initAuthBridge: (...args: unknown[]) => mocks.initAuthBridge(...args),
 }));
 vi.mock('@process/bridge/modelBridge', () => ({
   initModelBridge: (...args: unknown[]) => mocks.initModelBridge(...args),

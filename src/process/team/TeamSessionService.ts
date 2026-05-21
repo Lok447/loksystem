@@ -1,7 +1,6 @@
 // src/process/team/TeamSessionService.ts
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
-import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
 import {
   buildAgentConversationParams,
   getConversationTypeForBackend,
@@ -23,7 +22,6 @@ import type { TTeam, TeamAgent } from './types';
 import fs from 'fs/promises';
 import path from 'path';
 import { resolveLocaleKey } from '@/common/utils';
-import { hasGeminiOauthCreds } from './googleAuthCheck';
 
 export class TeamSessionService {
   private readonly sessions: Map<string, TeamSession> = new Map();
@@ -39,100 +37,12 @@ export class TeamSessionService {
   /**
    * Returns the workspace path as-is, or empty string when not specified.
    * An empty workspace tells the downstream agent factory (initAgent.ts) to
-   * create a temporary workspace (e.g. `gemini-temp-<timestamp>`), matching
+   * create a temporary workspace (e.g. `aionrs-temp-<timestamp>`), matching
    * the single-agent conversation behavior.
    */
   private resolveWorkspace(workspace: string | undefined): string {
     if (workspace && workspace.trim().length > 0) return workspace;
     return '';
-  }
-
-  private createGoogleAuthGeminiModel(useModel: string): TProviderWithModel {
-    return {
-      id: GOOGLE_AUTH_PROVIDER_ID,
-      name: 'Gemini Google Auth',
-      platform: 'gemini-with-google-auth',
-      baseUrl: '',
-      apiKey: '',
-      model: [useModel],
-      useModel,
-      enabled: true,
-    } as TProviderWithModel;
-  }
-
-  private createGeminiPlaceholderModel(): TProviderWithModel {
-    return {
-      id: 'gemini-placeholder',
-      name: 'Gemini',
-      useModel: 'default',
-      platform: 'gemini-with-google-auth',
-      baseUrl: '',
-      apiKey: '',
-    } as TProviderWithModel;
-  }
-
-  private async resolveDefaultGeminiModel(): Promise<TProviderWithModel> {
-    const savedGeminiModel = await ProcessConfig.get('gemini.defaultModel');
-    const configuredProviders = await ProcessConfig.get('model.config');
-    const providers = Array.isArray(configuredProviders)
-      ? configuredProviders.filter((provider) => provider.enabled !== false)
-      : [];
-
-    const buildProviderModel = (provider: (typeof providers)[number], useModel: string): TProviderWithModel => {
-      return {
-        ...provider,
-        useModel,
-      } as TProviderWithModel;
-    };
-
-    if (
-      savedGeminiModel &&
-      typeof savedGeminiModel === 'object' &&
-      'id' in savedGeminiModel &&
-      'useModel' in savedGeminiModel
-    ) {
-      if (savedGeminiModel.id === GOOGLE_AUTH_PROVIDER_ID && (await hasGeminiOauthCreds())) {
-        return this.createGoogleAuthGeminiModel(savedGeminiModel.useModel);
-      }
-
-      const matchedProvider = providers.find(
-        (provider) => provider.id === savedGeminiModel.id && provider.model?.includes(savedGeminiModel.useModel)
-      );
-      if (matchedProvider) {
-        return buildProviderModel(matchedProvider, savedGeminiModel.useModel);
-      }
-    }
-
-    if (typeof savedGeminiModel === 'string') {
-      const matchedProvider = providers.find((provider) => provider.model?.includes(savedGeminiModel));
-      if (matchedProvider) {
-        return buildProviderModel(matchedProvider, savedGeminiModel);
-      }
-    }
-
-    const geminiProvider = providers.find((provider) => provider.platform === 'gemini' && provider.model?.length);
-    if (geminiProvider) {
-      const enabledModel = geminiProvider.model.find((model) => geminiProvider.modelEnabled?.[model] !== false);
-      return buildProviderModel(geminiProvider, enabledModel || geminiProvider.model[0]);
-    }
-
-    if (await hasGeminiOauthCreds()) {
-      const oauthModel =
-        typeof savedGeminiModel === 'object' && 'useModel' in savedGeminiModel
-          ? savedGeminiModel.useModel
-          : typeof savedGeminiModel === 'string'
-            ? savedGeminiModel
-            : 'gemini-2.0-flash';
-      return this.createGoogleAuthGeminiModel(oauthModel);
-    }
-
-    const fallbackProvider = providers.find((provider) => provider.model?.length);
-    if (fallbackProvider) {
-      const enabledModel = fallbackProvider.model.find((model) => fallbackProvider.modelEnabled?.[model] !== false);
-      return buildProviderModel(fallbackProvider, enabledModel || fallbackProvider.model[0]);
-    }
-
-    return this.createGoogleAuthGeminiModel('gemini-2.0-flash');
   }
 
   private async resolveDefaultAionrsModel(): Promise<TProviderWithModel> {
@@ -158,14 +68,6 @@ export class TeamSessionService {
   }): Promise<TProviderWithModel> {
     const { backend, isPreset, presetAgentType } = params;
     const type = getConversationTypeForBackend(isPreset ? presetAgentType || backend : backend);
-
-    if (type === 'gemini') {
-      try {
-        return await this.resolveDefaultGeminiModel();
-      } catch {
-        return this.createGeminiPlaceholderModel();
-      }
-    }
 
     if (type === 'aionrs') {
       return this.resolveDefaultAionrsModel();

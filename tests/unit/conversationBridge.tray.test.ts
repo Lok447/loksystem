@@ -174,7 +174,7 @@ describe('conversationBridge tray sync', () => {
   it('refreshes tray menu after creating a conversation', async () => {
     const createProvider = getProvider('conversation.create');
 
-    const result = await createProvider({ type: 'gemini' });
+    const result = await createProvider({ type: 'aionrs' });
 
     expect(result).toEqual({ id: 'conv-created', name: 'Created Conversation', source: 'loksystem' });
     expect(mockConversationService.createConversation).toHaveBeenCalledOnce();

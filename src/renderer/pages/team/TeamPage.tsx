@@ -11,8 +11,6 @@ import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSider from '@/renderer/pages/conversation/components/ChatSider';
 import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
-import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
-import { useGeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
 import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import TeamTabs from './components/TeamTabs';
@@ -31,6 +29,8 @@ type TeamPageContentProps = {
   team: TTeam;
   onRenameTeam: (newName: string) => Promise<boolean>;
 };
+
+const isLokCliConversationType = (type: string | undefined): boolean => type === 'aionrs' || type === 'gemini';
 
 /** Compact aionrs model selector for the agent header */
 const AionrsHeaderModelSelector: React.FC<{ conversationId: string; initialModel?: TProviderWithModel }> = ({
@@ -63,24 +63,9 @@ const AgentChatSlot: React.FC<{
   );
 
   const isAionrs = conversation?.type === 'aionrs';
+  const isLokCli = isLokCliConversationType(conversation?.type) || isLokCliConversationType(agent.conversationType);
   const initialModelId = (conversation?.extra as { currentModelId?: string })?.currentModelId;
   const isAcpLike = agent.conversationType === 'acp' || agent.conversationType === 'codex';
-  const isGemini = agent.conversationType === 'gemini';
-
-  const geminiOnSelectModel = useCallback(
-    async (_provider: IProvider, modelName: string) => {
-      if (!conversation) return false;
-      const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
-      const ok = await ipcBridge.conversation.update.invoke({ id: conversation.id, updates: { model: selected } });
-      return Boolean(ok);
-    },
-    [conversation]
-  );
-  const geminiModelSelection = useGeminiModelSelection({
-    initialModel:
-      isGemini && conversation ? (conversation as Extract<TChatConversation, { type: 'gemini' }>).model : undefined,
-    onSelectModel: geminiOnSelectModel,
-  });
 
   return (
     <div
@@ -121,12 +106,7 @@ const AgentChatSlot: React.FC<{
               />
             </div>
           )}
-          {agent.conversationId && isGemini && (
-            <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
-              <GeminiModelSelector selection={geminiModelSelection} />
-            </div>
-          )}
-          {isAionrs && agent.conversationId && (
+          {isLokCli && agent.conversationId && (
             <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
               <AionrsHeaderModelSelector
                 key={agent.conversationId}

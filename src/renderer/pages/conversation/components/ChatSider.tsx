@@ -16,11 +16,15 @@ const ChatSider: React.FC<{
   const [messageApi, messageContext] = Message.useMessage({ maxCount: 1 });
 
   let workspaceNode: React.ReactNode = null;
-  if (conversation?.type === 'gemini') {
+  if (
+    (conversation?.type === 'gemini' || conversation?.type === 'aionrs') &&
+    conversation.extra?.workspace
+  ) {
     workspaceNode = (
       <ChatWorkspace
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
+        eventPrefix='aionrs'
         messageApi={messageApi}
         teamId={teamId}
       ></ChatWorkspace>
@@ -41,16 +45,6 @@ const ChatSider: React.FC<{
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
         eventPrefix='codex'
-        messageApi={messageApi}
-        teamId={teamId}
-      ></ChatWorkspace>
-    );
-  } else if (conversation?.type === 'aionrs' && conversation.extra?.workspace) {
-    workspaceNode = (
-      <ChatWorkspace
-        conversation_id={conversation.id}
-        workspace={conversation.extra.workspace}
-        eventPrefix='aionrs'
         messageApi={messageApi}
         teamId={teamId}
       ></ChatWorkspace>

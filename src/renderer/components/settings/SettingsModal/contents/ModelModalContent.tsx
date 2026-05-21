@@ -163,7 +163,7 @@ const ModelModalContent: React.FC = () => {
 
       // 1. 创建临时对话
       const conversation = await ipcBridge.conversation.create.invoke({
-        type: 'gemini',
+        type: 'aionrs',
         name: `[Health Check] ${platform.name} - ${modelName}`,
         model: {
           ...platform,

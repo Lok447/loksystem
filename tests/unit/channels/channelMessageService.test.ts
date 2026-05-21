@@ -44,7 +44,7 @@ describe('ChannelMessageService', () => {
     vi.useRealTimers();
   });
 
-  it('sends input payloads only for gemini tasks', async () => {
+  it('sends shared content payloads for legacy gemini tasks', async () => {
     const service = new ChannelMessageService();
 
     vi.spyOn(databaseModule, 'getDatabase').mockResolvedValue({
@@ -62,11 +62,11 @@ describe('ChannelMessageService', () => {
 
     expect(sendTaskMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        input: 'hello gemini',
+        content: 'hello gemini',
         msg_id: expect.stringContaining('channel_msg_'),
       })
     );
-    expect(sendTaskMessage).not.toHaveBeenCalledWith(expect.objectContaining({ content: 'hello gemini' }));
+    expect(sendTaskMessage).not.toHaveBeenCalledWith(expect.objectContaining({ input: 'hello gemini' }));
 
     service.clearStreamByConversationId('conv-gemini');
     await expect(streamPromise).resolves.toContain('channel_msg_');

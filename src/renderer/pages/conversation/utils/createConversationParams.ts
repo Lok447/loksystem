@@ -30,28 +30,34 @@ const LEGACY_YOLO_MODE_MAP: Partial<Record<string, string>> = {
   qwen: 'yolo',
 };
 
+function normalizeBackend(backend: string): string {
+  return backend === 'gemini' ? 'aionrs' : backend;
+}
+
 async function resolvePreferredMode(backend: string): Promise<string | undefined> {
-  const modeOptions = getAgentModes(backend);
+  const normalizedBackend = normalizeBackend(backend);
+  const modeOptions = getAgentModes(normalizedBackend);
   if (modeOptions.length === 0) {
     return undefined;
   }
 
   let preference: ModePreference | undefined;
 
-  if (backend === 'gemini') {
-    preference = await ConfigStorage.get('gemini.config');
-  } else if (backend === 'aionrs') {
+  if (normalizedBackend === 'aionrs') {
     preference = await ConfigStorage.get('aionrs.config');
   } else {
     const acpConfig = await ConfigStorage.get('acp.config');
-    preference = acpConfig?.[backend as AcpBackend];
+    preference = acpConfig?.[normalizedBackend as AcpBackend];
   }
 
-  if (preference?.preferredMode && modeOptions.some((option) => option.value === preference.preferredMode)) {
+  if (
+    preference?.preferredMode &&
+    modeOptions.some((option) => option.value === preference.preferredMode)
+  ) {
     return preference.preferredMode;
   }
 
-  const legacyMode = LEGACY_YOLO_MODE_MAP[backend];
+  const legacyMode = LEGACY_YOLO_MODE_MAP[backend] ?? LEGACY_YOLO_MODE_MAP[normalizedBackend];
   if (preference?.yoloMode && legacyMode && modeOptions.some((option) => option.value === legacyMode)) {
     return legacyMode;
   }
@@ -118,64 +124,17 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
 }
 
 /**
- * Get the default Gemini model configuration from user settings.
- * Throws if no enabled provider or model is configured.
- * [BUG-3 fix]: callers must call this inside a try block
+ * Legacy compatibility shim for callers that still ask for a Gemini model.
+ * Gemini sessions now run through Lok CLI, so they share the same provider resolution.
  */
 export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
-  const providers = await ConfigStorage.get('model.config');
-
-  if (!providers || providers.length === 0) {
-    throw new Error('No model provider configured');
-  }
-
-  const enabledProvider = providers.find((p) => p.enabled !== false);
-  if (!enabledProvider) {
-    throw new Error('No enabled model provider');
-  }
-
-  const enabledModel = enabledProvider.model.find((m) => enabledProvider.modelEnabled?.[m] !== false);
-
-  return {
-    id: enabledProvider.id,
-    platform: enabledProvider.platform,
-    name: enabledProvider.name,
-    baseUrl: enabledProvider.baseUrl,
-    apiKey: enabledProvider.apiKey,
-    useModel: enabledModel || enabledProvider.model[0],
-    capabilities: enabledProvider.capabilities,
-    contextLimit: enabledProvider.contextLimit,
-    modelProtocols: enabledProvider.modelProtocols,
-    bedrockConfig: enabledProvider.bedrockConfig,
-    enabled: enabledProvider.enabled,
-    modelEnabled: enabledProvider.modelEnabled,
-    modelHealth: enabledProvider.modelHealth,
-  };
-}
-
-/**
- * Resolve the Gemini model to use, falling back to a placeholder for Google Auth if needed.
- */
-async function resolveGeminiModel(): Promise<TProviderWithModel> {
-  try {
-    return await getDefaultGeminiModel();
-  } catch (e) {
-    // Fallback to placeholder if no model configured (supports Google Auth users)
-    return {
-      id: 'gemini-placeholder',
-      name: 'Gemini',
-      useModel: 'default',
-      platform: 'gemini-with-google-auth' as TProviderWithModel['platform'],
-      baseUrl: '',
-      apiKey: '',
-    };
-  }
+  return getDefaultAionrsModel();
 }
 
 /**
  * Build ICreateConversationParams for a CLI agent.
  * The backend will automatically fill in derived fields (gateway.cliPath, runtimeValidation, etc.).
- * [BUG-3 fix]: callers must invoke this inside a try block because getDefaultGeminiModel may throw.
+ * Lok CLI requires a real provider, so callers must invoke this inside a try block.
  */
 export async function buildCliAgentParams(
   agent: AvailableAgent,
@@ -186,10 +145,8 @@ export async function buildCliAgentParams(
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agent.backend) : undefined;
 
   let model: TProviderWithModel;
-  if (type === 'gemini') {
-    model = await resolveGeminiModel();
-  } else if (type === 'aionrs') {
-    // Aionrs needs a real model from configured providers (anthropic, openai, ali-intl, aws)
+  if (type === 'aionrs') {
+    // Lok CLI needs a real model from configured providers (anthropic, openai, ali-intl, aws)
     model = await getDefaultAionrsModel();
   } else {
     model = {} as TProviderWithModel;
@@ -212,7 +169,7 @@ export async function buildCliAgentParams(
  * Build ICreateConversationParams for a preset assistant.
  * Applies 4-layer fallback for reading rules and skills (BUG-1 fix).
  * Uses resolveLocaleKey() to convert i18n.language to standard locale format (BUG-2 fix).
- * [BUG-3 fix]: callers must invoke this inside a try block because getDefaultGeminiModel may throw.
+ * Lok CLI preset assistants also require a real provider, so callers must invoke this inside a try block.
  */
 export async function buildPresetAssistantParams(
   agent: AvailableAgent,
@@ -236,7 +193,7 @@ export async function buildPresetAssistantParams(
   const type = getConversationTypeForBackend(presetAgentType);
   const preferredMode = await resolvePreferredMode(presetAgentType);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(presetAgentType) : undefined;
-  const model = type === 'gemini' ? await resolveGeminiModel() : ({} as TProviderWithModel);
+  const model = type === 'aionrs' ? await getDefaultAionrsModel() : ({} as TProviderWithModel);
 
   return buildAgentConversationParams({
     backend: agent.backend,

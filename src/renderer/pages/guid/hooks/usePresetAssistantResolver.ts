@@ -115,7 +115,8 @@ export const usePresetAssistantResolver = ({
       if (!agentInfo) return 'hermes';
       if (!agentInfo.customAgentId) return agentInfo.backend as string;
       const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
-      return customAgent?.presetAgentType || 'hermes';
+      const presetAgentType = customAgent?.presetAgentType || 'hermes';
+      return presetAgentType === 'gemini' ? 'aionrs' : presetAgentType;
     },
     [customAgents]
   );

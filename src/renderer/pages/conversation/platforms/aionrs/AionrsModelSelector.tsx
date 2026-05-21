@@ -19,7 +19,9 @@ import type { IProvider } from '@/common/config/storage';
 const AionrsModelSelector: React.FC<{
   selection?: AionrsModelSelection;
   disabled?: boolean;
-}> = ({ selection, disabled = false }) => {
+  label?: string;
+  variant?: 'header' | 'settings';
+}> = ({ selection, disabled = false, label, variant = 'header' }) => {
   const { t } = useTranslation();
   const { isOpen: isPreviewOpen } = usePreviewContext();
   const layout = useLayoutContext();
@@ -45,6 +47,7 @@ const AionrsModelSelector: React.FC<{
         <Button
           className={classNames(
             'sendbox-model-btn header-model-btn',
+            variant === 'settings' && '!min-w-[180px] justify-between',
             compact && '!max-w-[120px]',
             isMobileHeaderCompact && '!max-w-[160px]'
           )}
@@ -53,7 +56,7 @@ const AionrsModelSelector: React.FC<{
           style={{ cursor: 'default' }}
         >
           <span className='flex items-center gap-6px min-w-0'>
-            <span className={compact ? 'block truncate' : undefined}>{t('conversation.welcome.useCliModel')}</span>
+            <span className={compact ? 'block truncate' : undefined}>{label || t('conversation.welcome.useCliModel')}</span>
           </span>
         </Button>
       </Tooltip>
@@ -62,7 +65,7 @@ const AionrsModelSelector: React.FC<{
 
   const { providers, getAvailableModels, handleSelectModel } = selection;
 
-  const label = getModelDisplayLabel({
+  const displayLabel = getModelDisplayLabel({
     selectedValue: currentModel?.useModel,
     selectedLabel: currentModel?.useModel || '',
     defaultModelLabel,
@@ -114,6 +117,7 @@ const AionrsModelSelector: React.FC<{
       <Button
         className={classNames(
           'sendbox-model-btn header-model-btn',
+          variant === 'settings' && '!min-w-[180px] justify-between',
           compact && '!max-w-[120px]',
           isMobileHeaderCompact && '!max-w-[160px]'
         )}
@@ -124,7 +128,7 @@ const AionrsModelSelector: React.FC<{
           {currentModelHealth.status !== 'unknown' && (
             <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />
           )}
-          <span className={compact ? 'block truncate' : undefined}>{label}</span>
+          <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
         </span>
       </Button>
     </Dropdown>

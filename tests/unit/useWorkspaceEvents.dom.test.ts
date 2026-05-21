@@ -41,12 +41,12 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
 
   afterEach(() => {
     // Clean up any event listeners
-    emitter.off('gemini.selected.file');
+    emitter.off('aionrs.selected.file');
     emitter.off('acp.selected.file');
     emitter.off('codex.selected.file');
   });
 
-  describe('gemini.selected.file event handling', () => {
+  describe('aionrs.selected.file event handling', () => {
     it('should sync selected state when folder tags are removed via event', () => {
       const setSelected = vi.fn();
       const selectedKeysRef = { current: ['folder1', 'folder2'] };
@@ -72,11 +72,11 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
       };
 
       // Register handler
-      emitter.on('gemini.selected.file', handleSelectedFile);
+      emitter.on('aionrs.selected.file', handleSelectedFile);
 
       // Simulate removing a folder tag (emitting with remaining items)
       act(() => {
-        emitter.emit('gemini.selected.file', [
+        emitter.emit('aionrs.selected.file', [
           { path: '/path/folder1', name: 'folder1', isFile: false, relativePath: 'folder1' },
           // folder2 removed
         ]);
@@ -113,11 +113,11 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
         }
       };
 
-      emitter.on('gemini.selected.file', handleSelectedFile);
+      emitter.on('aionrs.selected.file', handleSelectedFile);
 
       // Remove all folders
       act(() => {
-        emitter.emit('gemini.selected.file', []);
+        emitter.emit('aionrs.selected.file', []);
       });
 
       expect(setSelected).toHaveBeenCalledWith([]);
@@ -148,11 +148,11 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
         }
       };
 
-      emitter.on('gemini.selected.file', handleSelectedFile);
+      emitter.on('aionrs.selected.file', handleSelectedFile);
 
       // Mix of files and folders
       act(() => {
-        emitter.emit('gemini.selected.file', [
+        emitter.emit('aionrs.selected.file', [
           { path: '/path/file1.txt', name: 'file1.txt', isFile: true, relativePath: 'file1.txt' },
           { path: '/path/folder1', name: 'folder1', isFile: false, relativePath: 'folder1' },
           { path: '/path/file2.txt', name: 'file2.txt', isFile: true },
@@ -187,11 +187,11 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
         }
       };
 
-      emitter.on('gemini.selected.file', handleSelectedFile);
+      emitter.on('aionrs.selected.file', handleSelectedFile);
 
       // Folder without relativePath
       act(() => {
-        emitter.emit('gemini.selected.file', [
+        emitter.emit('aionrs.selected.file', [
           { path: '/path/folder1', name: 'folder1', isFile: false }, // no relativePath
         ]);
       });

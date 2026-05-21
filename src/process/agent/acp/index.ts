@@ -1196,7 +1196,7 @@ export class AcpAgent {
   /**
    * Handle PromptResponse.usage from ACP backend (codex-acp PR #167).
    * Used as fallback context usage when usage_update notifications are not available.
-   * Follows the same pattern as Gemini CLI's usageMetadata extraction.
+   * Follows the same pattern as the bundled runtime usageMetadata extraction.
    */
   private handlePromptUsage(usage: AcpPromptResponseUsage): void {
     // Skip if usage_update notifications are already providing context usage data

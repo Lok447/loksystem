@@ -456,7 +456,7 @@ export class ActionExecutor {
       if (!session || !session.conversationId) {
         const source = platform;
 
-        // Read selected agent for this platform (defaults to Gemini)
+        // Read selected agent for this platform (defaults to Lok CLI)
         let savedAgent: unknown = undefined;
         try {
           savedAgent = await ProcessConfig.get(
@@ -465,11 +465,12 @@ export class ActionExecutor {
         } catch {
           // ignore
         }
-        const backend = (
+        const savedBackend = (
           savedAgent && typeof savedAgent === 'object' && typeof (savedAgent as any).backend === 'string'
             ? (savedAgent as any).backend
-            : 'gemini'
+            : 'aionrs'
         ) as string;
+        const backend = savedBackend === 'gemini' ? 'aionrs' : savedBackend;
         const customAgentId =
           savedAgent && typeof savedAgent === 'object'
             ? ((savedAgent as any).customAgentId as string | undefined)
@@ -498,16 +499,7 @@ export class ActionExecutor {
         let sessionConversation: TChatConversation | null = existing ?? null;
         if (!sessionConversation) {
           try {
-            if (backend === 'gemini') {
-              sessionConversation = await conversationServiceSingleton.createConversation({
-                type: 'gemini',
-                model,
-                name: conversationName,
-                source,
-                channelChatId: chatId,
-                extra: conversationExtra,
-              });
-            } else if (backend === 'aionrs') {
+            if (backend === 'aionrs') {
               sessionConversation = await conversationServiceSingleton.createConversation({
                 type: 'aionrs',
                 model,

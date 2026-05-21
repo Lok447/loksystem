@@ -4,9 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
 import { agentRegistry } from '@process/agent/AgentRegistry';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
@@ -38,7 +35,6 @@ import {
 import type { ChannelAgentType, PluginType } from '../types';
 import type { ActionHandler, IRegisteredAction } from './types';
 import { SystemActionNames, createErrorResponse, createSuccessResponse } from './types';
-import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
 import { buildChannelConversationExtra } from '../utils';
 
 type AgentDisplayInfo = {
@@ -49,7 +45,7 @@ type AgentDisplayInfo = {
 
 /**
  * Get the default model for Channel assistant (Lark/DingTalk/WeChat/WeCom)
- * Reads from saved config or falls back to default Gemini model
+ * Reads from saved config or falls back to the first configured provider model.
  */
 
 export async function getChannelDefaultModel(platform: PluginType): Promise<TProviderWithModel> {
@@ -78,7 +74,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
       return null;
     };
 
-    // Try to get saved model selection
+    // Try to get saved model selection first.
     const savedModel =
       platform === 'lark'
         ? await ProcessConfig.get('assistant.lark.defaultModel')
@@ -88,113 +84,32 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
             ? await ProcessConfig.get('assistant.weixin.defaultModel')
             : await ProcessConfig.get('assistant.wecom.defaultModel');
     if (savedModel?.id && savedModel?.useModel) {
-      if (savedModel.id === GOOGLE_AUTH_PROVIDER_ID) {
-        // Google OAuth credentials are stored locally by Gemini CLI (~/.gemini/oauth_creds.json).
-        // If the user has already logged in on desktop, we can reuse those credentials in
-        // channel mode without requiring a browser flow.
-        const credsPath = path.join(os.homedir(), '.gemini', 'oauth_creds.json');
-        let hasLocalCreds = false;
-        try {
-          const content = await fs.promises.readFile(credsPath, 'utf-8');
-          const creds = JSON.parse(content);
-          hasLocalCreds = !!(creds?.access_token || creds?.refresh_token);
-        } catch {
-          // credentials file missing or invalid
-        }
-
-        if (hasLocalCreds) {
-          // The google-auth-gemini provider is a frontend-only synthetic provider — it is NOT
-          // stored in model.config. Construct it directly with platform='gemini-with-google-auth'
-          // so that getProviderAuthType() returns AuthType.LOGIN_WITH_GOOGLE, which makes
-          // GeminiAgentManager read oauth_creds.json and use OAuth instead of an empty API key.
-          return {
-            id: GOOGLE_AUTH_PROVIDER_ID,
-            name: 'Gemini Google Auth',
-            platform: 'gemini-with-google-auth',
-            baseUrl: '',
-            apiKey: '',
-            model: [savedModel.useModel],
-            useModel: savedModel.useModel,
-            enabled: true,
-          } as TProviderWithModel;
-        }
-
-        // No local OAuth credentials — try to fall back to an API key provider for the same model.
-        console.warn(
-          `[SystemActions] Google Auth oauth_creds.json missing or empty for channel mode (${platform}), falling back to API key provider`
-        );
-        const fallback = providerList.find(
-          (p) => p.platform === 'gemini' && hasProviderAuth(p) && p.model?.includes(savedModel.useModel)
-        );
-        if (fallback) {
-          return {
-            ...fallback,
-            useModel: savedModel.useModel,
-          } as TProviderWithModel;
-        }
-        // Otherwise fall through to general fallback below
-      } else {
-        // For regular (API-key-based) providers, look up full config
-        const result = findProviderWithApiKey(savedModel.id, savedModel.useModel);
-        if (result) return result;
-      }
+      const result = findProviderWithApiKey(savedModel.id, savedModel.useModel);
+      if (result) return result;
     }
 
-    // Fallback: try to get any Gemini provider with valid credentials
-    const geminiProvider = providerList.find((p) => p.platform === 'gemini' && hasProviderAuth(p) && p.model?.length);
-    if (geminiProvider) {
-      return {
-        ...geminiProvider,
-        useModel: geminiProvider.model[0],
-      } as TProviderWithModel;
-    }
-
-    // Last resort: any provider with valid credentials
+    // Fallback: prefer any configured provider with valid credentials.
     const anyProvider = providerList.find((p) => hasProviderAuth(p) && p.model?.length);
     if (anyProvider) {
-      console.warn(`[SystemActions] No Gemini provider with API key, using ${anyProvider.platform} provider`);
       return {
         ...anyProvider,
         useModel: anyProvider.model[0],
       } as TProviderWithModel;
     }
-
-    // Before giving up: check if the user has Google OAuth credentials from Gemini CLI.
-    // This handles the common case where no model/provider is explicitly configured for
-    // the channel, but the user has already logged in via `gemini auth login`.
-    const credsPath = path.join(os.homedir(), '.gemini', 'oauth_creds.json');
-    try {
-      const content = await fs.promises.readFile(credsPath, 'utf-8');
-      const creds = JSON.parse(content);
-      if (creds?.access_token || creds?.refresh_token) {
-        console.warn('[SystemActions] No API key provider found; falling back to Google OAuth credentials.');
-        return {
-          id: GOOGLE_AUTH_PROVIDER_ID,
-          name: 'Gemini Google Auth',
-          platform: 'gemini-with-google-auth',
-          baseUrl: '',
-          apiKey: '',
-          model: ['gemini-2.0-flash'],
-          useModel: 'gemini-2.0-flash',
-          enabled: true,
-        } as TProviderWithModel;
-      }
-    } catch {
-      // credentials file missing or unreadable — fall through
-    }
   } catch (error) {
     console.warn('[SystemActions] Failed to get saved model, using default:', error);
   }
 
-  // Default fallback - minimal config for Gemini (no API key — will fail with clear error)
-  console.error('[SystemActions] No provider with valid API key found. Channel messages will fail.');
+  // Default fallback - channel mode still requires the user to configure a provider.
+  console.error('[SystemActions] No provider with valid credentials found. Channel messages will fail.');
   return {
-    id: 'gemini_default',
-    platform: 'gemini',
-    name: 'Gemini',
-    baseUrl: 'https://generativelanguage.googleapis.com',
+    id: 'channel_default',
+    platform: 'custom',
+    name: 'Channel Default',
+    baseUrl: '',
     apiKey: '',
-    useModel: 'gemini-2.0-flash',
+    model: ['default'],
+    useModel: 'default',
   };
 }
 
@@ -241,7 +156,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
   const platform = context.platform;
   const source = platform === 'lark' || platform === 'dingtalk' || platform === 'weixin' || platform === 'wecom' ? platform : 'lark';
 
-  // Selected agent (defaults to Gemini)
+  // Selected agent (defaults to Lok CLI)
   let savedAgent: unknown = undefined;
   try {
     savedAgent = await (platform === 'lark'
@@ -254,11 +169,12 @@ export const handleSessionNew: ActionHandler = async (context) => {
   } catch {
     // ignore
   }
-  const backend = (
+  const savedBackend = (
     savedAgent && typeof savedAgent === 'object' && typeof (savedAgent as any).backend === 'string'
       ? (savedAgent as any).backend
-      : 'gemini'
+      : 'aionrs'
   ) as string;
+  const backend = savedBackend === 'gemini' ? 'aionrs' : savedBackend;
   const customAgentId =
     savedAgent && typeof savedAgent === 'object'
       ? ((savedAgent as any).customAgentId as string | undefined)
@@ -282,16 +198,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
 
   let newConversation: TChatConversation;
   try {
-    if (backend === 'gemini') {
-      newConversation = await conversationServiceSingleton.createConversation({
-        type: 'gemini',
-        model,
-        source,
-        name,
-        channelChatId,
-        extra: conversationExtra,
-      });
-    } else if (backend === 'aionrs') {
+    if (backend === 'aionrs') {
       newConversation = await conversationServiceSingleton.createConversation({
         type: 'aionrs',
         model,
@@ -633,7 +540,7 @@ export const handleAgentShow: ActionHandler = async (context) => {
   // Get current agent type from session (scoped by chatId)
   const userId = context.channelUser?.id;
   const session = userId ? sessionManager.getSession(userId, context.chatId) : null;
-  const currentAgent = session?.agentType || 'gemini';
+  const currentAgent = session?.agentType || 'aionrs';
 
   // Get available agents dynamically
   const availableAgents = getAvailableChannelAgents();
@@ -758,7 +665,8 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
  * Get display name for agent type
  */
 function getAgentDisplayName(agentType: ChannelAgentType): string {
-  const names: Record<ChannelAgentType, string> = {
+  if (agentType === 'aionrs') return 'Lok CLI';
+  const names: Record<string, string> = {
     gemini: '🤖 Gemini',
     acp: '🧠 Claude',
     codex: '⚡ Codex',
@@ -772,6 +680,8 @@ function getAgentDisplayName(agentType: ChannelAgentType): string {
  * Only returns types that are supported by channels
  */
 function backendToChannelAgentType(backend: string): ChannelAgentType | null {
+  if (backend === 'aionrs' || backend === 'gemini') return 'aionrs';
+  if (backend === 'hermes') return 'acp';
   const mapping: Record<string, ChannelAgentType> = {
     gemini: 'gemini',
     claude: 'acp',
@@ -785,6 +695,7 @@ function backendToChannelAgentType(backend: string): ChannelAgentType | null {
  * Get emoji for agent backend
  */
 function getAgentEmoji(backend: string): string {
+  if (backend === 'aionrs' || backend === 'hermes') return '🧠';
   const emojis: Record<string, string> = {
     gemini: '🤖',
     claude: '🧠',
@@ -805,7 +716,8 @@ function getAvailableChannelAgents(): AgentDisplayInfo[] {
 
   // Always include Gemini as it's built-in
   availableAgents.push({ type: 'gemini', emoji: '🤖', name: 'Gemini' });
-  seenTypes.add('gemini');
+  availableAgents[0] = { type: 'aionrs', emoji: '🧠', name: 'Lok CLI' };
+  seenTypes.add('aionrs');
 
   // Add detected ACP agents (claude, codex, etc.)
   for (const agent of detectedAgents) {

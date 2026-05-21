@@ -140,14 +140,6 @@ vi.mock('@/renderer/components/agent/AcpModelSelector', () => ({
   default: () => null,
 }));
 
-vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector', () => ({
-  default: () => null,
-}));
-
-vi.mock('@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection', () => ({
-  useGeminiModelSelection: () => ({}),
-}));
-
 vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector', () => ({
   default: () => null,
 }));

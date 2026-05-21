@@ -19,16 +19,16 @@ import { getSkillsDir, getBuiltinSkillsCopyDir, getAutoSkillsDir, getSystemDir }
 import { computeOpenClawIdentityHash } from './openclawUtils';
 
 /**
- * 为 assistant 设置原生 workspace 结构（skill symlinks）
+ * �?assistant 设置原生 workspace 结构（skill symlinks�?
  * Set up native workspace structure for assistant (skill symlinks only)
  *
- * 将启用的 skills symlink 到 CLI 原生 skills 目录，让各 CLI 自动发现
+ * 将启用的 skills symlink �?CLI 原生 skills 目录，让�?CLI 自动发现
  * Symlink enabled skills into CLI-native skills directories for auto-discovery
  *
- * 只在 temp workspace（非用户指定）时执行，避免污染用户项目目录
+ * 只在 temp workspace（非用户指定）时执行，避免污染用户项目目�?
  * Only runs for temp workspaces (not user-specified) to avoid polluting user project dirs
  *
- * 注意：Rules/人格设定通过 system prompt 注入，不写 context file
+ * 注意：Rules/人格设定通过 system prompt 注入，不�?context file
  * Note: Rules/personality are injected via system prompt, NOT written to context files
  */
 export async function setupAssistantWorkspace(
@@ -129,11 +129,11 @@ export async function setupAssistantWorkspace(
 }
 
 /**
- * 创建工作空间目录（不复制文件）
+ * 创建工作空间目录（不复制文件�?
  * Create workspace directory (without copying files)
  *
- * 注意：文件复制统一由 sendMessage 时的 copyFilesToDirectory 处理
- * 避免文件被复制两次（一次在创建会话时，一次在发送消息时）
+ * 注意：文件复制统一�?sendMessage 时的 copyFilesToDirectory 处理
+ * 避免文件被复制两次（一次在创建会话时，一次在发送消息时�?
  * Note: File copying is handled by copyFilesToDirectory in sendMessage
  * This avoids files being copied twice
  */
@@ -173,54 +173,25 @@ export const createGeminiAgent = async (
   extraSkillPaths?: string[],
   excludeBuiltinSkills?: string[]
 ): Promise<TChatConversation> => {
-  const { workspace: newWorkspace, customWorkspace: finalCustomWorkspace } = await buildWorkspaceWidthFiles(
-    `gemini-temp-${Date.now()}`,
-    workspace,
-    defaultFiles,
-    customWorkspace
-  );
-
-  // 对 temp workspace 设置 skill symlinks（原生 SkillManager 自动发现）
-  // Set up skill symlinks for native SkillManager discovery
-  if (!finalCustomWorkspace) {
-    await setupAssistantWorkspace(newWorkspace, {
-      agentType: 'gemini',
-      enabledSkills,
-      extraSkillPaths,
-      excludeBuiltinSkills,
-    });
-  }
-
-  return {
-    type: 'gemini',
+  return createAionrsAgent({
+    type: 'aionrs',
     model,
     extra: {
-      workspace: newWorkspace,
-      customWorkspace: finalCustomWorkspace,
+      workspace,
+      customWorkspace,
+      defaultFiles,
       webSearchEngine,
       contextFileName,
-      // 系统规则 / System rules
       presetRules,
-      // 向后兼容：contextContent 保存 rules / Backward compatible: contextContent stores rules
-      contextContent: presetRules,
-      // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
       enabledSkills,
-      // 预设助手 ID，用于在会话面板显示助手名称和头像
-      // Preset assistant ID for displaying name and avatar in conversation panel
       presetAssistantId,
-      // Initial session mode from Guid page mode selector
       sessionMode,
-      // Explicit marker for temporary health-check conversations
       isHealthCheck,
+      extraSkillPaths,
+      excludeBuiltinSkills,
     },
-    desc: finalCustomWorkspace ? newWorkspace : '',
-    createTime: Date.now(),
-    modifyTime: Date.now(),
-    name: newWorkspace,
-    id: uuid(),
-  };
+  } as ICreateConversationParams);
 };
-
 export const createAcpAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
@@ -230,7 +201,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
     extra.customWorkspace
   );
 
-  // 对 temp workspace 设置 skill symlinks（原生发现）
+  // �?temp workspace 设置 skill symlinks（原生发现）
   if (!customWorkspace) {
     await setupAssistantWorkspace(workspace, {
       backend: extra.backend,
@@ -249,12 +220,12 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       cliPath: extra.cliPath,
       agentName: extra.agentName,
       customAgentId: extra.customAgentId, // 同时用于标识预设助手 / Also used to identify preset assistant
-      presetContext: extra.presetContext, // 智能助手的预设规则/提示词
-      // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
+      presetContext: extra.presetContext, // 智能助手的预设规�?提示�?
+      // 启用�?skills 列表（通过 SkillManager 加载�? Enabled skills list (loaded via SkillManager)
       enabledSkills: extra.enabledSkills,
-      // 排除的内置自动注入 skills / Builtin auto-injected skills to exclude
+      // 排除的内置自动注�?skills / Builtin auto-injected skills to exclude
       excludeBuiltinSkills: extra.excludeBuiltinSkills,
-      // 预设助手 ID，用于在会话面板显示助手名称和头像
+      // 预设助手 ID，用于在会话面板显示助手名称和头�?
       // Preset assistant ID for displaying name and avatar in conversation panel
       presetAssistantId: extra.presetAssistantId,
       // Initial session mode selected on Guid page (from AgentModeSelector)
@@ -263,7 +234,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       currentModelId: extra.currentModelId,
       // Explicit marker for temporary health-check conversations
       isHealthCheck: extra.isHealthCheck,
-      // Team ownership — used by sidebar filter to hide team-owned conversations
+      // Team ownership �?used by sidebar filter to hide team-owned conversations
       ...(extra.teamId ? { teamId: extra.teamId } : {}),
     },
     createTime: Date.now(),
@@ -282,7 +253,7 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
     extra.customWorkspace
   );
 
-  // 对 temp workspace 设置 skill symlinks
+  // �?temp workspace 设置 skill symlinks
   if (!customWorkspace) {
     await setupAssistantWorkspace(workspace, {
       agentType: 'nanobot',
@@ -387,7 +358,7 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
     extra.customWorkspace
   );
 
-  // 对 temp workspace 设置 skill symlinks
+  // �?temp workspace 设置 skill symlinks
   if (!customWorkspace) {
     await setupAssistantWorkspace(workspace, {
       enabledSkills: extra.enabledSkills,
@@ -428,3 +399,5 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
     id: uuid(),
   };
 };
+
+

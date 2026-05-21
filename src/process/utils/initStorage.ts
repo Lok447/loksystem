@@ -77,27 +77,27 @@ const migrateLegacyData = async () => {
           return existsSync(newDir) && readdirSync(newDir).length === 0;
         } catch (error) {
           console.warn('[LokSystem] Warning: Could not read new directory during migration check:', error);
-          return false; // 假设非空以避免迁移覆盖
+          return false; // 假设非空以避免迁移覆�?
         }
       })();
 
-    // 检查迁移条件：老目录存在且新目录为空
+    // 检查迁移条件：老目录存在且新目录为�?
     if (existsSync(oldDir) && isNewDirEmpty) {
       // 创建目标目录
       mkdirSync(newDir);
 
-      // 复制所有文件和文件夹
+      // 复制所有文件和文件�?
       await copyDirectoryRecursively(oldDir, newDir);
 
       // 验证迁移是否成功
       const isVerified = await verifyDirectoryFiles(oldDir, newDir);
       if (isVerified) {
-        // 确保不会删除相同的目录
+        // 确保不会删除相同的目�?
         if (path.resolve(oldDir) !== path.resolve(newDir)) {
           try {
             await fs.rm(oldDir, { recursive: true });
           } catch (cleanupError) {
-            console.warn('[LokSystem] 原目录清理失败，请手动删除:', oldDir, cleanupError);
+            console.warn('[LokSystem] 原目录清理失败，请手动删�?', oldDir, cleanupError);
           }
         }
       }
@@ -253,10 +253,22 @@ const _chatMessageFile = JsonFileBuilder<ConversationHistoryData>(path.join(cach
 const _chatFile = JsonFileBuilder<IChatConversationRefer>(path.join(cacheDir, STORAGE_PATH.chat));
 
 // 创建带字段迁移的聊天历史代理
-const isGeminiConversation = (
-  conversation: TChatConversation
-): conversation is Extract<TChatConversation, { type: 'gemini' }> => {
-  return conversation.type === 'gemini';
+const normalizeLegacyConversation = (conversation: TChatConversation): TChatConversation => {
+  if (conversation.type !== 'gemini') {
+    return conversation;
+  }
+
+  const modelRecord = (conversation.model as unknown as Record<string, unknown>) || {};
+  if ('selectedModel' in modelRecord && !('useModel' in modelRecord)) {
+    modelRecord['useModel'] = modelRecord['selectedModel'];
+    delete modelRecord['selectedModel'];
+  }
+
+  return {
+    ...conversation,
+    type: 'aionrs',
+    model: modelRecord as TProviderWithModel,
+  } as TChatConversation;
 };
 
 const chatFile = {
@@ -264,21 +276,11 @@ const chatFile = {
   async get<K extends keyof IChatConversationRefer>(key: K): Promise<IChatConversationRefer[K]> {
     const data = await _chatFile.get(key);
 
-    // 特别处理 chat.history 的字段迁移
+    // 特别处理 chat.history 的字段迁�?
     if (key === 'chat.history' && Array.isArray(data)) {
       const history = data as IChatConversationRefer['chat.history'];
       return history.map((conversation: TChatConversation) => {
-        // 只有 Gemini 会话带有 model 字段，需要将旧格式 selectedModel 迁移为 useModel
-        if (isGeminiConversation(conversation) && conversation.model) {
-          // 使用 Record 类型处理旧格式迁移
-          const modelRecord = conversation.model as unknown as Record<string, unknown>;
-          if ('selectedModel' in modelRecord && !('useModel' in modelRecord)) {
-            modelRecord['useModel'] = modelRecord['selectedModel'];
-            delete modelRecord['selectedModel'];
-            conversation.model = modelRecord as TProviderWithModel;
-          }
-        }
-        return conversation;
+        return normalizeLegacyConversation(conversation);
       }) as IChatConversationRefer[K];
     }
 
@@ -335,7 +337,7 @@ const getAssistantsDir = () => {
 };
 
 /**
- * 获取技能脚本目录路径
+ * 获取技能脚本目录路�?
  * Get skills scripts directory path
  */
 const getSkillsDir = () => {
@@ -344,7 +346,7 @@ const getSkillsDir = () => {
 
 /**
  * Get the directory where bundled skills are copied to (config/builtin-skills/).
- * This directory is fully managed by the app — synced on every startup.
+ * This directory is fully managed by the app �?synced on every startup.
  */
 const getBuiltinSkillsCopyDir = () => {
   return path.join(cacheDir, STORAGE_PATH.builtinSkills);
@@ -375,7 +377,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
 
   // In development, use project root. In production, use app.getAppPath().
   // viteStaticCopy maps src/process/resources/* to root-level dirs in the asar.
-  // 开发模式下使用项目根目录，生产模式下 viteStaticCopy 将资源映射到 asar 根级目录。
+  // 开发模式下使用项目根目录，生产模式�?viteStaticCopy 将资源映射到 asar 根级目录�?
   const resolveBuiltinDir = (dirPath: string): string => {
     const platform = getPlatformServices().paths;
     const appPath = platform.getAppPath()!;
@@ -432,7 +434,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
         mkdirSync(builtinSkillsCopyDir);
       }
       // Prune FIRST, then copy: removes stale files (e.g. creating.md/editing.md merged away
-      // upstream) and also clears any dest entry whose type (dir ↔ file) differs from source,
+      // upstream) and also clears any dest entry whose type (dir �?file) differs from source,
       // so the subsequent copy never hits ENOTDIR/EEXIST on a type mismatch.
       await pruneDirectoryToMatch(builtinSkillsDir, builtinSkillsCopyDir);
       await copyDirectoryRecursively(builtinSkillsDir, builtinSkillsCopyDir, {
@@ -462,7 +464,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
   for (const preset of ASSISTANT_PRESETS) {
     const assistantId = `builtin-${preset.id}`;
 
-    // 如果设置了 resourceDir，使用该目录；否则使用默认的 rules/ 目录
+    // 如果设置�?resourceDir，使用该目录；否则使用默认的 rules/ 目录
     // If resourceDir is set, use that directory; otherwise use default rules/ directory
     const presetRulesDir = preset.resourceDir ? resolveBuiltinDir(preset.resourceDir) : rulesDir;
     const presetSkillsDir = preset.resourceDir ? resolveBuiltinDir(preset.resourceDir) : builtinSkillsDir;
@@ -484,7 +486,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
             continue;
           }
 
-          // 内置助手规则文件始终强制覆盖，确保用户获得最新版本
+          // 内置助手规则文件始终强制覆盖，确保用户获得最新版�?
           // Always overwrite builtin assistant rule files to ensure users get the latest version
           let content = await fs.readFile(sourceRulesPath, 'utf-8');
           // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
@@ -497,7 +499,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
         }
       }
     } else {
-      // 如果助手没有 ruleFiles 配置，删除旧的 rules 缓存文件
+      // 如果助手没有 ruleFiles 配置，删除旧�?rules 缓存文件
       // If assistant has no ruleFiles config, delete old rules cache files
       const rulesFilePattern = new RegExp(`^${assistantId}\\..*\\.md$`);
       try {
@@ -513,7 +515,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
       }
     }
 
-    // 复制技能文件 / Copy skill files (if preset has skills)
+    // 复制技能文�?/ Copy skill files (if preset has skills)
     if (preset.skillFiles) {
       for (const [locale, skillFile] of Object.entries(preset.skillFiles)) {
         try {
@@ -529,7 +531,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
             continue;
           }
 
-          // 内置助手技能文件始终强制覆盖，确保用户获得最新版本
+          // 内置助手技能文件始终强制覆盖，确保用户获得最新版�?
           // Always overwrite builtin assistant skill files to ensure users get the latest version
           let content = await fs.readFile(sourceSkillsPath, 'utf-8');
           // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
@@ -537,14 +539,14 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
           content = content.replace(/skills\//g, userSkillsDir + '/');
           await fs.writeFile(targetPath, content, 'utf-8');
         } catch (error) {
-          // 忽略缺失的技能文件 / Ignore missing skill files
+          // 忽略缺失的技能文�?/ Ignore missing skill files
           console.warn(`[LokSystem] Failed to copy skill file ${skillFile}:`, error);
         }
       }
     } else {
-      // 如果助手没有 skillFiles 配置，删除旧的 skills 缓存文件
+      // 如果助手没有 skillFiles 配置，删除旧�?skills 缓存文件
       // If assistant has no skillFiles config, delete old skills cache files
-      // 这样可以确保迁移到 SkillManager 后不会读取到旧的 presetSkills
+      // 这样可以确保迁移�?SkillManager 后不会读取到旧的 presetSkills
       // This ensures old presetSkills won't be read after migrating to SkillManager
       const skillsFilePattern = new RegExp(`^${assistantId}-skills\\..*\\.md$`);
       try {
@@ -570,7 +572,7 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
   const assistants: AcpBackendConfig[] = [];
 
   for (const preset of ASSISTANT_PRESETS) {
-    // 从预设配置中读取默认启用的技能列表（不包含 cron，因为它是内置 skill，自动注入）
+    // 从预设配置中读取默认启用的技能列表（不包�?cron，因为它是内�?skill，自动注入）
     // Read default enabled skills from preset config (excluding cron, which is builtin and auto-injected)
     const defaultEnabledSkills = preset.defaultEnabledSkills;
     const enabledByDefault =
@@ -593,16 +595,16 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
       description: preset.descriptionI18n['en-US'],
       descriptionI18n: preset.descriptionI18n,
       avatar: preset.avatar,
-      // context 不再存储在配置中，而是从文件读取
+      // context 不再存储在配置中，而是从文件读�?
       // context is no longer stored in config, read from files instead
       // Cowork 默认启用 / Cowork enabled by default
       enabled: enabledByDefault,
       isPreset: true,
       isBuiltin: true,
       presetAgentType: preset.presetAgentType || 'hermes',
-      // Cowork 默认启用所有内置技能 / Cowork enables all builtin skills by default
+      // Cowork 默认启用所有内置技�?/ Cowork enables all builtin skills by default
       enabledSkills: defaultEnabledSkills,
-      // 复制快捷提示词 / Copy quick prompts
+      // 复制快捷提示�?/ Copy quick prompts
       promptsI18n: preset.promptsI18n,
     });
   }
@@ -611,7 +613,7 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
 };
 
 /**
- * 创建默认的 MCP 服务器配置
+ * 创建默认�?MCP 服务器配�?
  */
 const getDefaultMcpServers = (): IMcpServer[] => {
   const now = Date.now();
@@ -628,7 +630,7 @@ const getDefaultMcpServers = (): IMcpServer[] => {
     id: `mcp_default_${now}_${index}`,
     name,
     description: `Default MCP server: ${name}`,
-    enabled: false, // 默认不启用，让用户手动开启
+    enabled: false, // 默认不启用，让用户手动开�?
     transport: {
       type: 'stdio' as const,
       command: config.command,
@@ -793,7 +795,7 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
 };
 
 /**
- * 启动时清理异常遗留的健康检测临时会话
+ * 启动时清理异常遗留的健康检测临时会�?
  * Cleanup orphaned health-check temporary conversations on startup
  */
 const cleanupOrphanedHealthCheckConversations = async () => {
@@ -841,12 +843,12 @@ const initStorage = async () => {
   await migrateLegacyData();
   mark('1. migrateLegacyData');
 
-  // 2. 创建必要的目录（迁移后再创建，确保迁移能正常进行）
+  // 2. 创建必要的目录（迁移后再创建，确保迁移能正常进行�?
   // Use ensureDirectory to handle cases where a regular file blocks the path (#841)
   ensureDirectory(getHomePage());
   ensureDirectory(getDataPath());
 
-  // 3. 初始化存储系统
+  // 3. 初始化存储系�?
   ConfigStorage.interceptor(configFile);
   ChatStorage.interceptor(chatFile);
   ChatMessageStorage.interceptor(chatMessageFile);
@@ -871,7 +873,7 @@ const initStorage = async () => {
     mark('3.1 configMigration');
   }
 
-  // 4. 初始化 MCP 配置（为所有用户提供默认配置）
+  // 4. 初始�?MCP 配置（为所有用户提供默认配置）
   try {
     const existingMcpConfig = await configFile.get('mcp.config').catch((): undefined => undefined);
 
@@ -889,16 +891,16 @@ const initStorage = async () => {
   await ensureBuiltinMcpServers();
   mark('4.2 builtinMcpServers');
 
-  // 5. 初始化内置助手（Assistants）
+  // 5. 初始化内置助手（Assistants�?
   try {
-    // 5.1 初始化内置助手的规则文件到用户目录
+    // 5.1 初始化内置助手的规则文件到用户目�?
     // Initialize builtin assistant rule files to user directory
     await initBuiltinAssistantRules();
     mark('5.1 initBuiltinAssistantRules');
 
     // 5.2 Split storage semantics (one-time migration):
-    //   - `assistants`        → built-in / preset assistants (isPreset === true)
-    //   - `acp.customAgents`  → user-defined custom ACP agents (isPreset !== true)
+    //   - `assistants`        �?built-in / preset assistants (isPreset === true)
+    //   - `acp.customAgents`  �?user-defined custom ACP agents (isPreset !== true)
     //
     // Historical context: v1.9.18 moved every entry from `acp.customAgents` into
     // `assistants`, conflating the two concepts. This migration splits them back.
@@ -927,30 +929,30 @@ const initStorage = async () => {
       await configFile.set(ASSISTANTS_SPLIT_MIGRATION_KEY, true);
     }
 
-    // 5.3 初始化助手配置（只包含元数据，不包含 context）
+    // 5.3 初始化助手配置（只包含元数据，不包含 context�?
     // Initialize assistant config (metadata only, no context)
     const existingAgents = (await configFile.get('assistants').catch((): undefined => undefined)) || [];
     const builtinAssistants = getBuiltinAssistants();
 
-    // 5.2.1 检查是否需要迁移：修复老版本中所有助手都默认启用的问题
+    // 5.2.1 检查是否需要迁移：修复老版本中所有助手都默认启用的问�?
     // Check if migration needed: fix old version where all assistants were enabled by default
     const ASSISTANT_ENABLED_MIGRATION_KEY = 'migration.assistantEnabledFixed';
     const migrationDone = await configFile.get(ASSISTANT_ENABLED_MIGRATION_KEY).catch(() => false);
     const needsMigration = !migrationDone && existingAgents.length > 0;
 
-    // 5.2.2 检查是否需要迁移：为内置助手添加默认启用的技能
+    // 5.2.2 检查是否需要迁移：为内置助手添加默认启用的技�?
     // Check if migration needed: add default enabled skills for builtin assistants
     const BUILTIN_SKILLS_MIGRATION_KEY = 'migration.builtinDefaultSkillsAdded_v2';
     const builtinSkillsMigrationDone = await configFile.get(BUILTIN_SKILLS_MIGRATION_KEY).catch(() => false);
     const needsBuiltinSkillsMigration = !builtinSkillsMigrationDone;
 
-    // 5.2.3 检查是否需要迁移：为内置助手添加 promptsI18n
+    // 5.2.3 检查是否需要迁移：为内置助手添�?promptsI18n
     // Check if migration needed: add promptsI18n for builtin assistants
     const PROMPTS_I18N_MIGRATION_KEY = 'migration.promptsI18nAdded';
     const promptsI18nMigrationDone = await configFile.get(PROMPTS_I18N_MIGRATION_KEY).catch(() => false);
     const needsPromptsI18nMigration = !promptsI18nMigrationDone;
 
-    // 更新或添加内置助手配置
+    // 更新或添加内置助手配�?
     // Update or add built-in assistant configurations
     const updatedAgents = [...existingAgents];
     let hasChanges = false;
@@ -963,9 +965,9 @@ const initStorage = async () => {
         const existing = updatedAgents[index];
         // 只有当关键字段不同时才更新，避免不必要的写入
         // Update only if key fields are different to avoid unnecessary writes
-        // 注意：enabled 和 presetAgentType 字段由用户控制，不参与 shouldUpdate 判断
+        // 注意：enabled �?presetAgentType 字段由用户控制，不参�?shouldUpdate 判断
         // Note: enabled and presetAgentType are user-controlled, not included in shouldUpdate check
-        // 检查 promptsI18n 是否需要更新（如果不存在或已更改，或需要迁移）
+        // 检�?promptsI18n 是否需要更新（如果不存在或已更改，或需要迁移）
         // Check if promptsI18n needs update (if missing, changed, or migration needed)
         const promptsI18nMissing = !existing.promptsI18n && builtin.promptsI18n;
         const promptsI18nChanged =
@@ -994,17 +996,17 @@ const initStorage = async () => {
           descriptionI18nMissing ||
           !!descriptionI18nChanged ||
           needsPromptsI18nUpdate;
-        // 当 enabled 是 undefined 或需要迁移时，设置默认值（Cowork 启用，其他禁用）
+        // �?enabled �?undefined 或需要迁移时，设置默认值（Cowork 启用，其他禁用）
         // When enabled is undefined or migration needed, set default value (Cowork enabled, others disabled)
         const needsEnabledFix = existing.enabled === undefined || needsMigration;
         // 迁移时强制使用默认值，否则保留用户设置
         // Force default value during migration, otherwise preserve user setting
         const resolvedEnabled = needsEnabledFix ? builtin.enabled : existing.enabled;
-        // presetAgentType 由用户控制，未设置时使用内置默认值
+        // presetAgentType 由用户控制，未设置时使用内置默认�?
         // presetAgentType is user-controlled, use builtin default if not set
         const resolvedPresetAgentType = existing.presetAgentType ?? builtin.presetAgentType;
 
-        // 为有 defaultEnabledSkills 配置的内置助手添加默认技能（仅在迁移时且用户未设置 enabledSkills 时）
+        // 为有 defaultEnabledSkills 配置的内置助手添加默认技能（仅在迁移时且用户未设�?enabledSkills 时）
         // Add default enabled skills for builtin assistants with defaultEnabledSkills (only during migration and if user hasn't set enabledSkills)
         let resolvedEnabledSkills = existing.enabledSkills;
         const needsSkillsMigration =
@@ -1021,14 +1023,14 @@ const initStorage = async () => {
           (needsSkillsMigration && resolvedEnabledSkills !== existing.enabledSkills) ||
           needsPromptsI18nUpdate
         ) {
-          // 保留用户已设置的 enabled 和 presetAgentType / Preserve user-set enabled and presetAgentType
+          // 保留用户已设置的 enabled �?presetAgentType / Preserve user-set enabled and presetAgentType
           updatedAgents[index] = {
             ...existing,
             ...builtin,
             enabled: resolvedEnabled,
             presetAgentType: resolvedPresetAgentType,
             enabledSkills: resolvedEnabledSkills,
-            // 确保 promptsI18n 被更新 / Ensure promptsI18n is updated
+            // 确保 promptsI18n 被更�?/ Ensure promptsI18n is updated
             promptsI18n: builtin.promptsI18n,
           };
           hasChanges = true;
@@ -1060,7 +1062,7 @@ const initStorage = async () => {
     console.error('[LokSystem] Failed to initialize builtin assistants:', error);
   }
 
-  // 6. 初始化数据库（better-sqlite3）
+  // 6. 初始化数据库（better-sqlite3�?
   try {
     await getDatabase();
     await cleanupOrphanedHealthCheckConversations();
@@ -1101,7 +1103,7 @@ export const getSystemDir = () => {
 };
 
 /**
- * 获取助手规则目录路径（供其他模块使用）
+ * 获取助手规则目录路径（供其他模块使用�?
  * Get assistant rules directory path (for use by other modules)
  */
 export {
@@ -1131,7 +1133,7 @@ export const loadSkillsContent = async (enabledSkills: string[]): Promise<string
     return '';
   }
 
-  // 使用排序后的 skill 名称作为缓存 key，确保相同组合命中缓存
+  // 使用排序后的 skill 名称作为缓存 key，确保相同组合命中缓�?
   // Use sorted skill names as cache key to ensure same combinations hit cache
   const cacheKey = [...enabledSkills].toSorted().join(',');
   const cached = skillsContentCache.get(cacheKey);
@@ -1150,7 +1152,7 @@ export const loadSkillsContent = async (enabledSkills: string[]): Promise<string
     const bundledSkillFile = path.join(getBuiltinSkillsCopyDir(), skillName, 'SKILL.md');
     // 3. User custom: skills/{skillName}/SKILL.md
     const skillDirFile = path.join(skillsDir, skillName, 'SKILL.md');
-    // 向后兼容：扁平结构 {skillName}.md
+    // 向后兼容：扁平结�?{skillName}.md
     // Backward compatible: flat structure {skillName}.md
     const skillFlatFile = path.join(skillsDir, `${skillName}.md`);
 
@@ -1192,3 +1194,5 @@ export const clearSkillsCache = (): void => {
 };
 
 export default initStorage;
+
+

@@ -35,10 +35,6 @@ vi.mock('@process/bridge/modelBridge', () => ({
   getMergedModelProviders: vi.fn(async () => []),
 }));
 
-vi.mock('../../src/process/team/googleAuthCheck', () => ({
-  hasGeminiOauthCreds: vi.fn(async () => false),
-}));
-
 vi.mock('@process/agent/AgentRegistry', () => ({
   agentRegistry: {
     getDetectedAgents: vi.fn(() => [{ backend: 'hermes', name: 'Lok CLI' }]),

@@ -1,165 +1,146 @@
 #!/usr/bin/env bash
-# ============================================================================
-# AionUi — Ubuntu / Debian 一鍵自動化安裝腳本
-# ============================================================================
-# 功能：
-#   1. 自動偵測系統架構 (amd64 / arm64)
-#   2. 從 GitHub Release 下載指定版本的 .deb 套件（預設 latest）
-#   3. 安裝 .deb + 自動修復依賴
-#   4. 安裝 Xvfb 等 headless 運行所需套件
-#   5. 建立服務管理腳本 (/opt/AionUi/start-aionui.sh)
-#   6. (可選) 建立 systemd service
-#   7. (可選) 建立桌面捷徑
+# LokSystem Ubuntu / Debian installer.
 #
-# 用法：
-#   curl -fsSL https://raw.githubusercontent.com/iOfficeAI/AionUi/main/scripts/install-ubuntu.sh | bash
-#   # 或指定版本：
-#   AIONUI_VERSION=1.8.25 bash install-ubuntu.sh
-#   # 僅安裝桌面版（跳過 headless 設定）：
-#   AIONUI_MODE=desktop bash install-ubuntu.sh
-# ============================================================================
+# Features:
+#   1. Detects the current CPU architecture (amd64 / arm64)
+#   2. Downloads a specific or latest GitHub release .deb package
+#   3. Installs the package and repairs missing dependencies
+#   4. Installs Xvfb and related libraries for headless mode
+#   5. Creates a helper script at /opt/LokSystem/start-loksystem.sh
+#   6. Optionally creates a systemd service for headless mode
+#   7. Creates a desktop entry for the current user
+#
+# Usage:
+#   curl -fsSL https://raw.githubusercontent.com/iOfficeAI/LokSystem/main/scripts/install-ubuntu.sh | bash
+#   LOKSYSTEM_VERSION=1.8.25 bash install-ubuntu.sh
+#   LOKSYSTEM_MODE=desktop bash install-ubuntu.sh
 
 set -euo pipefail
 
-# ─── 顏色定義 ───────────────────────────────────────────────────────────────
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# ─── 輔助函式 ───────────────────────────────────────────────────────────────
+SUDO=''
+DEB_ARCH=''
+VERSION=''
+MODE=''
+DEB_FILENAME=''
+DOWNLOAD_URL=''
+DEB_PATH=''
+
 info()    { echo -e "${BLUE}[INFO]${NC} $*"; }
-success() { echo -e "${GREEN}[✓]${NC} $*"; }
-warn()    { echo -e "${YELLOW}[!]${NC} $*"; }
-error()   { echo -e "${RED}[✗]${NC} $*" >&2; }
+success() { echo -e "${GREEN}[OK]${NC} $*"; }
+warn()    { echo -e "${YELLOW}[WARN]${NC} $*"; }
+error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 die()     { error "$*"; exit 1; }
 
+cleanup() {
+    if [[ -n "${DEB_PATH:-}" ]]; then
+        rm -rf "$(dirname "$DEB_PATH")" 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT
+
 banner() {
-    echo -e "${CYAN}${BOLD}"
-    echo "  ╔══════════════════════════════════════════════╗"
-    echo "  ║          AionUi Installer for Ubuntu         ║"
-    echo "  ╚══════════════════════════════════════════════╝"
-    echo -e "${NC}"
+    echo -e "${CYAN}${BOLD}=============================================="
+    echo "      LokSystem Installer for Ubuntu"
+    echo "==============================================${NC}"
 }
 
-# ─── 前置檢查 ───────────────────────────────────────────────────────────────
 check_prerequisites() {
-    # 必須是 Linux
-    [[ "$(uname -s)" == "Linux" ]] || die "此腳本僅支援 Linux 系統"
+    [[ "$(uname -s)" == "Linux" ]] || die "This installer only supports Linux."
+    command -v apt-get >/dev/null 2>&1 || die "This installer requires apt-get (Debian/Ubuntu)."
 
-    # 必須有 apt (Debian/Ubuntu 系列)
-    command -v apt-get &>/dev/null || die "此腳本需要 apt-get (Debian/Ubuntu 系列)"
-
-    # 建議以 root 或 sudo 執行
     if [[ $EUID -ne 0 ]]; then
-        if command -v sudo &>/dev/null; then
-            SUDO="sudo"
-            warn "非 root 使用者，將使用 sudo 執行安裝"
+        if command -v sudo >/dev/null 2>&1; then
+            SUDO='sudo'
+            warn "Running without root; sudo will be used for privileged steps."
         else
-            die "請以 root 身份執行，或安裝 sudo"
+            die "Please run as root or install sudo first."
         fi
-    else
-        SUDO=""
     fi
 }
 
-# ─── 偵測架構 ───────────────────────────────────────────────────────────────
 detect_arch() {
     local machine
     machine="$(uname -m)"
     case "$machine" in
         x86_64|amd64)
-            DEB_ARCH="amd64"
+            DEB_ARCH='amd64'
             ;;
         aarch64|arm64)
-            DEB_ARCH="arm64"
+            DEB_ARCH='arm64'
             ;;
         *)
-            die "不支援的架構: $machine（僅支援 x86_64 / aarch64）"
+            die "Unsupported architecture: $machine (expected x86_64/amd64 or aarch64/arm64)."
             ;;
     esac
-    info "偵測到系統架構: ${BOLD}$machine${NC} → 套件架構: ${BOLD}$DEB_ARCH${NC}"
+
+    info "Detected architecture: ${BOLD}${machine}${NC} -> package arch ${BOLD}${DEB_ARCH}${NC}"
 }
 
-# ─── 取得版本號 ──────────────────────────────────────────────────────────────
 resolve_version() {
-    if [[ -n "${AIONUI_VERSION:-}" ]]; then
-        VERSION="$AIONUI_VERSION"
-        info "使用指定版本: ${BOLD}v$VERSION${NC}"
+    if [[ -n "${LOKSYSTEM_VERSION:-}" ]]; then
+        VERSION="$LOKSYSTEM_VERSION"
+        info "Using requested version: ${BOLD}v${VERSION}${NC}"
     else
-        info "正在查詢最新版本..."
-        # 透過 GitHub API 取得 latest release tag
-        if command -v curl &>/dev/null; then
-            VERSION=$(curl -fsSL "https://api.github.com/repos/iOfficeAI/AionUi/releases/latest" \
-                | grep '"tag_name"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
-        elif command -v wget &>/dev/null; then
-            VERSION=$(wget -qO- "https://api.github.com/repos/iOfficeAI/AionUi/releases/latest" \
-                | grep '"tag_name"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
+        info "Resolving latest LokSystem release..."
+        if command -v curl >/dev/null 2>&1; then
+            VERSION="$(curl -fsSL 'https://api.github.com/repos/iOfficeAI/LokSystem/releases/latest' | grep '"tag_name"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')"
+        elif command -v wget >/dev/null 2>&1; then
+            VERSION="$(wget -qO- 'https://api.github.com/repos/iOfficeAI/LokSystem/releases/latest' | grep '"tag_name"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')"
         else
-            die "需要 curl 或 wget 來下載，請先安裝: sudo apt-get install -y curl"
+            die "Install curl or wget before running this script."
         fi
 
-        if [[ -z "$VERSION" ]]; then
-            die "無法取得最新版本號，請手動指定: AIONUI_VERSION=1.8.25 bash $0"
-        fi
-        info "最新版本: ${BOLD}v$VERSION${NC}"
+        [[ -n "$VERSION" ]] || die "Unable to resolve the latest release. Set LOKSYSTEM_VERSION manually, for example: LOKSYSTEM_VERSION=1.8.25 bash $0"
+        info "Latest release: ${BOLD}v${VERSION}${NC}"
     fi
 
-    DEB_FILENAME="AionUi-${VERSION}-linux-${DEB_ARCH}.deb"
-    DOWNLOAD_URL="https://github.com/iOfficeAI/AionUi/releases/download/v${VERSION}/${DEB_FILENAME}"
+    DEB_FILENAME="LokSystem-${VERSION}-linux-${DEB_ARCH}.deb"
+    DOWNLOAD_URL="https://github.com/iOfficeAI/LokSystem/releases/download/v${VERSION}/${DEB_FILENAME}"
 }
 
-# ─── 下載 .deb 套件 ──────────────────────────────────────────────────────────
 download_deb() {
     local tmpdir
     tmpdir="$(mktemp -d)"
     DEB_PATH="${tmpdir}/${DEB_FILENAME}"
 
-    info "下載 ${BOLD}$DEB_FILENAME${NC} ..."
-    info "網址: $DOWNLOAD_URL"
+    info "Downloading ${BOLD}${DEB_FILENAME}${NC}"
+    info "Source: ${DOWNLOAD_URL}"
 
-    if command -v curl &>/dev/null; then
-        curl -fSL --progress-bar -o "$DEB_PATH" "$DOWNLOAD_URL" || die "下載失敗"
-    elif command -v wget &>/dev/null; then
-        wget --show-progress -q -O "$DEB_PATH" "$DOWNLOAD_URL" || die "下載失敗"
+    if command -v curl >/dev/null 2>&1; then
+        curl -fSL --progress-bar -o "$DEB_PATH" "$DOWNLOAD_URL" || die "Download failed."
+    else
+        wget --show-progress -q -O "$DEB_PATH" "$DOWNLOAD_URL" || die "Download failed."
     fi
 
-    local size
-    size=$(du -h "$DEB_PATH" | cut -f1)
-    success "下載完成 ($size)"
+    success "Download complete: $(du -h "$DEB_PATH" | cut -f1)"
 }
 
-# ─── 安裝 .deb + 修復依賴 ────────────────────────────────────────────────────
 install_deb() {
-    info "安裝 AionUi .deb 套件..."
-
-    # dpkg 安裝（可能會缺依賴）
+    info "Installing LokSystem package..."
     $SUDO dpkg -i "$DEB_PATH" 2>/dev/null || true
 
-    # 自動修復缺失的依賴
-    info "修復依賴套件..."
+    info "Repairing dependencies..."
     $SUDO apt-get install -f -y
 
-    success "AionUi v${VERSION} 安裝完成"
+    success "LokSystem v${VERSION} installed"
 
-    # 驗證安裝
-    if command -v AionUi &>/dev/null || [[ -x /usr/bin/AionUi ]]; then
-        success "AionUi 已安裝至 $(which AionUi 2>/dev/null || echo '/usr/bin/AionUi')"
+    if command -v LokSystem >/dev/null 2>&1 || [[ -x /usr/bin/LokSystem ]]; then
+        success "Binary available at $(command -v LokSystem 2>/dev/null || echo '/usr/bin/LokSystem')"
     else
-        warn "安裝可能不完整，找不到 AionUi 執行檔"
+        warn "Installation completed, but the LokSystem binary was not found in the expected path."
     fi
-
-    # 清理暫存
-    rm -rf "$(dirname "$DEB_PATH")"
 }
 
-# ─── 安裝 Headless 依賴 ──────────────────────────────────────────────────────
 install_headless_deps() {
-    info "安裝 headless 運行所需套件 (Xvfb 等)..."
-
+    info "Installing headless dependencies..."
     $SUDO apt-get update -qq
     $SUDO apt-get install -y --no-install-recommends \
         xvfb \
@@ -170,137 +151,129 @@ install_headless_deps() {
         libxss1 \
         libasound2 \
         libgbm1 \
-        2>/dev/null || warn "部分套件可能已安裝或不可用"
-
-    success "Headless 依賴安裝完成"
+        >/dev/null
+    success "Headless dependencies installed"
 }
 
-# ─── 建立服務管理腳本 ─────────────────────────────────────────────────────────
 create_service_script() {
-    local script_dir="/opt/AionUi"
-    local script_path="${script_dir}/start-aionui.sh"
+    local script_dir='/opt/LokSystem'
+    local script_path="${script_dir}/start-loksystem.sh"
 
-    info "建立服務管理腳本: $script_path"
+    info "Creating helper script: ${script_path}"
     $SUDO mkdir -p "$script_dir"
 
-    $SUDO tee "$script_path" > /dev/null << 'SCRIPT_EOF'
-#!/bin/bash
-# ============================================================================
-# AionUi WebUI Headless 服務管理腳本
-# 用法: ./start-aionui.sh [start|stop|restart|status|logs]
-# ============================================================================
+    $SUDO tee "$script_path" >/dev/null <<'SCRIPT_EOF'
+#!/usr/bin/env bash
+set -euo pipefail
 
-PIDFILE="/var/run/aionui.pid"
-LOGFILE="/var/log/aionui.log"
-WORKDIR="${AIONUI_WORKDIR:-$HOME}"
+PIDFILE='/var/run/loksystem.pid'
+LOGFILE='/var/log/loksystem.log'
+WORKDIR="${LOKSYSTEM_WORKDIR:-$HOME}"
 
 start() {
-    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-        echo "⚡ AionUi 已在執行中 (PID: $(cat "$PIDFILE"))"
+    if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+        echo "LokSystem is already running (PID: $(cat "$PIDFILE"))"
         return 1
     fi
 
-    echo "🚀 正在啟動 AionUi WebUI..."
+    echo "Starting LokSystem WebUI..."
     cd "$WORKDIR" || exit 1
 
-    nohup xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
-        /usr/bin/AionUi --webui --remote --no-sandbox \
-        > "$LOGFILE" 2>&1 &
+    nohup xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+        /usr/bin/LokSystem --webui --remote --no-sandbox \
+        >"$LOGFILE" 2>&1 &
 
-    echo $! > "$PIDFILE"
+    echo $! >"$PIDFILE"
     sleep 3
 
     if kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-        echo "✅ AionUi 啟動成功 (PID: $(cat "$PIDFILE"))"
         local ip
-        ip=$(hostname -I 2>/dev/null | awk '{print $1}')
-        echo "🌐 WebUI: http://${ip:-localhost}:25808"
+        ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+        echo "LokSystem started successfully (PID: $(cat "$PIDFILE"))"
+        echo "WebUI: http://${ip:-localhost}:25808"
     else
-        echo "❌ AionUi 啟動失敗，請查看日誌: $LOGFILE"
+        echo "LokSystem failed to start. Check logs: $LOGFILE"
         rm -f "$PIDFILE"
         return 1
     fi
 }
 
 stop() {
-    if [ ! -f "$PIDFILE" ]; then
-        echo "⚠️  AionUi 未在執行"
+    if [[ ! -f "$PIDFILE" ]]; then
+        echo "LokSystem is not running"
         return 1
     fi
+
     local pid
-    pid=$(cat "$PIDFILE")
-    echo "🛑 正在停止 AionUi (PID: $pid)..."
-    kill "$pid" 2>/dev/null
+    pid="$(cat "$PIDFILE")"
+    echo "Stopping LokSystem (PID: $pid)..."
+    kill "$pid" 2>/dev/null || true
     sleep 2
-    kill -9 "$pid" 2>/dev/null
-    pkill -f "AionUi --webui" 2>/dev/null
+    kill -9 "$pid" 2>/dev/null || true
+    pkill -f 'LokSystem --webui' 2>/dev/null || true
     rm -f "$PIDFILE"
-    echo "✅ AionUi 已停止"
+    echo "LokSystem stopped"
 }
 
 restart() {
-    stop 2>/dev/null
+    stop || true
     sleep 1
     start
 }
 
 status() {
-    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-        echo "✅ AionUi 執行中 (PID: $(cat "$PIDFILE"))"
+    if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+        echo "LokSystem is running (PID: $(cat "$PIDFILE"))"
         ss -tlnp 2>/dev/null | grep 25808 || netstat -tlnp 2>/dev/null | grep 25808 || true
     else
-        echo "⚠️  AionUi 未在執行"
-        rm -f "$PIDFILE" 2>/dev/null
+        echo "LokSystem is not running"
+        rm -f "$PIDFILE" 2>/dev/null || true
     fi
 }
 
 logs() {
-    if [ -f "$LOGFILE" ]; then
+    if [[ -f "$LOGFILE" ]]; then
         tail -f "$LOGFILE"
     else
-        echo "日誌檔案不存在: $LOGFILE"
+        echo "Log file not found: $LOGFILE"
     fi
 }
 
 case "${1:-}" in
-    start)   start ;;
-    stop)    stop ;;
+    start) start ;;
+    stop) stop ;;
     restart) restart ;;
-    status)  status ;;
-    logs)    logs ;;
-    "")
-        echo "用法: $0 {start|stop|restart|status|logs}"
-        echo ""
-        echo "環境變數:"
-        echo "  AIONUI_WORKDIR  - AionUi 工作目錄 (預設: \$HOME)"
+    status) status ;;
+    logs) logs ;;
+    '')
+        echo "Usage: start-loksystem.sh {start|stop|restart|status|logs}"
+        echo "Environment variables:"
+        echo "  LOKSYSTEM_WORKDIR  LokSystem working directory (default: \$HOME)"
         ;;
     *)
-        echo "用法: $0 {start|stop|restart|status|logs}"
+        echo "Usage: start-loksystem.sh {start|stop|restart|status|logs}"
         exit 1
         ;;
 esac
 SCRIPT_EOF
 
     $SUDO chmod +x "$script_path"
-    success "服務管理腳本已建立: $script_path"
+    success "Helper script created: ${script_path}"
 }
 
-# ─── 建立 systemd service (可選) ─────────────────────────────────────────────
 create_systemd_service() {
-    # 若系統不支援 systemd 則跳過
-    if ! command -v systemctl &>/dev/null; then
-        info "系統不支援 systemd，跳過 service 建立"
+    if ! command -v systemctl >/dev/null 2>&1; then
+        info "systemd not available; skipping service creation."
         return
     fi
 
-    local service_path="/etc/systemd/system/aionui.service"
+    local service_path='/etc/systemd/system/loksystem.service'
+    info "Creating systemd service: ${service_path}"
 
-    info "建立 systemd 服務: $service_path"
-
-    $SUDO tee "$service_path" > /dev/null << 'SERVICE_EOF'
+    $SUDO tee "$service_path" >/dev/null <<'SERVICE_EOF'
 [Unit]
-Description=AionUi AI Agent Desktop App (WebUI Mode)
-Documentation=https://github.com/iOfficeAI/AionUi
+Description=LokSystem AI Agent Desktop App (WebUI Mode)
+Documentation=https://github.com/iOfficeAI/LokSystem
 After=network-online.target
 Wants=network-online.target
 
@@ -308,13 +281,11 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/root
-ExecStart=/usr/bin/xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" /usr/bin/AionUi --webui --remote --no-sandbox
+ExecStart=/usr/bin/xvfb-run --auto-servernum --server-args=-screen\ 0\ 1920x1080x24 /usr/bin/LokSystem --webui --remote --no-sandbox
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
-
-# 安全性設定
 NoNewPrivileges=false
 ProtectSystem=false
 
@@ -323,124 +294,86 @@ WantedBy=multi-user.target
 SERVICE_EOF
 
     $SUDO systemctl daemon-reload
-    success "systemd 服務已建立"
-    info "使用方式:"
-    echo "    sudo systemctl start aionui     # 啟動"
-    echo "    sudo systemctl stop aionui      # 停止"
-    echo "    sudo systemctl enable aionui    # 開機自動啟動"
-    echo "    sudo systemctl status aionui    # 查看狀態"
-    echo "    journalctl -u aionui -f         # 查看日誌"
+    success "systemd service created"
+    echo "  sudo systemctl start loksystem"
+    echo "  sudo systemctl stop loksystem"
+    echo "  sudo systemctl enable loksystem"
+    echo "  sudo systemctl status loksystem"
+    echo "  journalctl -u loksystem -f"
 }
 
-# ─── 建立桌面捷徑 ─────────────────────────────────────────────────────────────
 create_desktop_entry() {
     local desktop_dir="${HOME}/.local/share/applications"
-    local desktop_file="${desktop_dir}/aionui.desktop"
+    local desktop_file="${desktop_dir}/loksystem.desktop"
 
     mkdir -p "$desktop_dir"
 
-    cat > "$desktop_file" << 'DESKTOP_EOF'
+    cat >"$desktop_file" <<'DESKTOP_EOF'
 [Desktop Entry]
-Name=AionUi
+Name=LokSystem
 Comment=AI Agent Cowork Platform
-Exec=/usr/bin/AionUi --no-sandbox %U
-Icon=AionUi
+Exec=/usr/bin/LokSystem --no-sandbox %U
+Icon=LokSystem
 Terminal=false
 Type=Application
 Categories=Office;Utility;Development;
-MimeType=x-scheme-handler/aionui;
-StartupWMClass=AionUi
+MimeType=x-scheme-handler/loksystem;
+StartupWMClass=LokSystem
 DESKTOP_EOF
 
-    success "桌面捷徑已建立: $desktop_file"
+    success "Desktop entry created: ${desktop_file}"
 }
 
-# ─── 顯示安裝摘要 ─────────────────────────────────────────────────────────────
 print_summary() {
-    echo ""
-    echo -e "${GREEN}${BOLD}══════════════════════════════════════════════════${NC}"
-    echo -e "${GREEN}${BOLD}  🎉 AionUi v${VERSION} 安裝完成！${NC}"
-    echo -e "${GREEN}${BOLD}══════════════════════════════════════════════════${NC}"
-    echo ""
-    echo -e "  ${BOLD}📍 執行檔位置:${NC}  /usr/bin/AionUi"
-    echo -e "  ${BOLD}📍 管理腳本:${NC}    /opt/AionUi/start-aionui.sh"
-    echo ""
+    echo
+    echo -e "${GREEN}${BOLD}LokSystem v${VERSION} installation complete${NC}"
+    echo "  Binary:  /usr/bin/LokSystem"
+    echo "  Helper:  /opt/LokSystem/start-loksystem.sh"
+    echo
 
-    if [[ "${MODE}" == "headless" ]]; then
-        echo -e "  ${BOLD}🖥️  Headless 模式使用方式:${NC}"
-        echo ""
-        echo "    # 使用管理腳本"
-        echo "    /opt/AionUi/start-aionui.sh start"
-        echo "    /opt/AionUi/start-aionui.sh status"
-        echo "    /opt/AionUi/start-aionui.sh stop"
-        echo ""
-        if command -v systemctl &>/dev/null; then
-            echo "    # 或使用 systemd"
-            echo "    sudo systemctl start aionui"
-            echo "    sudo systemctl enable aionui  # 開機自啟"
-            echo ""
+    if [[ "$MODE" == 'headless' ]]; then
+        echo "Headless mode commands:"
+        echo "  /opt/LokSystem/start-loksystem.sh start"
+        echo "  /opt/LokSystem/start-loksystem.sh status"
+        echo "  /opt/LokSystem/start-loksystem.sh stop"
+        if command -v systemctl >/dev/null 2>&1; then
+            echo "  sudo systemctl start loksystem"
+            echo "  sudo systemctl enable loksystem"
         fi
-        echo "    # WebUI 預設監聽 http://localhost:25808"
-        echo ""
+        echo "  WebUI default URL: http://localhost:25808"
+        echo "  Optional workdir: export LOKSYSTEM_WORKDIR=/path/to/workspace"
     else
-        echo -e "  ${BOLD}🖥️  桌面模式使用方式:${NC}"
-        echo ""
-        echo "    # 直接啟動（桌面環境）"
-        echo "    AionUi --no-sandbox"
-        echo ""
-        echo "    # 或從應用程式選單尋找 AionUi"
-        echo ""
+        echo "Desktop mode command:"
+        echo "  LokSystem --no-sandbox"
     fi
 
-    echo -e "  ${BOLD}📖 文件:${NC}  https://github.com/iOfficeAI/AionUi"
-    echo -e "  ${BOLD}🐛 回報:${NC}  https://github.com/iOfficeAI/AionUi/issues"
-    echo ""
-
-    if [[ "${MODE}" == "headless" ]]; then
-        echo -e "  ${YELLOW}💡 提示:${NC}"
-        echo "     • 設定工作目錄: export AIONUI_WORKDIR=/path/to/workspace"
-        echo "     • 遠端存取方式: SSH 隧道 / ngrok / 直接開放 25808 端口"
-        echo "     • 詳細指南: docs/guides/deploy-server.md"
-        echo ""
-    fi
+    echo "  Docs:   https://github.com/iOfficeAI/LokSystem"
+    echo "  Issues: https://github.com/iOfficeAI/LokSystem/issues"
 }
 
-# ─── 主流程 ───────────────────────────────────────────────────────────────────
 main() {
     banner
+    MODE="${LOKSYSTEM_MODE:-headless}"
+    case "$MODE" in
+        headless|desktop) ;;
+        *) die "Unsupported LOKSYSTEM_MODE: $MODE (expected headless or desktop)." ;;
+    esac
 
-    # 安裝模式：headless (預設) 或 desktop
-    MODE="${AIONUI_MODE:-headless}"
-    info "安裝模式: ${BOLD}$MODE${NC}"
-
-    # Step 1: 前置檢查
+    info "Install mode: ${BOLD}${MODE}${NC}"
     check_prerequisites
-
-    # Step 2: 偵測架構
     detect_arch
-
-    # Step 3: 取得版本號
     resolve_version
-
-    # Step 4: 下載
     download_deb
-
-    # Step 5: 安裝
     install_deb
 
-    # Step 6: 根據模式安裝額外元件
-    if [[ "$MODE" == "headless" ]]; then
+    if [[ "$MODE" == 'headless' ]]; then
         install_headless_deps
         create_service_script
         create_systemd_service
     fi
 
-    # Step 7: 桌面捷徑（兩種模式都建立）
     create_desktop_entry
-
-    # 完成！
     print_summary
 }
 
-# 執行
 main "$@"

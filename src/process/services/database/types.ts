@@ -144,11 +144,11 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     channelChatId: row.channel_chat_id,
   };
 
-  // Gemini type has model field
+  // Legacy Gemini conversations are migrated to Lok CLI at read time.
   if (row.type === 'gemini' && row.model) {
     return {
       ...base,
-      type: 'gemini' as const,
+      type: 'aionrs' as const,
       extra: JSON.parse(row.extra),
       model: JSON.parse(row.model),
     } as TChatConversation;

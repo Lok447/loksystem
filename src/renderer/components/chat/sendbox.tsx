@@ -71,6 +71,16 @@ const getSelectedItemDisplayLabel = (item: FileSelectionItem): string => {
   return item.relativePath || item.name || item.path;
 };
 
+const normalizeConversationEventPrefix = (
+  type: string | undefined
+): 'aionrs' | 'acp' | 'remote' | 'openclaw-gateway' | 'nanobot' | 'codex' | undefined => {
+  if (type === 'gemini' || type === 'aionrs') return 'aionrs';
+  if (type === 'acp' || type === 'remote' || type === 'openclaw-gateway' || type === 'nanobot' || type === 'codex') {
+    return type;
+  }
+  return undefined;
+};
+
 const rememberSelectedItem = (itemsByPath: Map<string, FileSelectionItem>, item: FileSelectionItem): void => {
   const path = getSelectedItemPath(item);
   if (!path) {
@@ -201,6 +211,7 @@ const SendBox: React.FC<{
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const conversationContext = useConversationContextSafe();
+  const conversationEventPrefix = normalizeConversationEventPrefix(conversationContext?.type);
   const { t, i18n } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!defaultMultiLine);
@@ -793,22 +804,13 @@ const SendBox: React.FC<{
   }, []);
 
   useAddEventListener(
-    'gemini.selected.file.append',
-    (items: FileSelectionItem[]) => {
-      if (conversationContext?.type === 'gemini') {
-        handleExternalSelectionAppend(items);
-      }
-    },
-    [conversationContext?.type, handleExternalSelectionAppend]
-  );
-  useAddEventListener(
     'aionrs.selected.file.append',
     (items: FileSelectionItem[]) => {
-      if (conversationContext?.type === 'aionrs') {
+      if (conversationEventPrefix === 'aionrs') {
         handleExternalSelectionAppend(items);
       }
     },
-    [conversationContext?.type, handleExternalSelectionAppend]
+    [conversationEventPrefix, handleExternalSelectionAppend]
   );
   useAddEventListener(
     'acp.selected.file.append',
@@ -858,10 +860,7 @@ const SendBox: React.FC<{
 
   const emitSelectedFileAppend = useCallback(
     (item: FileOrFolderItem) => {
-      switch (conversationContext?.type) {
-        case 'gemini':
-          emitter.emit('gemini.selected.file.append', [item]);
-          break;
+      switch (conversationEventPrefix) {
         case 'aionrs':
           emitter.emit('aionrs.selected.file.append', [item]);
           break;
@@ -884,7 +883,7 @@ const SendBox: React.FC<{
           break;
       }
     },
-    [conversationContext?.type]
+    [conversationEventPrefix]
   );
 
   const insertSelectedAtFile = useCallback(

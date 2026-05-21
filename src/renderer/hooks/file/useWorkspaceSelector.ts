@@ -11,8 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useCallback } from 'react';
 import { useSWRConfig } from 'swr';
 import type { TChatConversation } from '@/common/config/storage';
-
-export type WorkspaceEventPrefix = 'gemini' | 'acp' | 'codex';
+import { normalizeWorkspaceEventPrefix, type WorkspaceEventPrefix } from '@/renderer/pages/conversation/Workspace/types';
 
 /**
  * Hook to select a new workspace directory for the current conversation.
@@ -21,6 +20,7 @@ export type WorkspaceEventPrefix = 'gemini' | 'acp' | 'codex';
 export const useWorkspaceSelector = (conversationId: string, eventPrefix: WorkspaceEventPrefix) => {
   const { mutate } = useSWRConfig();
   const { t } = useTranslation();
+  const normalizedEventPrefix = normalizeWorkspaceEventPrefix(eventPrefix);
 
   return useCallback(async () => {
     try {
@@ -50,12 +50,12 @@ export const useWorkspaceSelector = (conversationId: string, eventPrefix: Worksp
 
       // 手动刷新 SWR 缓存以及广播给工作区和会话列表 / Refresh SWR cache and notify workspace/history
       await mutate(`conversation/${conversationId}`, { ...conversation, extra: nextExtra }, false);
-      emitter.emit(`${eventPrefix}.workspace.refresh`);
+      emitter.emit(`${normalizedEventPrefix}.workspace.refresh`);
       emitter.emit('chat.history.refresh');
       Message.success(t('common.saveSuccess'));
     } catch (error) {
       console.error('Failed to select workspace:', error);
       Message.error(t('common.saveFailed'));
     }
-  }, [conversationId, eventPrefix, mutate, t]);
+  }, [conversationId, mutate, normalizedEventPrefix, t]);
 };

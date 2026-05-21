@@ -25,12 +25,12 @@ import type { SpeechToTextRequest, SpeechToTextResult } from '../types/speech';
 
 export const shell = {
   openFile: bridge.buildProvider<void, string>('open-file'), // 使用系统默认程序打开文件
-  showItemInFolder: bridge.buildProvider<void, string>('show-item-in-folder'), // 打开文件夹
+  showItemInFolder: bridge.buildProvider<void, string>('show-item-in-folder'), // 打开文件�?
   openExternal: bridge.buildProvider<void, string>('open-external'), // 使用系统默认程序打开外部链接
-  checkToolInstalled: bridge.buildProvider<boolean, { tool: string }>('shell.check-tool-installed'), // 检查工具是否安装
+  checkToolInstalled: bridge.buildProvider<boolean, { tool: string }>('shell.check-tool-installed'), // 检查工具是否安�?
   openFolderWith: bridge.buildProvider<void, { folderPath: string; tool: 'vscode' | 'terminal' | 'explorer' }>(
     'shell.open-folder-with'
-  ), // 使用指定工具打开文件夹
+  ), // 使用指定工具打开文件�?
 };
 
 //通用会话能力
@@ -39,7 +39,7 @@ export const conversation = {
   createWithConversation: bridge.buildProvider<
     TChatConversation,
     { conversation: TChatConversation; sourceConversationId?: string; migrateCron?: boolean }
-  >('create-conversation-with-conversation'), // Create new conversation from history (supports migration) / 通过历史会话创建新对话（支持迁移）
+  >('create-conversation-with-conversation'), // Create new conversation from history (supports migration) / 通过历史会话创建新对话（支持迁移�?
   get: bridge.buildProvider<TChatConversation, { id: string }>('get-conversation'), // 获取对话信息
   getAssociateConversation: bridge.buildProvider<TChatConversation[], { conversation_id: string }>(
     'get-associated-conversation'
@@ -52,7 +52,7 @@ export const conversation = {
   reset: bridge.buildProvider<void, IResetConversationParams>('reset-conversation'), // 重置对话
   warmup: bridge.buildProvider<void, { conversation_id: string }>('conversation.warmup'), // 预热对话 bootstrap
   stop: bridge.buildProvider<IBridgeResponse<{}>, { conversation_id: string }>('chat.stop.stream'), // 停止会话
-  sendMessage: bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message'), // 发送消息（统一接口）
+  sendMessage: bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message'), // 发送消息（统一接口�?
   getSlashCommands: bridge.buildProvider<
     IBridgeResponse<{ commands: SlashCommandItem[] }>,
     { conversation_id: string }
@@ -62,7 +62,7 @@ export const conversation = {
     { conversation_id: string; question: string }
   >('conversation.ask-side-question'),
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('conversation.confirm.message'), // 通用确认消息
-  responseStream: bridge.buildEmitter<IResponseMessage>('chat.response.stream'), // 接收消息（统一接口）
+  responseStream: bridge.buildEmitter<IResponseMessage>('chat.response.stream'), // 接收消息（统一接口�?
   turnCompleted: bridge.buildEmitter<IConversationTurnCompletedEvent>('conversation.turn.completed'),
   listChanged: bridge.buildEmitter<IConversationListChangedEvent>('conversation.list-changed'),
   getWorkspace: bridge.buildProvider<
@@ -94,19 +94,13 @@ export const conversation = {
   // 会话级别的权限记忆，用于 "always allow" 决策
   approval: {
     // Check if action is approved (keys are parsed from action+commandType in backend)
-    // 检查操作是否已批准（keys 由后端从 action+commandType 解析）
+    // 检查操作是否已批准（keys 由后端从 action+commandType 解析�?
     check: bridge.buildProvider<boolean, { conversation_id: string; action: string; commandType?: string }>(
       'approval.check'
     ),
   },
 };
 
-// Gemini对话相关接口 - 复用统一的conversation接口
-export const geminiConversation = {
-  sendMessage: conversation.sendMessage,
-  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('input.confirm.message'),
-  responseStream: conversation.responseStream,
-};
 
 // CDP status interface
 export interface ICdpStatus {
@@ -151,8 +145,8 @@ export interface IStartOnBootStatus {
 
 export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
-  openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'), // 打开/关闭开发者工具，返回操作后的状态
-  isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'), // 获取 DevTools 当前状态
+  openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'), // 打开/关闭开发者工具，返回操作后的状�?
+  isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'), // 获取 DevTools 当前状�?
   systemInfo: bridge.buildProvider<
     { cacheDir: string; workDir: string; logDir: string; platform: string; arch: string },
     void
@@ -162,13 +156,13 @@ export const application = {
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
   // CDP (Chrome DevTools Protocol) management
-  getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'), // 获取 CDP 状态
+  getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'), // 获取 CDP 状�?
   updateCdpConfig: bridge.buildProvider<IBridgeResponse<ICdpConfig>, Partial<ICdpConfig>>('app.update-cdp-config'), // 更新 CDP 配置
   // Start on boot management
-  getStartOnBootStatus: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, void>('app.get-start-on-boot-status'), // 获取开机启动状态
+  getStartOnBootStatus: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, void>('app.get-start-on-boot-status'), // 获取开机启动状�?
   setStartOnBoot: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, { enabled: boolean }>(
     'app.set-start-on-boot'
-  ), // 设置开机启动
+  ), // 设置开机启�?
   // Bridge Main Process logs to Renderer F12 Console
   logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>(
     'app.log-stream'
@@ -219,11 +213,11 @@ export const dialog = {
   >('show-open'), // 打开文件/文件夹选择窗口
 };
 export const fs = {
-  getFilesByDir: bridge.buildProvider<Array<IDirOrFile>, { dir: string; root: string }>('get-file-by-dir'), // 获取指定文件夹下所有文件夹和文件列表
+  getFilesByDir: bridge.buildProvider<Array<IDirOrFile>, { dir: string; root: string }>('get-file-by-dir'), // 获取指定文件夹下所有文件夹和文件列�?
   listWorkspaceFiles: bridge.buildProvider<Array<IWorkspaceFlatFile>, { root: string }>('list-workspace-files'),
   getImageBase64: bridge.buildProvider<string, { path: string }>('get-image-base64'), // 获取图片base64
   fetchRemoteImage: bridge.buildProvider<string, { url: string }>('fetch-remote-image'), // 远程图片转base64
-  readFile: bridge.buildProvider<string, { path: string }>('read-file'), // 读取文件内容（UTF-8）
+  readFile: bridge.buildProvider<string, { path: string }>('read-file'), // 读取文件内容（UTF-8�?
   readFileBuffer: bridge.buildProvider<ArrayBuffer, { path: string }>('read-file-buffer'), // 读取二进制文件为 ArrayBuffer
   createTempFile: bridge.buildProvider<string, { fileName: string }>('create-temp-file'), // 创建临时文件
   createUploadFile: bridge.buildProvider<string, { fileName: string; conversationId?: string }>('create-upload-file'), // 创建上传文件（根据设置决定保存位置）
@@ -244,16 +238,16 @@ export const fs = {
     }
   >('create-zip-file'), // 创建 zip 文件
   cancelZip: bridge.buildProvider<boolean, { requestId: string }>('cancel-zip-file'), // 取消 zip 创建任务
-  getFileMetadata: bridge.buildProvider<IFileMetadata, { path: string }>('get-file-metadata'), // 获取文件元数据
+  getFileMetadata: bridge.buildProvider<IFileMetadata, { path: string }>('get-file-metadata'), // 获取文件元数�?
   copyFilesToWorkspace: bridge.buildProvider<
     // 返回成功与部分失败的详细状态，便于前端提示用户 / Return details for successful and failed copies for better UI feedback
     IBridgeResponse<{ copiedFiles: string[]; failedFiles?: Array<{ path: string; error: string }> }>,
     { filePaths: string[]; workspace: string; sourceRoot?: string }
-  >('copy-files-to-workspace'), // 复制文件到工作空间 (Copy files into workspace)
+  >('copy-files-to-workspace'), // 复制文件到工作空�?(Copy files into workspace)
   removeEntry: bridge.buildProvider<IBridgeResponse, { path: string }>('remove-entry'), // 删除文件或文件夹
   renameEntry: bridge.buildProvider<IBridgeResponse<{ newPath: string }>, { path: string; newName: string }>(
     'rename-entry'
-  ), // 重命名文件或文件夹
+  ), // 重命名文件或文件�?
   readBuiltinRule: bridge.buildProvider<string, { fileName: string }>('read-builtin-rule'), // 读取内置 rules 文件
   readBuiltinSkill: bridge.buildProvider<string, { fileName: string }>('read-builtin-skill'), // 读取内置 skills 文件
   // 助手规则文件操作 / Assistant rule file operations
@@ -262,12 +256,12 @@ export const fs = {
     'write-assistant-rule'
   ), // 写入助手规则文件
   deleteAssistantRule: bridge.buildProvider<boolean, { assistantId: string }>('delete-assistant-rule'), // 删除助手规则文件
-  // 助手技能文件操作 / Assistant skill file operations
-  readAssistantSkill: bridge.buildProvider<string, { assistantId: string; locale?: string }>('read-assistant-skill'), // 读取助手技能文件
+  // 助手技能文件操�?/ Assistant skill file operations
+  readAssistantSkill: bridge.buildProvider<string, { assistantId: string; locale?: string }>('read-assistant-skill'), // 读取助手技能文�?
   writeAssistantSkill: bridge.buildProvider<boolean, { assistantId: string; content: string; locale?: string }>(
     'write-assistant-skill'
-  ), // 写入助手技能文件
-  deleteAssistantSkill: bridge.buildProvider<boolean, { assistantId: string }>('delete-assistant-skill'), // 删除助手技能文件
+  ), // 写入助手技能文�?
+  deleteAssistantSkill: bridge.buildProvider<boolean, { assistantId: string }>('delete-assistant-skill'), // 删除助手技能文�?
   // 获取可用 skills 列表 / List available skills from skills directory
   listAvailableSkills: bridge.buildProvider<
     Array<{
@@ -283,7 +277,7 @@ export const fs = {
   listBuiltinAutoSkills: bridge.buildProvider<Array<{ name: string; description: string }>, void>(
     'list-builtin-auto-skills'
   ),
-  // 读取 skill 信息（不导入）/ Read skill info without importing
+  // 读取 skill 信息（不导入�? Read skill info without importing
   readSkillInfo: bridge.buildProvider<IBridgeResponse<{ name: string; description: string }>, { skillPath: string }>(
     'read-skill-info'
   ),
@@ -298,7 +292,7 @@ export const fs = {
   detectCommonSkillPaths: bridge.buildProvider<IBridgeResponse<Array<{ name: string; path: string }>>, void>(
     'detect-common-skill-paths'
   ),
-  // 检测外部 skills 并统计数量（用于 Skills Hub）/ Detect external skills with counts (for Skills Hub)
+  // 检测外�?skills 并统计数量（用于 Skills Hub�? Detect external skills with counts (for Skills Hub)
   detectAndCountExternalSkills: bridge.buildProvider<
     IBridgeResponse<
       Array<{
@@ -314,15 +308,15 @@ export const fs = {
   importSkillWithSymlink: bridge.buildProvider<IBridgeResponse<{ skillName: string }>, { skillPath: string }>(
     'import-skill-with-symlink'
   ),
-  // 删除自定义 skill / Delete custom skill
+  // 删除自定�?skill / Delete custom skill
   deleteSkill: bridge.buildProvider<IBridgeResponse, { skillName: string }>('delete-skill'),
-  // 获取技能存储路径 / Get skill storage paths
+  // 获取技能存储路�?/ Get skill storage paths
   getSkillPaths: bridge.buildProvider<{ userSkillsDir: string; builtinSkillsDir: string }, void>('get-skill-paths'),
-  // 将 skill 同步导出到外部目录 / Export skill to external directory via symlink
+  // �?skill 同步导出到外部目�?/ Export skill to external directory via symlink
   exportSkillWithSymlink: bridge.buildProvider<IBridgeResponse, { skillPath: string; targetDir: string }>(
     'export-skill-with-symlink'
   ),
-  // 自定义外部技能路径管理 / Custom external skill paths management
+  // 自定义外部技能路径管�?/ Custom external skill paths management
   getCustomExternalPaths: bridge.buildProvider<Array<{ name: string; path: string }>, void>(
     'get-custom-external-paths'
   ),
@@ -340,13 +334,13 @@ export const speechToText = {
 };
 
 export const fileWatch = {
-  startWatch: bridge.buildProvider<IBridgeResponse, { filePath: string }>('file-watch-start'), // 开始监听文件变化
+  startWatch: bridge.buildProvider<IBridgeResponse, { filePath: string }>('file-watch-start'), // 开始监听文件变�?
   stopWatch: bridge.buildProvider<IBridgeResponse, { filePath: string }>('file-watch-stop'), // 停止监听文件变化
-  stopAllWatches: bridge.buildProvider<IBridgeResponse, void>('file-watch-stop-all'), // 停止所有文件监听
+  stopAllWatches: bridge.buildProvider<IBridgeResponse, void>('file-watch-stop-all'), // 停止所有文件监�?
   fileChanged: bridge.buildEmitter<{ filePath: string; eventType: string }>('file-changed'), // 文件变化事件
 };
 
-// 工作空间 Office 文件扫描（检测当前存在的 .pptx/.docx/.xlsx）/ Workspace office file scan
+// 工作空间 Office 文件扫描（检测当前存在的 .pptx/.docx/.xlsx�? Workspace office file scan
 export const workspaceOfficeWatch = {
   scan: bridge.buildProvider<string[], { workspace: string }>('workspace-office-watch-scan'),
 };
@@ -355,8 +349,8 @@ export const workspaceOfficeWatch = {
 export const fileStream = {
   contentUpdate: bridge.buildEmitter<{
     filePath: string; // 文件绝对路径 / Absolute file path
-    content: string; // 新内容 / New content
-    workspace: string; // 工作空间根目录 / Workspace root directory
+    content: string; // 新内�?/ New content
+    workspace: string; // 工作空间根目�?/ Workspace root directory
     relativePath: string; // 相对路径 / Relative path
     operation: 'write' | 'delete'; // 操作类型 / Operation type
   }>('file-stream-content-update'), // Agent 写入文件时的流式内容更新 / Streaming content update when agent writes file
@@ -390,20 +384,6 @@ export const fileSnapshot = {
     { workspace: string; filePath: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
   >('file-snapshot-reset-file'),
   getBranches: bridge.buildProvider<string[], { workspace: string }>('file-snapshot-get-branches'),
-};
-
-export const googleAuth = {
-  login: bridge.buildProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('google.auth.login'),
-  logout: bridge.buildProvider<void, {}>('google.auth.logout'),
-  status: bridge.buildProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('google.auth.status'),
-};
-
-// 订阅状态查询：用于动态决定是否展示 gemini-3.1-pro-preview / subscription check for Gemini models
-export const gemini = {
-  subscriptionStatus: bridge.buildProvider<
-    IBridgeResponse<{ isSubscriber: boolean; tier?: string; lastChecked: number; message?: string }>,
-    { proxy?: string }
-  >('gemini.subscription-status'),
 };
 
 // AWS Bedrock 相关接口 / AWS Bedrock interfaces
@@ -441,7 +421,7 @@ export const mode = {
   >('mode.get-model-list'),
   saveModelConfig: bridge.buildProvider<IBridgeResponse, IProvider[]>('mode.save-model-config'),
   getModelConfig: bridge.buildProvider<IProvider[], void>('mode.get-model-config'),
-  /** 协议检测接口 - 自动检测 API 端点使用的协议类型 / Protocol detection - auto-detect API protocol type */
+  /** 协议检测接�?- 自动检�?API 端点使用的协议类�?/ Protocol detection - auto-detect API protocol type */
   detectProtocol: bridge.buildProvider<IBridgeResponse<ProtocolDetectionResponse>, ProtocolDetectionRequest>(
     'mode.detect-protocol'
   ),
@@ -484,7 +464,7 @@ export const acpConversation = {
     'acp.set-mode'
   ),
   // Get current session mode for ACP agents
-  // 获取 ACP 代理的当前会话模式
+  // 获取 ACP 代理的当前会话模�?
   getMode: bridge.buildProvider<IBridgeResponse<{ mode: string; initialized: boolean }>, { conversationId: string }>(
     'acp.get-mode'
   ),
@@ -494,13 +474,13 @@ export const acpConversation = {
     'acp.get-model-info'
   ),
   // Set model for ACP agents
-  // 设置 ACP 代理的模型
+  // 设置 ACP 代理的模�?
   setModel: bridge.buildProvider<
     IBridgeResponse<{ modelInfo: AcpModelInfo | null }>,
     { conversationId: string; modelId: string }
   >('acp.set-model'),
   // Get non-model config options for ACP agents (e.g., reasoning effort)
-  // 获取 ACP 代理的非模型配置选项（如推理级别）
+  // 获取 ACP 代理的非模型配置选项（如推理级别�?
   getConfigOptions: bridge.buildProvider<
     IBridgeResponse<{ configOptions: import('../types/acpTypes').AcpSessionConfigOption[] }>,
     { conversationId: string }
@@ -642,9 +622,9 @@ export const previewHistory = {
 
 // 预览面板相关接口 / Preview panel API
 export const preview = {
-  // Agent 触发打开预览（如 chrome-devtools 导航到 URL）/ Agent triggers open preview (e.g., chrome-devtools navigates to URL)
+  // Agent 触发打开预览（如 chrome-devtools 导航�?URL�? Agent triggers open preview (e.g., chrome-devtools navigates to URL)
   open: bridge.buildEmitter<{
-    content: string; // URL 或内容 / URL or content
+    content: string; // URL 或内�?/ URL or content
     contentType: import('../types/preview').PreviewContentType; // 内容类型 / Content type
     metadata?: {
       title?: string;
@@ -740,7 +720,7 @@ export const systemSettings = {
   setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
 };
 
-// Ambient Mode — M1 bubble window (AC-M1-5 / AC-M1-10 / AC-M1-11 / AC-M1-13)
+// Ambient Mode �?M1 bubble window (AC-M1-5 / AC-M1-10 / AC-M1-11 / AC-M1-13)
 export type IAmbientBubblePosition = { x: number; y: number; displayId: number };
 export const ambient = {
   getBubblePosition: bridge.buildProvider<IAmbientBubblePosition | null, void>('ambient.getBubblePosition'),
@@ -775,13 +755,13 @@ export interface IWebUIStatus {
   allowRemote: boolean;
   localUrl: string;
   networkUrl?: string;
-  lanIP?: string; // 局域网 IP，用于构建远程访问 URL / LAN IP for building remote access URL
+  lanIP?: string; // 局域网 IP，用于构建远程访�?URL / LAN IP for building remote access URL
   adminUsername: string;
   initialPassword?: string;
 }
 
 export const webui = {
-  // 获取 WebUI 状态 / Get WebUI status
+  // 获取 WebUI 状�?/ Get WebUI status
   getStatus: bridge.buildProvider<IBridgeResponse<IWebUIStatus>, void>('webui.get-status'),
   // 启动 WebUI / Start WebUI
   start: bridge.buildProvider<
@@ -795,21 +775,21 @@ export const webui = {
   changeUsername: bridge.buildProvider<IBridgeResponse<{ username: string }>, { newUsername: string }>(
     'webui.change-username'
   ),
-  // 重置密码（生成新随机密码）/ Reset password (generate new random password)
+  // 重置密码（生成新随机密码�? Reset password (generate new random password)
   resetPassword: bridge.buildProvider<IBridgeResponse<{ newPassword: string }>, void>('webui.reset-password'),
-  // 生成二维码登录 token / Generate QR login token
+  // 生成二维码登�?token / Generate QR login token
   generateQRToken: bridge.buildProvider<IBridgeResponse<{ token: string; expiresAt: number; qrUrl: string }>, void>(
     'webui.generate-qr-token'
   ),
-  // 验证二维码 token / Verify QR token
+  // 验证二维�?token / Verify QR token
   verifyQRToken: bridge.buildProvider<IBridgeResponse<{ sessionToken: string; username: string }>, { qrToken: string }>(
     'webui.verify-qr-token'
   ),
-  // 状态变更事件 / Status changed event
+  // 状态变更事�?/ Status changed event
   statusChanged: bridge.buildEmitter<{ running: boolean; port?: number; localUrl?: string; networkUrl?: string }>(
     'webui.status-changed'
   ),
-  // 密码重置结果事件（绕过 provider 返回值问题）/ Password reset result event (workaround for provider return value issue)
+  // 密码重置结果事件（绕�?provider 返回值问题）/ Password reset result event (workaround for provider return value issue)
   resetPasswordResult: bridge.buildEmitter<{ success: boolean; newPassword?: string; msg?: string }>(
     'webui.reset-password-result'
   ),
@@ -948,7 +928,7 @@ export interface ICreateConversationParams {
      * For ACP/Codex: injected via <system_instruction> tag in first message
      */
     presetContext?: string;
-    /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
+    /** 预设助手 ID，用于在会话面板显示助手名称和头�?/ Preset assistant ID for displaying name and avatar in conversation panel */
     presetAssistantId?: string;
     /** Initial session mode selected on Guid page (from AgentModeSelector) */
     sessionMode?: string;
@@ -972,13 +952,13 @@ export interface ICreateConversationParams {
     };
     /** Explicit marker for temporary health-check conversations */
     isHealthCheck?: boolean;
-    /** Remote agent config ID (FK to remote_agents table) — required when type='remote' */
+    /** Remote agent config ID (FK to remote_agents table) �?required when type='remote' */
     remoteAgentId?: string;
     /** Extra skill directory paths to symlink into workspace (e.g. cron job skill dirs) */
     extraSkillPaths?: string[];
     /** Builtin skill names to exclude from auto-injection (e.g. 'cron' for cron-spawned conversations) */
     excludeBuiltinSkills?: string[];
-    /** Team ownership — conversations with teamId are hidden from the sidebar */
+    /** Team ownership �?conversations with teamId are hidden from the sidebar */
     teamId?: string;
   };
 }
@@ -999,7 +979,7 @@ export interface IDirOrFile {
   children?: Array<IDirOrFile>;
 }
 
-// 文件元数据接口
+// 文件元数据接�?
 export interface IFileMetadata {
   name: string;
   path: string;
@@ -1267,7 +1247,7 @@ export const channel = {
 import type { IHubAgentItem, HubExtensionStatus } from '@/common/types/hub';
 
 export const hub = {
-  // 获取 Hub 弹窗的 extension 列表 / Get extension list for Hub Modal
+  // 获取 Hub 弹窗�?extension 列表 / Get extension list for Hub Modal
   getExtensionList: bridge.buildProvider<IBridgeResponse<IHubAgentItem[]>, void>('hub.get-extension-list'),
   // 发起安装 / Install extension
   install: bridge.buildProvider<IBridgeResponse, { name: string }>('hub.install'),
@@ -1275,11 +1255,11 @@ export const hub = {
   uninstall: bridge.buildProvider<IBridgeResponse, { name: string }>('hub.uninstall'),
   // 发起重试安装 / Retry install
   retryInstall: bridge.buildProvider<IBridgeResponse, { name: string }>('hub.retry-install'),
-  // 检查可更新的 extension / Check updates for installed extensions
+  // 检查可更新�?extension / Check updates for installed extensions
   checkUpdates: bridge.buildProvider<IBridgeResponse<{ name: string }[]>, void>('hub.check-updates'),
   // 发起更新 / Update extension
   update: bridge.buildProvider<IBridgeResponse, { name: string }>('hub.update'),
-  // 安装/卸载状态变更推送 / State changed event for extension
+  // 安装/卸载状态变更推�?/ State changed event for extension
   onStateChanged: bridge.buildEmitter<{ name: string; status: HubExtensionStatus; error?: string }>(
     'hub.state-changed'
   ),
@@ -1322,3 +1302,4 @@ export const team = {
   listChanged: bridge.buildEmitter<import('@/common/types/teamTypes').ITeamListChangedEvent>('team.list-changed'),
   mcpStatus: bridge.buildEmitter<import('@/common/types/teamTypes').ITeamMcpStatusEvent>('team.mcp.status'),
 };
+

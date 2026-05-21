@@ -482,8 +482,8 @@ Derin AI Ofis Senaryosu Desteği:
 ## Hızlı Soru-Cevap
 
 <details>
-<summary><strong>S: Önce Gemini CLI veya Claude Code'u kurmam gerekiyor mu?</strong></summary>
-C: <strong>Hayır.</strong> LokSystem kurulumdan hemen sonra çalışan yerleşik bir AI Agent'a sahiptir. Sadece Google ile giriş yapın veya herhangi bir API anahtarı girin. Ayrıca Claude Code veya Gemini CLI gibi CLI araçlarınız da kuruluysa, LokSystem bunları otomatik olarak algılayacak ve daha fazla yetenek için entegre edecektir.
+<summary><strong>S: Önce ek CLI araçları kurmam gerekiyor mu?</strong></summary>
+C: <strong>Hayır.</strong> LokSystem kurulumdan hemen sonra çalışan yerleşik bir AI Agent'a sahiptir. Sadece Google ile giriş yapın veya herhangi bir API anahtarı girin. Ayrıca Claude Code, Codex veya Qwen Code gibi desteklenen CLI araçlarınız da kuruluysa, LokSystem bunları otomatik olarak algılayacak ve daha fazla yetenek için entegre edecektir.
 </details>
 
 <details>

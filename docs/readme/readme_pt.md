@@ -482,8 +482,8 @@ Suporte a cenários de escritório AI profundos:
 ## Perguntas e respostas rápidas
 
 <details>
-<summary><strong>P: Preciso instalar primeiro Gemini CLI ou Claude Code?</strong></summary>
-R: <strong>Não.</strong> LokSystem tem um AI Agent integrado que funciona imediatamente após a instalação. Basta fazer login com Google ou inserir qualquer chave API. Se você também tiver ferramentas CLI como Claude Code ou Gemini CLI instaladas, LokSystem as detectará e integrará automaticamente para ainda mais capacidades.
+<summary><strong>P: Preciso instalar primeiro alguma ferramenta CLI adicional?</strong></summary>
+R: <strong>Não.</strong> LokSystem tem um AI Agent integrado que funciona imediatamente após a instalação. Basta fazer login com Google ou inserir qualquer chave API. Se você também tiver ferramentas CLI compatíveis como Claude Code, Codex ou Qwen Code instaladas, LokSystem as detectará e integrará automaticamente para ainda mais capacidades.
 </details>
 
 <details>

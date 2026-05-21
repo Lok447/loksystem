@@ -9,24 +9,19 @@
  * Used by both TeamMcpServer (team_list_models) and TeamGuideMcpServer (aion_list_models).
  */
 
-import { isTeamCapableBackend } from '@/common/types/teamTypes';
 import { getTeamAvailableModels } from '@/common/utils/teamModelUtils';
-import { ProcessConfig } from '@process/utils/initStorage';
-import { getMergedModelProviders } from '@process/bridge/modelBridge';
-import { hasGeminiOauthCreds } from '../googleAuthCheck';
+import { isTeamCapableBackend } from '@/common/types/teamTypes';
 import { agentRegistry } from '@process/agent/AgentRegistry';
+import { getMergedModelProviders } from '@process/bridge/modelBridge';
+import { ProcessConfig } from '@process/utils/initStorage';
 
 export async function handleListModels(args: Record<string, unknown>): Promise<string> {
   const agentType = args.agent_type ? String(args.agent_type) : undefined;
 
-  const [cachedModels, providers, isGoogleAuth] = await Promise.all([
-    ProcessConfig.get('acp.cachedModels'),
-    getMergedModelProviders(),
-    hasGeminiOauthCreds(),
-  ]);
+  const [cachedModels, providers] = await Promise.all([ProcessConfig.get('acp.cachedModels'), getMergedModelProviders()]);
 
   if (agentType) {
-    const models = getTeamAvailableModels(agentType, cachedModels, providers, isGoogleAuth);
+    const models = getTeamAvailableModels(agentType, cachedModels, providers);
     if (models.length === 0) {
       return `No models available for agent type "${agentType}".`;
     }
@@ -43,10 +38,10 @@ export async function handleListModels(args: Record<string, unknown>): Promise<s
     return 'No team-capable agent types detected.';
   }
 
-  const sections = detectedAgents.map((a) => {
-    const models = getTeamAvailableModels(a.backend, cachedModels, providers, isGoogleAuth);
+  const sections = detectedAgents.map((agent) => {
+    const models = getTeamAvailableModels(agent.backend, cachedModels, providers);
     const modelLines = models.length > 0 ? models.map((m) => `  - ${m.id}`).join('\n') : '  (no models available)';
-    return `### ${a.name} (\`${a.backend}\`)\n${modelLines}`;
+    return `### ${agent.name} (\`${agent.backend}\`)\n${modelLines}`;
   });
 
   return `## Available Models by Agent Type\n\n${sections.join('\n\n')}`;

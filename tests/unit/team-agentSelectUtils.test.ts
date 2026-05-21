@@ -36,8 +36,8 @@ function makeCachedInit(backends: string[]): Record<string, AcpInitializeResult>
 // resolveConversationType
 // ---------------------------------------------------------------------------
 describe('resolveConversationType', () => {
-  it('maps gemini to gemini', () => {
-    expect(resolveConversationType('gemini')).toBe('gemini');
+  it('maps gemini to aionrs', () => {
+    expect(resolveConversationType('gemini')).toBe('aionrs');
   });
 
   it('maps aionrs to aionrs', () => {

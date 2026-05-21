@@ -12,7 +12,6 @@
 import { AgentFactory } from './AgentFactory';
 import { WorkerTaskManager } from './WorkerTaskManager';
 import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
-import { GeminiAgentManager } from './GeminiAgentManager';
 import AcpAgentManager from './AcpAgentManager';
 import OpenClawAgentManager from './OpenClawAgentManager';
 import NanoBotAgentManager from './NanoBotAgentManager';
@@ -21,14 +20,14 @@ import { AionrsManager } from './AionrsManager';
 
 const agentFactory = new AgentFactory();
 
+// Legacy gemini conversations now reuse the Lok CLI runtime.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-agentFactory.register('gemini', (conv, opts) => {
-  const c = conv as any;
-  return new GeminiAgentManager(
-    { ...c.extra, conversation_id: c.id, yoloMode: opts?.yoloMode },
-    c.model
-  ) as unknown as ReturnType<typeof agentFactory.create>;
-});
+const createLokCliManager = (conv: any, opts?: { yoloMode?: boolean }) =>
+  new AionrsManager({ ...conv.extra, conversation_id: conv.id, yoloMode: opts?.yoloMode }, conv.model) as unknown as
+    ReturnType<typeof agentFactory.create>;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+agentFactory.register('gemini', createLokCliManager);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 agentFactory.register('acp', (conv, opts) => {
   const c = conv as any;
@@ -71,13 +70,7 @@ agentFactory.register('remote', (conv, opts) => {
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-agentFactory.register('aionrs', (conv, opts) => {
-  const c = conv as any;
-  return new AionrsManager(
-    { ...c.extra, conversation_id: c.id, yoloMode: opts?.yoloMode },
-    c.model
-  ) as unknown as ReturnType<typeof agentFactory.create>;
-});
+agentFactory.register('aionrs', createLokCliManager);
 
 const conversationRepo = new SqliteConversationRepository();
 export const workerTaskManager = new WorkerTaskManager(agentFactory, conversationRepo);

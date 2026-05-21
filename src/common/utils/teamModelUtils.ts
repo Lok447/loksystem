@@ -4,9 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpModelInfo } from '@/common/types/acpTypes';
 import type { IProvider } from '@/common/config/storage';
-import { flattenGeminiModeIds } from '@/common/utils/geminiModes';
+import type { AcpModelInfo } from '@/common/types/acpTypes';
 import { hasSpecificModelCapability } from '@/common/utils/modelCapabilities';
 
 export type TeamAvailableModel = {
@@ -33,19 +32,13 @@ function passesCapabilityFilter(provider: IProvider, modelName: string): boolean
  *
  * Resolution order:
  * 1. ACP backends (claude, codex, qwen, etc.) -> read from acp.cachedModels[backend].availableModels
- * 2. Gemini -> Google Auth models (if authenticated) + ALL enabled providers' models
- * 3. Aionrs -> all enabled providers (except gemini-with-google-auth) with capability filtering
- * 4. Others -> empty list (no model switching)
- *
- * The Gemini list mirrors what useModelProviderList() returns:
- * Google Auth provider (auto/auto-gemini-2.5/manual-subModels) + ALL configured providers.
- * The Aionrs list mirrors useAionrsModelSelection: same as above minus Google Auth.
+ * 2. Gemini/Aionrs -> enabled provider-backed models with capability filtering
+ * 3. Others -> empty list (no model switching)
  */
 export function getTeamAvailableModels(
   backend: string,
   cachedModels: Record<string, AcpModelInfo> | null | undefined,
-  providers: IProvider[] | null | undefined,
-  isGoogleAuth?: boolean
+  providers: IProvider[] | null | undefined
 ): TeamAvailableModel[] {
   // ACP backends: use cached model list from ACP protocol
   const acpModelInfo = cachedModels?.[backend];
@@ -56,54 +49,23 @@ export function getTeamAvailableModels(
     }));
   }
 
-  // Gemini: Google Auth models (if authenticated) + ALL enabled providers' models
-  if (backend === 'gemini') {
+  if (backend === 'gemini' || backend === 'aionrs') {
     const seen = new Set<string>();
     const merged: TeamAvailableModel[] = [];
-    const addModel = (id: string) => {
-      if (!seen.has(id)) {
-        seen.add(id);
-        merged.push({ id, label: id });
-      }
-    };
-
-    // Google Auth models first (matches homepage ordering)
-    if (isGoogleAuth) {
-      for (const id of flattenGeminiModeIds()) {
-        addModel(id);
-      }
-    }
-
-    // ALL enabled providers' models with capability filtering
-    // Mirrors useModelProviderList(): every enabled provider is included
     const enabledProviders = (providers || []).filter((p) => p.enabled !== false && p.model?.length);
-    for (const p of enabledProviders) {
-      for (const m of p.model || []) {
-        if (p.modelEnabled?.[m] !== false && passesCapabilityFilter(p, m)) {
-          addModel(m);
-        }
+
+    for (const provider of enabledProviders) {
+      for (const modelName of provider.model || []) {
+        if (provider.modelEnabled?.[modelName] === false) continue;
+        if (!passesCapabilityFilter(provider, modelName)) continue;
+        if (seen.has(modelName)) continue;
+
+        seen.add(modelName);
+        merged.push({ id: modelName, label: modelName });
       }
     }
 
     return merged;
-  }
-
-  // Aionrs: all enabled providers' enabled models (deduplicated), excluding google-auth platform
-  if (backend === 'aionrs') {
-    const seen = new Set<string>();
-    const result: TeamAvailableModel[] = [];
-    const enabledProviders = (providers || []).filter(
-      (p) => p.enabled !== false && p.model?.length && !p.platform?.includes('gemini-with-google-auth')
-    );
-    for (const provider of enabledProviders) {
-      for (const m of provider.model) {
-        if (provider.modelEnabled?.[m] !== false && !seen.has(m) && passesCapabilityFilter(provider, m)) {
-          seen.add(m);
-          result.push({ id: m, label: m });
-        }
-      }
-    }
-    return result;
   }
 
   return [];
@@ -133,7 +95,7 @@ export function getTeamDefaultModelId(
  * Resolve a model ID to its friendly display label.
  *
  * Lookup order:
- * 1. ACP cachedModels[backend].availableModels — match by id, return label
+ * 1. ACP cachedModels[backend].availableModels - match by id, return label
  * 2. Fall back to the raw model ID
  *
  * This function is synchronous and expects pre-fetched data.

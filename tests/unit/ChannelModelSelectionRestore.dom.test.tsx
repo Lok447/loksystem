@@ -54,18 +54,15 @@ let mockProviders: Array<{ id: string; name: string; model: string[]; platform?:
 vi.mock('@/renderer/hooks/agent/useModelProviderList', () => ({
   useModelProviderList: () => ({
     providers: mockProviders,
-    geminiModeLookup: new Map(),
     getAvailableModels: () => [],
     formatModelLabel: (_p: unknown, m?: string) => m || '',
   }),
 }));
 
-vi.mock('@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection', () => ({
-  useGeminiModelSelection: ({ initialModel }: { initialModel: unknown }) => ({
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection', () => ({
+  useAionrsModelSelection: ({ initialModel }: { initialModel: unknown }) => ({
     currentModel: initialModel,
     providers: mockProviders,
-    geminiModeLookup: new Map(),
-    formatModelLabel: () => '',
     getDisplayModelName: () => '',
     getAvailableModels: () => [],
     handleSelectModel: vi.fn(),
@@ -136,7 +133,7 @@ describe('useChannelModelSelection restore retry limit', () => {
       render(<ChannelModalContent />);
     });
 
-    // The hook runs for 5 channels (telegram, lark, dingtalk, weixin, wecom).
+    // The hook runs for the 4 remaining built-in channels (lark, dingtalk, weixin, wecom).
     // Initial render triggers the first attempt for each channel.
     // The saved provider 'deleted-provider' won't be found in mockProviders.
     const initialCallCount = mockConfigStorageGet.mock.calls.length;
@@ -158,7 +155,7 @@ describe('useChannelModelSelection restore retry limit', () => {
     // With 5 channels × at most 5 retries each = at most 25 calls.
     // Without the fix, this would be 5 × 10+ = 50+ calls.
     const totalCalls = mockConfigStorageGet.mock.calls.length;
-    expect(totalCalls).toBeLessThanOrEqual(5 * 5);
+    expect(totalCalls).toBeLessThanOrEqual(4 * 5);
   });
 
   it('should restore successfully when provider exists', async () => {
@@ -173,8 +170,8 @@ describe('useChannelModelSelection restore retry limit', () => {
       render(<ChannelModalContent />);
     });
 
-    // Each of the 5 channels should call ConfigStorage.get exactly once
+    // Each of the 4 remaining built-in channels should call ConfigStorage.get exactly once
     // (restored=true after finding the provider, so no retries)
-    expect(mockConfigStorageGet).toHaveBeenCalledTimes(5);
+    expect(mockConfigStorageGet).toHaveBeenCalledTimes(4);
   });
 });

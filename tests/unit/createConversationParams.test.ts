@@ -45,7 +45,7 @@ describe('createConversationParams', () => {
     defaultCodexModels.length = 0;
   });
 
-  it('uses the shared locale resolver for Turkish', async () => {
+  it('uses the shared locale resolver for Turkish when migrating legacy gemini presets to Lok CLI', async () => {
     loadPresetAssistantResources.mockResolvedValue({
       rules: 'preset rules',
       skills: '',
@@ -109,7 +109,7 @@ describe('createConversationParams', () => {
     expect(params.extra.backend).toBe('codebuddy');
   });
 
-  it('falls back to gemini-placeholder when no provider configured for gemini (preset)', async () => {
+  it('throws for legacy gemini preset assistants when no provider is configured', async () => {
     loadPresetAssistantResources.mockResolvedValue({
       rules: 'gemini preset rules',
       skills: '',
@@ -117,36 +117,33 @@ describe('createConversationParams', () => {
     });
     configGet.mockResolvedValue([]); // No providers
 
-    const params = await buildPresetAssistantParams(
-      {
-        backend: 'gemini',
-        name: 'Gemini Assistant',
-        customAgentId: 'builtin-gemini',
-        isPreset: true,
-        presetAgentType: 'gemini',
-      },
-      '/tmp/workspace',
-      'en'
-    );
-
-    expect(params.model.id).toBe('gemini-placeholder');
-    expect(params.model.platform).toBe('gemini-with-google-auth');
+    await expect(
+      buildPresetAssistantParams(
+        {
+          backend: 'gemini',
+          name: 'Gemini Assistant',
+          customAgentId: 'builtin-gemini',
+          isPreset: true,
+          presetAgentType: 'gemini',
+        },
+        '/tmp/workspace',
+        'en'
+      )
+    ).rejects.toThrow('No model provider configured');
   });
 
-  it('falls back to gemini-placeholder when no provider configured for gemini (CLI)', async () => {
+  it('throws for legacy gemini backend agents when no provider is configured', async () => {
     configGet.mockResolvedValue([]); // No providers
 
-    const params = await buildCliAgentParams(
-      {
-        backend: 'gemini',
-        name: 'Gemini CLI Agent',
-      },
-      '/tmp/workspace'
-    );
-
-    expect(params.type).toBe('gemini');
-    expect(params.model.id).toBe('gemini-placeholder');
-    expect(params.model.platform).toBe('gemini-with-google-auth');
+    await expect(
+      buildCliAgentParams(
+        {
+          backend: 'gemini',
+          name: 'Legacy Gemini Agent',
+        },
+        '/tmp/workspace'
+      )
+    ).rejects.toThrow('No model provider configured');
   });
 
   it('resolves aionrs model from enabled provider', async () => {
@@ -305,11 +302,11 @@ describe('createConversationParams', () => {
     );
   });
 
-  it('throws error for gemini if no enabled provider', async () => {
+  it('throws error for legacy gemini if no enabled provider', async () => {
     configGet.mockResolvedValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
-    // Note: buildCliAgentParams for gemini uses resolveGeminiModel which catches the error
-    const params = await buildCliAgentParams({ backend: 'gemini', name: 'Agent' }, '/tmp');
-    expect(params.model.id).toBe('gemini-placeholder');
+    await expect(buildCliAgentParams({ backend: 'gemini', name: 'Agent' }, '/tmp')).rejects.toThrow(
+      'No enabled model provider for Lok CLI'
+    );
   });
 
   it('maps various backends correctly', async () => {

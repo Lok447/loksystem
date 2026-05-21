@@ -274,12 +274,8 @@ export class ChannelMessageService {
         finishTimer: undefined,
       });
 
-      // Build payload based on agent type.
-      // Gemini expects { input }; aionrs and all other agents expect { content }.
-      const useInputPayload = task.type === 'gemini';
-      const payload: { input?: string; content?: string; msg_id: string } = useInputPayload
-        ? { input: message, msg_id: msgId }
-        : { content: message, msg_id: msgId };
+      // All remaining runtimes accept the shared { content } payload.
+      const payload = { content: message, msg_id: msgId };
 
       task.sendMessage(payload).catch((error: Error) => {
         const errorMessage = `Error: ${error.message || 'Failed to send message'}`;

@@ -1,204 +1,90 @@
-# Build Scripts Documentation
+# Build and Release Scripts
 
-This directory contains scripts for building and packaging LokSystem across different platforms and architectures.
+This directory contains the local utilities used to build, package, and verify
+`LokSystem`.
 
-## Scripts Overview
+## Core Build Scripts
 
-| Script                    | Lines | Purpose                                         |
-| ------------------------- | ----- | ----------------------------------------------- |
-| `build-with-builder.js`   | 116   | Coordinates Electron Forge and electron-builder |
-| `rebuildNativeModules.js` | 219   | **Unified native module rebuild utility**       |
-| `beforeBuild.js`          | 38    | Pre-packaging native module rebuild hook        |
-| `afterPack.js`            | 67    | Post-packaging verification (Linux only)        |
-| `afterSign.js`            | 47    | macOS code signing and notarization             |
+| Script | Purpose |
+| --- | --- |
+| `build-with-builder.js` | Coordinates Electron builds across platforms |
+| `rebuildNativeModules.js` | Unified native module rebuild helper |
+| `beforeBuild.js` | Pre-packaging native module rebuild hook |
+| `afterPack.js` | Post-packaging verification and cleanup |
+| `afterSign.js` | macOS signing and notarization hook |
 
-**Total**: 487 lines (down from 711 lines before optimization)
+## Release Asset Scripts
 
-## Architecture
+| Script | Purpose |
+| --- | --- |
+| `create-mock-release-artifacts.sh` | Generates mock LokSystem release artifacts for CI or local smoke tests |
+| `prepare-release-assets.sh` | Normalizes platform artifacts into a deterministic `release-assets/` directory |
+| `verify-release-assets.sh` | Validates updater metadata and required LokSystem distributables |
 
-### Build Flow
+## Native Module Rebuild Flow
 
-```
-npm run dist:*
-    ↓
-build-with-builder.js
-    ↓
-    ├─→ Electron Forge (webpack compilation)
-    ↓
-electron-builder
-    ↓
-    ├─→ beforeBuild.js → rebuildNativeModules.js (all platforms)
-    ├─→ Package app
-    ├─→ afterPack.js → rebuildNativeModules.js (Linux only)
-    └─→ afterSign.js (macOS only)
-```
+`rebuildNativeModules.js` is the shared implementation behind the platform hooks.
 
-## Native Module Rebuild Strategy
+- `beforeBuild.js` rebuilds source-tree native modules before packaging
+- `afterPack.js` performs packaged-app verification and Linux-specific follow-up
+- `afterSign.js` handles macOS signing or notarization concerns after packaging
 
-### `rebuildNativeModules.js` - Unified Rebuild Utility
-
-This is the core module that handles all native module rebuilding. It provides:
-
-#### Functions
-
-1. **`rebuildWithElectronRebuild(options)`**
-   - Used by: `beforeBuild.js`
-   - Rebuilds all native modules in source directory
-   - Modules: `better-sqlite3`
-
-2. **`rebuildSingleModule(options)`**
-   - Used by: `afterPack.js`
-   - Rebuilds a single module in packaged app
-   - Strategy: Try prebuild-install first, fall back to electron-rebuild
-
-3. **`verifyModuleBinary(moduleRoot, moduleName)`**
-   - Verifies native binary exists after rebuild
-
-4. **Helper utilities**:
-   - `normalizeArch()`: Normalize architecture names
-   - `getModulesToRebuild()`: Get platform-specific module list
-   - `buildEnvironment()`: Create rebuild environment variables
-
-### Platform-Specific Behavior
-
-#### Windows
-
-- **Modules rebuilt**: `better-sqlite3`
-- **Skipped**: `node-pty` (uses prebuilt binaries)
-- **Environment**: MSVS 2022, Windows SDK 10.0.19041.0
-
-#### macOS
-
-- **Modules rebuilt**: `better-sqlite3`
-- **When**: `beforeBuild` hook only
-- **Post-build**: Code signing and notarization
-
-#### Linux
-
-- **Modules rebuilt**: `better-sqlite3`
-- **When**:
-  - `beforeBuild`: Rebuild in source directory
-  - `afterPack`: Rebuild `better-sqlite3` in packaged app
-- **Strategy**: Download prebuilt binary first, compile if unavailable
-
-## Usage Examples
-
-### Building for specific platform
+Typical local packaging commands:
 
 ```bash
-# Build for macOS
 npm run dist:mac
-
-# Build for Windows
 npm run dist:win
-
-# Build for Linux
 npm run dist:linux
 ```
 
-### Manual native module rebuild
+## Release Asset Flow
 
-```javascript
-const { rebuildWithElectronRebuild } = require('./scripts/rebuildNativeModules');
+The release pipeline expects artifact names to follow the `LokSystem-<version>-<platform>-<arch>` convention.
 
-rebuildWithElectronRebuild({
-  platform: 'linux',
-  arch: 'arm64',
-  electronVersion: '37.3.1',
-});
+Local smoke test:
+
+```bash
+bash scripts/create-mock-release-artifacts.sh build-artifacts LokSystem 1.0.0
+bash scripts/prepare-release-assets.sh build-artifacts release-assets
+bash scripts/verify-release-assets.sh release-assets LokSystem
 ```
 
-### Rebuild single module in packaged app
+What these scripts check:
 
-```javascript
-const { rebuildSingleModule } = require('./scripts/rebuildNativeModules');
-
-rebuildSingleModule({
-  moduleName: 'better-sqlite3',
-  moduleRoot: '/path/to/app.asar.unpacked/node_modules/better-sqlite3',
-  platform: 'linux',
-  arch: 'arm64',
-  electronVersion: '37.3.1',
-});
-```
-
-## Why Two Rebuild Stages?
-
-### beforeBuild (All Platforms)
-
-- Rebuilds modules in **source directory** (`node_modules/`)
-- Ensures correct binaries are packaged
-- Uses `electron-rebuild` for all modules
-
-### afterPack (Linux Only)
-
-- Rebuilds `better-sqlite3` in **packaged app** (`app.asar.unpacked/`)
-- Handles cross-compilation issues
-- Uses `prebuild-install` for faster builds (downloads prebuilt binary)
+- canonical updater metadata exists:
+  - `latest.yml`
+  - `latest-mac.yml`
+  - `latest-linux.yml`
+  - `latest-linux-arm64.yml`
+- arch-specific updater metadata exists:
+  - `latest-win-arm64.yml`
+  - `latest-arm64-mac.yml`
+- metadata points to real `LokSystem-*` assets
+- Windows, macOS, and Linux installers all exist for the expected architectures
 
 ## Troubleshooting
 
-### Module not found after packaging
+### Native module missing after packaging
 
-**Symptom**: `Error: Cannot find module 'better-sqlite3'`
+Check:
 
-**Solution**: Check that:
+1. the module is included in `electron-builder.yml`
+2. the module is unpacked when required
+3. `beforeBuild.js` completed successfully
+4. Linux follow-up logic in `afterPack.js` completed successfully
 
-1. Module is in `electron-builder.yml` → `files` section
-2. Module is in `electron-builder.yml` → `asarUnpack` section
-3. `beforeBuild.js` ran successfully during build
-4. For Linux: `afterPack.js` ran successfully
+### Release asset validation failed
 
-### Native module crashes on launch
+Check:
 
-**Symptom**: App crashes with segfault or binary incompatibility error
-
-**Solution**:
-
-1. Verify target architecture matches build architecture
-2. Check that `beforeBuild.js` rebuilt for correct architecture
-3. For Linux ARM64: Ensure `afterPack.js` rebuilt the module
-
-### Cross-compilation fails
-
-**Symptom**: Native module rebuild fails during cross-arch build
-
-**Solution**:
-
-- Windows: This is expected for `node-pty` (uses prebuilt binaries)
-- macOS/Linux: Ensure build tools for target architecture are installed
-- Consider building on native architecture instead
-
-## Optimization History
-
-### Version 1.0 (Before Optimization)
-
-- Total: 711 lines across 5 files
-- Duplication: Rebuild logic in both `beforeBuild` and `afterPack`
-
-### Version 2.0 (Current)
-
-- Total: 487 lines across 5 files
-- Savings: 224 lines (31% reduction)
-- Changes:
-  - ✅ Deleted `release.sh` (67 lines) - use `npm version` instead
-  - ✅ Created `rebuildNativeModules.js` (219 lines) - unified utility
-  - ✅ Simplified `build-with-builder.js`: 321 → 116 lines
-  - ✅ Simplified `beforeBuild.js`: 95 → 38 lines
-  - ✅ Simplified `afterPack.js`: 181 → 67 lines
-
-## Contributing
-
-When modifying build scripts:
-
-1. **Test on all platforms** before committing
-2. **Update this documentation** if behavior changes
-3. **Maintain the unified rebuild utility** - avoid duplicating logic
-4. **Keep error messages clear** - they help users troubleshoot
+1. build outputs still use the `LokSystem-*` filename convention
+2. updater metadata points to files that actually exist in `release-assets/`
+3. the architecture-specific metadata files were preserved during normalization
 
 ## Related Files
 
-- `/electron-builder.yml` - electron-builder configuration
-- `/forge.config.ts` - Electron Forge configuration
-- `/.github/workflows/build-and-release.yml` - CI/CD pipeline
-- `/package.json` - Build scripts and dependencies
+- `C:\tmp\loksystem-fork-sync\electron-builder.yml`
+- `C:\tmp\loksystem-fork-sync\package.json`
+- `C:\tmp\loksystem-fork-sync\.github\workflows\build-and-release.yml`
+- `C:\tmp\loksystem-fork-sync\.github\workflows\release-distribute.yml`
+- `C:\tmp\loksystem-fork-sync\.github\CICD_SETUP.md`

@@ -61,7 +61,6 @@ export type GuidAgentSelectionResult = {
 
 type UseGuidAgentSelectionOptions = {
   modelList: IProvider[];
-  isGoogleAuth: boolean;
   localeKey: string;
   resetAssistant?: boolean;
   /** React Router location.key — changes on every navigation, used to detect new resets. */
@@ -73,7 +72,6 @@ type UseGuidAgentSelectionOptions = {
  */
 export const useGuidAgentSelection = ({
   modelList,
-  isGoogleAuth,
   localeKey,
   resetAssistant,
   locationKey,
@@ -155,7 +153,6 @@ export const useGuidAgentSelection = ({
 
   const { isMainAgentAvailable, getEffectiveAgentType } = useAgentAvailability({
     modelList,
-    isGoogleAuth,
     availableAgents,
     resolvePresetAgentType,
   });

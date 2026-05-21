@@ -48,9 +48,9 @@ vi.mock('@/renderer/pages/conversation/components/ConversationChatConfirm', () =
   default: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
-vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiSendBox', () => ({
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsSendBox', () => ({
   __esModule: true,
-  default: () => <div data-testid='gemini-sendbox' />,
+  default: () => <div data-testid='aionrs-sendbox' />,
 }));
 
 vi.mock('@renderer/utils/model/agentLogo', () => ({
@@ -81,12 +81,12 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-import GeminiChat from '@/renderer/pages/conversation/platforms/gemini/GeminiChat';
-import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
+import AionrsChat from '@/renderer/pages/conversation/platforms/aionrs/AionrsChat';
+import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import TeamChatEmptyState from '@/renderer/pages/team/components/TeamChatEmptyState';
 
-const useGeminiDraft = getSendBoxDraftHook('gemini', {
-  _type: 'gemini',
+const useAionrsDraft = getSendBoxDraftHook('aionrs', {
+  _type: 'aionrs',
   atPath: [],
   content: '',
   uploadFile: [],
@@ -100,36 +100,34 @@ const useAcpDraft = getSendBoxDraftHook('acp', {
 });
 
 const DraftProbe: React.FC<{ conversationId: string }> = ({ conversationId }) => {
-  const geminiDraft = useGeminiDraft(conversationId).data;
+  const aionrsDraft = useAionrsDraft(conversationId).data;
   const acpDraft = useAcpDraft(conversationId).data;
 
   return (
     <>
-      <div data-testid='gemini-draft'>{geminiDraft?.content ?? ''}</div>
+      <div data-testid='aionrs-draft'>{aionrsDraft?.content ?? ''}</div>
       <div data-testid='acp-draft'>{acpDraft?.content ?? ''}</div>
     </>
   );
 };
 
-const modelSelection: GeminiModelSelection = {
+const modelSelection: AionrsModelSelection = {
   currentModel: undefined,
   providers: [],
-  geminiModeLookup: new Map(),
-  formatModelLabel: (provider, modelName) => provider?.platform ?? modelName ?? '',
   getDisplayModelName: (modelName) => modelName ?? '',
   getAvailableModels: () => [],
   handleSelectModel: vi.fn(),
 };
 
-const seedGeminiTeamConversation = (id: string, agentName = 'bob', extra: Record<string, unknown> = {}) => {
+const seedLokCliTeamConversation = (id: string, agentName = 'bob', extra: Record<string, unknown> = {}) => {
   mockConversationStore.set(id, {
     createTime: 0,
     modifyTime: 0,
     id,
-    type: 'gemini',
+    type: 'aionrs',
     name: `demo-team - ${agentName}`,
     extra: { workspace: '/tmp/workspace', teamId: 'team-1', ...extra },
-    model: { id: 'p', platform: 'gemini', useModel: 'gemini-pro' } as unknown as TChatConversation['model'],
+    model: { id: 'p', platform: 'openai', useModel: 'gpt-4o-mini' } as unknown as TChatConversation['model'],
   } as TChatConversation);
 };
 
@@ -145,11 +143,11 @@ describe('team empty state', () => {
     mockPresetInfo.value = null;
   });
 
-  it('renders the team greeting UI for Gemini team chats', async () => {
-    seedGeminiTeamConversation('conv-gemini-empty', 'bob');
+  it('renders the team greeting UI for Lok CLI team chats', async () => {
+    seedLokCliTeamConversation('conv-gemini-empty', 'bob');
 
     render(
-      <GeminiChat
+      <AionrsChat
         conversation_id='conv-gemini-empty'
         workspace='/tmp/workspace'
         modelSelection={modelSelection}
@@ -168,10 +166,10 @@ describe('team empty state', () => {
       createTime: 0,
       modifyTime: 0,
       id: 'conv-solo',
-      type: 'gemini',
+      type: 'aionrs',
       name: 'solo',
       extra: { workspace: '/tmp/workspace' },
-      model: { id: 'p', platform: 'gemini', useModel: 'gemini-pro' } as unknown as TChatConversation['model'],
+      model: { id: 'p', platform: 'openai', useModel: 'gpt-4o-mini' } as unknown as TChatConversation['model'],
     } as TChatConversation);
 
     const { container } = render(<TeamChatEmptyState conversationId='conv-solo' />);
@@ -181,8 +179,8 @@ describe('team empty state', () => {
     expect(container.textContent).toBe('');
   });
 
-  it('writes suggestion text into the Gemini draft store instead of the ACP draft store', async () => {
-    seedGeminiTeamConversation('conv-gemini-draft', 'alice');
+  it('writes suggestion text into the Lok CLI draft store instead of the ACP draft store', async () => {
+    seedLokCliTeamConversation('conv-gemini-draft', 'alice');
 
     render(
       <>
@@ -193,13 +191,13 @@ describe('team empty state', () => {
 
     fireEvent.click(await findInMessageList('Organize a debate with agents taking different sides'));
 
-    expect(screen.getByTestId('gemini-draft').textContent).toBe('Organize a debate with agents taking different sides');
+    expect(screen.getByTestId('aionrs-draft').textContent).toBe('Organize a debate with agents taking different sides');
     expect(screen.getByTestId('acp-draft').textContent).toBe('');
   });
 
   it('renders preset emoji avatar when leader is a preset assistant', async () => {
     mockPresetInfo.value = { name: 'Word Creator', logo: '📝', isEmoji: true };
-    seedGeminiTeamConversation('conv-preset-emoji', 'Word Creator');
+    seedLokCliTeamConversation('conv-preset-emoji', 'Word Creator');
 
     render(<TeamChatEmptyState conversationId='conv-preset-emoji' />);
 
@@ -209,7 +207,7 @@ describe('team empty state', () => {
 
   it('renders preset image avatar when preset info provides an svg url', async () => {
     mockPresetInfo.value = { name: 'Cowork', logo: '/assets/cowork.svg', isEmoji: false };
-    seedGeminiTeamConversation('conv-preset-svg', 'Cowork');
+    seedLokCliTeamConversation('conv-preset-svg', 'Cowork');
 
     render(<TeamChatEmptyState conversationId='conv-preset-svg' />);
 

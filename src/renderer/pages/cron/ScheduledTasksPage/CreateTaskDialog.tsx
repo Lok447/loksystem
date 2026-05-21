@@ -139,7 +139,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const { cliAgents, presetAssistants } = useConversationAgents();
-  const { providers, geminiModeLookup, getAvailableModels, formatModelLabel } = useModelProviderList();
+  const { providers, getAvailableModels, formatModelLabel } = useModelProviderList();
   const [frequency, setFrequency] = useState<FrequencyType>('manual');
   const [time, setTime] = useState('09:00');
   const [weekday, setWeekday] = useState('MON');
@@ -243,13 +243,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const isGeminiMode = resolvedBackend === 'gemini' || resolvedBackend === 'aionrs';
 
   // AionCLI does not support Google Auth — filter it out (mirrors GuidPage.tsx logic)
-  const filteredProviders = useMemo(
-    () =>
-      resolvedBackend === 'aionrs'
-        ? providers.filter((p) => !p.platform?.toLowerCase().includes('gemini-with-google-auth'))
-        : providers,
-    [resolvedBackend, providers]
-  );
+  const filteredProviders = providers;
 
   // Build Gemini currentModel from modelId for GuidModelSelector
   const geminiCurrentModel = useMemo<TProviderWithModel | undefined>(() => {
@@ -723,7 +717,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       modelList={filteredProviders}
                       currentModel={geminiCurrentModel}
                       setCurrentModel={handleGeminiModelSelect}
-                      geminiModeLookup={geminiModeLookup}
                       currentAcpCachedModelInfo={acpCachedModelInfo}
                       selectedAcpModel={modelId ?? null}
                       setSelectedAcpModel={handleAcpModelSelect}

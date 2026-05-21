@@ -21,6 +21,7 @@ vi.mock('../../src/process/services/cron/cronServiceSingleton', () => ({
 }));
 vi.mock('../../src/process/utils/initAgent', () => ({
   createGeminiAgent: vi.fn(async () => ({ id: 'gen-id', type: 'gemini', name: 'test', extra: {} })),
+  createAionrsAgent: vi.fn(async () => ({ id: 'lok-id', type: 'aionrs', name: 'test', extra: {} })),
   createAcpAgent: vi.fn(async () => ({ id: 'acp-id', type: 'acp', name: 'test', extra: {} })),
   createOpenClawAgent: vi.fn(async () => ({ id: 'claw-id', type: 'openclaw-gateway', name: 'test', extra: {} })),
   createNanobotAgent: vi.fn(async () => ({ id: 'nano-id', type: 'nanobot', name: 'test', extra: {} })),
@@ -381,8 +382,8 @@ describe('ConversationServiceImpl.createConversation', () => {
       model: { provider: 'google', model: 'gemini-2.0-flash' } as any,
       extra: { workspace: '/ws' },
     });
-    expect(result.type).toBe('gemini');
-    expect(repo.createConversation).toHaveBeenCalledWith(expect.objectContaining({ type: 'gemini' }));
+    expect(result.type).toBe('aionrs');
+    expect(repo.createConversation).toHaveBeenCalledWith(expect.objectContaining({ type: 'aionrs' }));
   });
 
   it('creates and saves an acp conversation', async () => {
@@ -436,11 +437,11 @@ describe('ConversationServiceImpl.createConversation', () => {
   });
 
   it('does not overwrite factory-produced extra fields with params extra', async () => {
-    const { createGeminiAgent } = await import('../../src/process/utils/initAgent');
-    vi.mocked(createGeminiAgent).mockResolvedValueOnce({
+    const { createAionrsAgent } = await import('../../src/process/utils/initAgent');
+    vi.mocked(createAionrsAgent).mockResolvedValueOnce({
       id: 'agent-conv-id',
       name: 'Gemini Agent',
-      type: 'gemini',
+      type: 'aionrs',
       model: { provider: 'gemini', model: 'gemini-2.0-flash' },
       createTime: 1000,
       modifyTime: 1000,

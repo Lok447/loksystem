@@ -72,7 +72,6 @@ const GuidPage: React.FC = () => {
   const resetAssistantRequested = (location.state as { resetAssistant?: boolean } | null)?.resetAssistant === true;
   const agentSelection = useGuidAgentSelection({
     modelList: modelSelection.modelList,
-    isGoogleAuth: modelSelection.isGoogleAuth,
     localeKey,
     resetAssistant: resetAssistantRequested,
     locationKey: location.key,
@@ -129,7 +128,6 @@ const GuidPage: React.FC = () => {
     resolveDisabledBuiltinSkills: agentSelection.resolveDisabledBuiltinSkills,
     guidDisabledBuiltinSkills,
     currentEffectiveAgentInfo: agentSelection.currentEffectiveAgentInfo,
-    isGoogleAuth: modelSelection.isGoogleAuth,
 
     // Mention state reset
     setMentionOpen: mention.setMentionOpen,
@@ -481,7 +479,6 @@ const GuidPage: React.FC = () => {
       modelList={modelSelection.modelList}
       currentModel={modelSelection.currentModel}
       setCurrentModel={modelSelection.setCurrentModel}
-      geminiModeLookup={modelSelection.geminiModeLookup}
       currentAcpCachedModelInfo={agentSelection.currentAcpCachedModelInfo}
       selectedAcpModel={agentSelection.selectedAcpModel}
       setSelectedAcpModel={agentSelection.setSelectedAcpModel}

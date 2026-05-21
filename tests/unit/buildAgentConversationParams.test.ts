@@ -40,7 +40,7 @@ describe('buildAgentConversationParams', () => {
     });
   });
 
-  it('builds preset gemini params with rules and enabled skills', () => {
+  it('migrates preset gemini params to Lok CLI with rules and enabled skills', () => {
     const params = buildAgentConversationParams({
       backend: 'gemini',
       name: 'Preset Gemini',
@@ -57,7 +57,7 @@ describe('buildAgentConversationParams', () => {
     });
 
     expect(params).toEqual({
-      type: 'gemini',
+      type: 'aionrs',
       name: 'Preset Gemini',
       model: { id: 'provider-1', useModel: 'gemini-2.0-flash' },
       extra: expect.objectContaining({

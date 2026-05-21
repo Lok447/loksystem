@@ -80,7 +80,6 @@ function makeDeps(overrides: Partial<GuidSendDeps> = {}): GuidSendDeps {
     isMainAgentAvailable: vi.fn(() => true),
     getAvailableFallbackAgent: vi.fn(() => null),
     currentEffectiveAgentInfo: { agentType: 'remote', isAvailable: true },
-    isGoogleAuth: false,
     setMentionOpen: vi.fn(),
     setMentionQuery: vi.fn(),
     setMentionSelectorOpen: vi.fn(),

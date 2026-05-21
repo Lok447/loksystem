@@ -169,7 +169,7 @@
   "groupAbout": "Інше",
   "agentIdleTimeout": "Таймаут бездіяльності агента (хв)",
   "agentIdleTimeoutDesc": "Завершувати бездіяльні процеси агентів для звільнення пам'яті",
-  "gemini": "Gemini CLI",
+  "gemini": "Lok CLI",
   "model": "Моделі",
   "system": "Система",
   "about": "Про програму",

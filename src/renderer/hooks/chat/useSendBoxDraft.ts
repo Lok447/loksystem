@@ -52,15 +52,12 @@ type Draft =
       uploadFile: string[];
     };
 
+type DraftStoreKey = Exclude<TChatConversation['type'], 'gemini'>;
+
 /**
  * 当前支持的对话类型以及对应的草稿对象
  */
-type SendBoxDraftStore = {
-  [K in TChatConversation['type']]: Map<string, Extract<Draft, { _type: K }>>;
-};
-
-const store: SendBoxDraftStore = {
-  gemini: new Map(),
+const store: Record<DraftStoreKey, Map<string, Draft>> = {
   acp: new Map(),
   codex: new Map(),
   'openclaw-gateway': new Map(),
@@ -69,64 +66,20 @@ const store: SendBoxDraftStore = {
   aionrs: new Map(),
 };
 
+const normalizeDraftType = (type: TChatConversation['type']): DraftStoreKey => (type === 'gemini' ? 'aionrs' : type);
+
 const setDraft = <K extends TChatConversation['type']>(
   type: K,
   conversation_id: string,
   draft: Extract<Draft, { _type: K }> | undefined
 ) => {
-  // TODO import ts-pattern for exhaustive check
-  switch (type) {
-    case 'gemini':
-      if (draft) {
-        store.gemini.set(conversation_id, draft as Extract<Draft, { _type: 'gemini' }>);
-      } else {
-        store.gemini.delete(conversation_id);
-      }
-      break;
-    case 'acp':
-      if (draft) {
-        store.acp.set(conversation_id, draft as Extract<Draft, { _type: 'acp' }>);
-      } else {
-        store.acp.delete(conversation_id);
-      }
-      break;
-    case 'codex':
-      if (draft) {
-        store.codex.set(conversation_id, draft as Extract<Draft, { _type: 'codex' }>);
-      } else {
-        store.codex.delete(conversation_id);
-      }
-      break;
-    case 'openclaw-gateway':
-      if (draft) {
-        store['openclaw-gateway'].set(conversation_id, draft as Extract<Draft, { _type: 'openclaw-gateway' }>);
-      } else {
-        store['openclaw-gateway'].delete(conversation_id);
-      }
-      break;
-    case 'nanobot':
-      if (draft) {
-        store.nanobot.set(conversation_id, draft as Extract<Draft, { _type: 'nanobot' }>);
-      } else {
-        store.nanobot.delete(conversation_id);
-      }
-      break;
-    case 'remote':
-      if (draft) {
-        store.remote.set(conversation_id, draft as Extract<Draft, { _type: 'remote' }>);
-      } else {
-        store.remote.delete(conversation_id);
-      }
-      break;
-    case 'aionrs':
-      if (draft) {
-        store.aionrs.set(conversation_id, draft as Extract<Draft, { _type: 'aionrs' }>);
-      } else {
-        store.aionrs.delete(conversation_id);
-      }
-      break;
-    default:
-      break;
+  const normalizedType = normalizeDraftType(type);
+  if (draft) {
+    const normalizedDraft =
+      normalizedType === 'aionrs' && draft._type === 'gemini' ? { ...draft, _type: 'aionrs' } : draft;
+    store[normalizedType].set(conversation_id, normalizedDraft as Draft);
+  } else {
+    store[normalizedType].delete(conversation_id);
   }
 };
 
@@ -134,25 +87,7 @@ const getDraft = <K extends TChatConversation['type']>(
   type: K,
   conversation_id: string
 ): Extract<Draft, { _type: K }> | undefined => {
-  // TODO import ts-pattern for exhaustive check
-  switch (type) {
-    case 'gemini':
-      return store.gemini.get(conversation_id) as Extract<Draft, { _type: K }>;
-    case 'acp':
-      return store.acp.get(conversation_id) as Extract<Draft, { _type: K }>;
-    case 'codex':
-      return store.codex.get(conversation_id) as Extract<Draft, { _type: K }>;
-    case 'openclaw-gateway':
-      return store['openclaw-gateway'].get(conversation_id) as Extract<Draft, { _type: K }>;
-    case 'nanobot':
-      return store.nanobot.get(conversation_id) as Extract<Draft, { _type: K }>;
-    case 'remote':
-      return store.remote.get(conversation_id) as Extract<Draft, { _type: K }>;
-    case 'aionrs':
-      return store.aionrs.get(conversation_id) as Extract<Draft, { _type: K }>;
-    default:
-      return undefined;
-  }
+  return store[normalizeDraftType(type)].get(conversation_id) as Extract<Draft, { _type: K }> | undefined;
 };
 
 /**

@@ -53,7 +53,6 @@ export type GuidSendDeps = {
   ) => string[] | undefined;
   guidDisabledBuiltinSkills: string[] | undefined;
   currentEffectiveAgentInfo: EffectiveAgentInfo;
-  isGoogleAuth: boolean;
 
   // Mention state reset
   setMentionOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -103,7 +102,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     resolveDisabledBuiltinSkills,
     guidDisabledBuiltinSkills,
     currentEffectiveAgentInfo,
-    isGoogleAuth,
     setMentionOpen,
     setMentionQuery,
     setMentionSelectorOpen,
@@ -132,55 +130,28 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     const finalEffectiveAgentType = effectiveAgentType;
 
-    // Legacy Gemini path. LokSystem defaults to Hermes/Lok CLI, so an empty agent
-    // selection must fall through to the ACP path instead of creating Gemini.
+    // Legacy Gemini selections are migrated to Lok CLI / aionrs.
     if (selectedAgent === 'gemini' || (isPreset && finalEffectiveAgentType === 'gemini')) {
-      // The placeholder only makes sense while Google Auth is active — otherwise
-      // it fabricates a logged-out auth type and the chat page fails to load.
-      if (!currentModel && !isGoogleAuth) {
+      if (!currentModel) {
         Message.warning(t('conversation.noModelConfigured'));
         return;
       }
-      const placeholderModel = currentModel || {
-        id: 'gemini-placeholder',
-        name: 'Gemini',
-        useModel: 'default',
-        platform: 'gemini-with-google-auth' as const,
-        baseUrl: '',
-        apiKey: '',
-      };
       try {
-        const geminiConversationParams = buildAgentConversationParams({
-          backend: 'gemini',
+        const conversation = await ipcBridge.conversation.create.invoke({
+          type: 'aionrs',
           name: input,
-          agentName: agentInfo?.name,
-          presetAssistantId,
-          workspace: finalWorkspace,
-          model: placeholderModel,
-          customAgentId: agentInfo?.customAgentId,
-          customWorkspace: isCustomWorkspace,
-          isPreset,
-          presetAgentType: finalEffectiveAgentType,
-          presetResources: isPreset
-            ? {
-                rules: presetRules,
-                enabledSkills,
-                excludeBuiltinSkills,
-              }
-            : undefined,
-          sessionMode: selectedMode,
+          model: currentModel,
           extra: {
             defaultFiles: files,
+            workspace: finalWorkspace,
+            customWorkspace: isCustomWorkspace,
+            presetRules: isPreset ? presetRules : undefined,
+            enabledSkills: isPreset ? enabledSkills : undefined,
             excludeBuiltinSkills,
-            webSearchEngine:
-              placeholderModel.platform === 'gemini-with-google-auth' ||
-              placeholderModel.platform === 'gemini-vertex-ai'
-                ? 'google'
-                : 'default',
+            presetAssistantId,
+            sessionMode: selectedMode,
           },
         });
-
-        const conversation = await ipcBridge.conversation.create.invoke(geminiConversationParams);
 
         if (!conversation || !conversation.id) {
           throw new Error('Failed to create conversation - conversation object is null or missing id');
@@ -200,11 +171,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           input: displayMessage,
           files: files.length > 0 ? files : undefined,
         };
-        sessionStorage.setItem(`gemini_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+        sessionStorage.setItem(`aionrs_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
         void navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
-        console.error('Failed to create Gemini conversation:', error);
+        console.error('Failed to create Lok CLI conversation:', error);
         throw error;
       }
       return;
@@ -530,10 +501,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   const isButtonDisabled =
     loading ||
     !input.trim() ||
-    ((((!selectedAgent || selectedAgent === 'gemini') && !isPresetAgent) ||
-      (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) &&
-      !currentModel &&
-      isGoogleAuth);
+    ((((!selectedAgent || selectedAgent === 'aionrs') && !isPresetAgent) ||
+      (isPresetAgent && currentEffectiveAgentInfo.agentType === 'aionrs' && currentEffectiveAgentInfo.isAvailable)) &&
+      !currentModel);
 
   return {
     handleSend,

@@ -75,7 +75,6 @@ describe('useAgentAvailability', () => {
     const { result } = renderHook(() =>
       useAgentAvailability({
         modelList: [],
-        isGoogleAuth: false,
         availableAgents: defaultAvailableAgents,
         resolvePresetAgentType: stubResolvePresetAgentType,
       })
@@ -89,7 +88,6 @@ describe('useAgentAvailability', () => {
     const { result } = renderHook(() =>
       useAgentAvailability({
         modelList: [],
-        isGoogleAuth: false,
         availableAgents: defaultAvailableAgents,
         resolvePresetAgentType: stubResolvePresetAgentType,
       })
@@ -98,24 +96,10 @@ describe('useAgentAvailability', () => {
     expect(result.current.isMainAgentAvailable('codex')).toBe(false);
   });
 
-  it('isMainAgentAvailable returns true for gemini when isGoogleAuth is true', () => {
-    const { result } = renderHook(() =>
-      useAgentAvailability({
-        modelList: [],
-        isGoogleAuth: true,
-        availableAgents: [],
-        resolvePresetAgentType: stubResolvePresetAgentType,
-      })
-    );
-
-    expect(result.current.isMainAgentAvailable('gemini')).toBe(true);
-  });
-
   it('isMainAgentAvailable returns true for gemini when modelList has entries', () => {
     const { result } = renderHook(() =>
       useAgentAvailability({
         modelList: defaultModelList,
-        isGoogleAuth: false,
         availableAgents: [],
         resolvePresetAgentType: stubResolvePresetAgentType,
       })
@@ -128,7 +112,6 @@ describe('useAgentAvailability', () => {
     const { result } = renderHook(() =>
       useAgentAvailability({
         modelList: [],
-        isGoogleAuth: false,
         availableAgents: [],
         resolvePresetAgentType: stubResolvePresetAgentType,
       })
@@ -143,7 +126,6 @@ describe('useAgentAvailability', () => {
     const { result } = renderHook(() =>
       useAgentAvailability({
         modelList: [],
-        isGoogleAuth: false,
         availableAgents: defaultAvailableAgents,
         resolvePresetAgentType: stubResolvePresetAgentType,
       })
@@ -160,7 +142,6 @@ describe('useAgentAvailability', () => {
     const { result } = renderHook(() =>
       useAgentAvailability({
         modelList: [],
-        isGoogleAuth: false,
         availableAgents: [],
         resolvePresetAgentType: stubResolvePresetAgentType,
       })

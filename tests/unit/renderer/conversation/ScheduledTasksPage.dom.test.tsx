@@ -281,7 +281,7 @@ describe('ScheduledTasksPage', () => {
           ...createMockJob().metadata,
           agentConfig: {
             backend: 'gemini',
-            name: 'Gemini CLI',
+            name: 'Lok CLI',
           },
           agentType: 'gemini',
         },
@@ -294,7 +294,7 @@ describe('ScheduledTasksPage', () => {
 
     await waitFor(() => {
       expect(screen.getByAltText('Claude Code')).toBeInTheDocument();
-      expect(screen.getByAltText('Gemini CLI')).toBeInTheDocument();
+      expect(screen.getByAltText('Lok CLI')).toBeInTheDocument();
       expect(screen.getByText('New Conversation')).toBeInTheDocument();
       expect(screen.getByText('Continuous Conversation')).toBeInTheDocument();
     });

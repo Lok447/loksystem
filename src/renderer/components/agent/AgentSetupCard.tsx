@@ -45,6 +45,8 @@ const AGENT_LOGOS: Partial<Record<AgentBackend, string>> = {
   snow: SnowLogo,
 };
 
+const normalizeAgentBackend = (backend: AgentBackend): AgentBackend => (backend === 'gemini' ? 'aionrs' : backend);
+
 type AgentSetupCardProps = {
   conversationId: string;
   currentAgent: AgentBackend | null;
@@ -99,13 +101,15 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
 
         // Determine conversation type based on agent
         // Codex uses 'codex' type, Gemini uses 'gemini' type, others use 'acp' type
-        const isGemini = agent.backend === 'gemini';
+        const normalizedBackend = normalizeAgentBackend(agent.backend);
+        const isLokCli = normalizedBackend === 'aionrs';
         const isCodex = agent.backend === 'codex';
-        const conversationType = isGemini ? 'gemini' : isCodex ? 'codex' : 'acp';
+        const conversationType = isLokCli ? 'aionrs' : isCodex ? 'codex' : 'acp';
         const defaultConversationName = t('conversation.welcome.newConversation');
 
-        // Get current conversation's model info (if gemini type)
-        const currentModel = conversation.type === 'gemini' ? conversation.model : undefined;
+        // Legacy Gemini sessions now run through Lok CLI, so both types share model handling.
+        const currentModel =
+          conversation.type === 'gemini' || conversation.type === 'aionrs' ? conversation.model : undefined;
         const createParams: ICreateConversationParams = {
           type: conversationType,
           model: currentModel || {
@@ -119,7 +123,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
           extra: {
             workspace: conversation.extra?.workspace || '',
             customWorkspace: conversation.extra?.customWorkspace || false,
-            ...(isGemini
+            ...(isLokCli
               ? {
                   presetRules: ((conversation.extra as Record<string, unknown>)?.presetRules ||
                     (conversation.extra as Record<string, unknown>)?.presetContext) as string,
@@ -127,7 +131,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
                   presetAssistantId: conversation.extra?.presetAssistantId,
                 }
               : {
-                  backend: agent.backend,
+                  backend: normalizedBackend,
                   cliPath: agent.cliPath,
                   presetContext: ((conversation.extra as Record<string, unknown>)?.presetRules ||
                     (conversation.extra as Record<string, unknown>)?.presetContext) as string,
@@ -153,8 +157,8 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
         // 存储初始消息，让新会话自动发送
         if (initialMessage) {
           const messageData = { input: initialMessage, files: [] as string[] };
-          if (isGemini) {
-            sessionStorage.setItem(`gemini_initial_message_${newConversation.id}`, JSON.stringify(messageData));
+          if (isLokCli) {
+            sessionStorage.setItem(`aionrs_initial_message_${newConversation.id}`, JSON.stringify(messageData));
           } else if (isCodex) {
             sessionStorage.setItem(`codex_initial_message_${newConversation.id}`, JSON.stringify(messageData));
           } else {

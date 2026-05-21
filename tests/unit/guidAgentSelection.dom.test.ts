@@ -196,7 +196,6 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
 
   const hookOptions = {
     modelList: MODEL_LIST,
-    isGoogleAuth: false,
     localeKey: 'en-US',
   };
 

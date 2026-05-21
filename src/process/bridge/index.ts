@@ -11,7 +11,6 @@ import type { IConversationService } from '@process/services/IConversationServic
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { initAcpConversationBridge } from './acpConversationBridge';
 import { initApplicationBridge } from './applicationBridge';
-import { initAuthBridge } from './authBridge';
 import { initBedrockBridge } from './bedrockBridge';
 import { initChannelBridge } from './channelBridge';
 import { initConversationBridge } from './conversationBridge';
@@ -21,8 +20,6 @@ import { initDialogBridge } from './dialogBridge';
 import { initDocumentBridge } from './documentBridge';
 import { initFileWatchBridge } from './fileWatchBridge';
 import { initFsBridge } from './fsBridge';
-import { initGeminiBridge } from './geminiBridge';
-import { initGeminiConversationBridge } from './geminiConversationBridge';
 import { initMcpBridge } from './mcpBridge';
 import { initModelBridge } from './modelBridge';
 import { initPreviewHistoryBridge } from './previewHistoryBridge';
@@ -64,12 +61,8 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initFileWatchBridge();
   initConversationBridge(deps.conversationService, deps.workerTaskManager, deps.teamSessionService);
   initApplicationBridge(deps.workerTaskManager);
-  initGeminiConversationBridge(deps.workerTaskManager);
-  // 额外的 Gemini 辅助桥（订阅检测等）需要在对话桥初始化后可用 / extra helpers after core bridges
-  initGeminiBridge();
   initBedrockBridge();
   initAcpConversationBridge(deps.workerTaskManager);
-  initAuthBridge();
   initModelBridge();
   initMcpBridge();
   initPreviewHistoryBridge();
@@ -112,7 +105,6 @@ export async function initializeAcpDetector(): Promise<void> {
 export {
   initAcpConversationBridge,
   initApplicationBridge,
-  initAuthBridge,
   initBedrockBridge,
   initChannelBridge,
   initConversationBridge,
@@ -122,8 +114,6 @@ export {
   initDocumentBridge,
   initExtensionsBridge,
   initFsBridge,
-  initGeminiBridge,
-  initGeminiConversationBridge,
   initMcpBridge,
   initModelBridge,
   initNotificationBridge,

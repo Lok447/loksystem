@@ -10,6 +10,12 @@ import type { Message } from '@arco-design/web-react';
 
 export type MessageApi = ReturnType<typeof Message.useMessage>[0];
 
+export type WorkspaceEventPrefix = 'gemini' | 'acp' | 'codex' | 'aionrs';
+
+export function normalizeWorkspaceEventPrefix(prefix: WorkspaceEventPrefix): Exclude<WorkspaceEventPrefix, 'gemini'> {
+  return prefix === 'gemini' ? 'aionrs' : prefix;
+}
+
 /**
  * Workspace 组件的 Props 定义
  * Props definition for Workspace component
@@ -17,7 +23,7 @@ export type MessageApi = ReturnType<typeof Message.useMessage>[0];
 export interface WorkspaceProps {
   workspace: string;
   conversation_id: string;
-  eventPrefix?: 'gemini' | 'acp' | 'codex' | 'aionrs';
+  eventPrefix?: WorkspaceEventPrefix;
   messageApi?: MessageApi;
   teamId?: string;
 }

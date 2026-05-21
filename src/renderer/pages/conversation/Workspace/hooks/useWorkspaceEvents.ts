@@ -8,11 +8,11 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useRef } from 'react';
-import type { ContextMenuState } from '../types';
+import type { ContextMenuState, WorkspaceEventPrefix } from '../types';
 
 interface UseWorkspaceEventsOptions {
   conversation_id: string;
-  eventPrefix: 'gemini' | 'acp' | 'codex' | 'aionrs';
+  eventPrefix: Exclude<WorkspaceEventPrefix, 'gemini'>;
 
   // Dependencies from useWorkspaceTree
   refreshWorkspace: () => void;
@@ -120,7 +120,7 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
    * Listen to agent response stream - auto refresh workspace (throttled)
    */
   useEffect(() => {
-    const handleGeminiResponse = (data: { type: string }) => {
+    const handleConversationResponse = (data: { type: string }) => {
       if (data.type === 'tool_group' || data.type === 'tool_call') {
         throttledRefresh();
       }
@@ -130,19 +130,12 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
         throttledRefresh();
       }
     };
-    const handleCodexResponse = (data: { type: string }) => {
-      if (data.type === 'codex_tool_call') {
-        throttledRefresh();
-      }
-    };
-    const unsubscribeGemini = ipcBridge.geminiConversation.responseStream.on(handleGeminiResponse);
+    const unsubscribeConversation = ipcBridge.conversation.responseStream.on(handleConversationResponse);
     const unsubscribeAcp = ipcBridge.acpConversation.responseStream.on(handleAcpResponse);
-    const unsubscribeCodex = ipcBridge.codexConversation.responseStream.on(handleCodexResponse);
 
     return () => {
-      unsubscribeGemini();
+      unsubscribeConversation();
       unsubscribeAcp();
-      unsubscribeCodex();
     };
   }, [conversation_id, eventPrefix, throttledRefresh]);
 

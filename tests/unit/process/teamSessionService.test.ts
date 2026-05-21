@@ -95,7 +95,7 @@ describe('TeamSessionService', () => {
     vi.clearAllMocks();
   });
 
-  it('resolves a real gemini model instead of an empty placeholder', async () => {
+  it('requires a real provider when migrating legacy gemini teams to Lok CLI', async () => {
     mockConfigGet.mockImplementation(async () => undefined);
 
     const repo = makeRepo();
@@ -104,28 +104,18 @@ describe('TeamSessionService', () => {
     });
     const service = new TeamSessionService(repo, makeWorkerTaskManager() as any, conversationService);
 
-    await service.createTeam({
-      userId: 'user-1',
-      name: 'Team Gemini',
-      workspace: '/workspace',
-      workspaceMode: 'shared',
-      agents: [makeAgent()],
-    });
-
-    expect(conversationService.createConversation).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'gemini',
-        model: expect.objectContaining({
-          platform: 'gemini-with-google-auth',
-        }),
+    await expect(
+      service.createTeam({
+        userId: 'user-1',
+        name: 'Team Gemini',
+        workspace: '/workspace',
+        workspaceMode: 'shared',
+        agents: [makeAgent()],
       })
-    );
-    // Must have a concrete useModel, not the bare 'default' placeholder
-    const callArgs = (conversationService.createConversation as ReturnType<typeof vi.fn>).mock.calls[0][0];
-    expect(callArgs.model.useModel).not.toBe('default');
+    ).rejects.toThrow('No enabled model provider for Lok CLI');
   });
 
-  it('uses configured gemini provider model when available', async () => {
+  it('uses configured provider model when migrating gemini teams to Lok CLI', async () => {
     mockConfigGet.mockImplementation(async (key: string) => {
       if (key === 'model.config') {
         return [
@@ -160,7 +150,7 @@ describe('TeamSessionService', () => {
 
     expect(conversationService.createConversation).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'gemini',
+        type: 'aionrs',
         model: expect.objectContaining({
           id: 'provider-gemini',
           platform: 'gemini',
@@ -262,7 +252,7 @@ describe('TeamSessionService', () => {
     );
   });
 
-  it('creates preset gemini team conversations with preset rules and enabled skills', async () => {
+  it('creates preset gemini team conversations as Lok CLI with preset rules and enabled skills', async () => {
     mockConfigGet.mockImplementation(async (key: string) => {
       if (key === 'language') {
         return 'en-US';
@@ -318,7 +308,7 @@ describe('TeamSessionService', () => {
 
     expect(conversationService.createConversation).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'gemini',
+        type: 'aionrs',
         model: expect.objectContaining({
           id: 'provider-1',
           useModel: 'gemini-2.0-flash',

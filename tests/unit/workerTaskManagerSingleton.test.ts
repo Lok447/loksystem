@@ -23,10 +23,6 @@ vi.mock('../../src/process/task/AcpAgentManager', () => ({
   },
 }));
 
-vi.mock('../../src/process/task/GeminiAgentManager', () => ({
-  GeminiAgentManager: vi.fn().mockImplementation(() => ({ type: 'gemini', kill: vi.fn() })),
-}));
-
 vi.mock('../../src/process/task/OpenClawAgentManager', () => ({
   default: vi.fn().mockImplementation(() => ({ type: 'openclaw-gateway', kill: vi.fn() })),
 }));

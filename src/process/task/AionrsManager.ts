@@ -6,13 +6,13 @@
 
 import { ipcBridge } from '@/common';
 import type { IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
+import { ToolConfirmationOutcome } from '@/common/chat/toolConfirmation';
 import { transformMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { teamEventBus } from '@process/team/teamEventBus';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { BaseApprovalStore, type IApprovalKey } from '@/common/chat/approval';
-import { ToolConfirmationOutcome } from '../agent/gemini/cli/tools/tools';
 import { AionrsAgent, type StdioMcpOption } from '@process/agent/aionrs';
 import type { AionrsCapabilities } from '@process/agent/aionrs/protocol';
 import { getDatabase } from '@process/services/database';

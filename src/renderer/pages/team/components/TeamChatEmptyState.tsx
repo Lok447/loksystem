@@ -9,7 +9,6 @@ import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
 
 const useAcpDraft = getSendBoxDraftHook('acp', { _type: 'acp', atPath: [], content: '', uploadFile: [] });
-const useGeminiDraft = getSendBoxDraftHook('gemini', { _type: 'gemini', atPath: [], content: '', uploadFile: [] });
 const useOpenClawDraft = getSendBoxDraftHook('openclaw-gateway', {
   _type: 'openclaw-gateway',
   atPath: [],
@@ -37,9 +36,10 @@ const SUGGESTION_DEFAULTS: Record<string, string> = {
 };
 
 /** Map a conversation.type onto a DetectedAgentKind so draft hooks stay exhaustive. */
-const toDetectedKind = (type: TChatConversation['type']): DetectedAgentKind => {
+const toDetectedKind = (type: TChatConversation['type']): Exclude<DetectedAgentKind, 'gemini'> => {
   // Codex conversations are rendered via the ACP pipeline and share the acp draft store.
   if (type === 'codex') return 'acp';
+  if (type === 'gemini' || type === 'aionrs') return 'aionrs';
   return type;
 };
 
@@ -77,19 +77,17 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversationId }) => {
   // `satisfies Record<DetectedAgentKind, ...>` keeps the map exhaustive — adding a new
   // DetectedAgentKind without wiring up a draft setter here becomes a typecheck error.
   const acpDraft = useAcpDraft(conversationId);
-  const geminiDraft = useGeminiDraft(conversationId);
   const aionrsDraft = useAionrsDraft(conversationId);
   const nanobotDraft = useNanobotDraft(conversationId);
   const remoteDraft = useRemoteDraft(conversationId);
   const openClawDraft = useOpenClawDraft(conversationId);
   const setContentByKind = {
     acp: (text: string) => acpDraft.mutate((prev) => ({ ...prev, content: text })),
-    gemini: (text: string) => geminiDraft.mutate((prev) => ({ ...prev, content: text })),
     aionrs: (text: string) => aionrsDraft.mutate((prev) => ({ ...prev, content: text })),
     nanobot: (text: string) => nanobotDraft.mutate((prev) => ({ ...prev, content: text })),
     remote: (text: string) => remoteDraft.mutate((prev) => ({ ...prev, content: text })),
     'openclaw-gateway': (text: string) => openClawDraft.mutate((prev) => ({ ...prev, content: text })),
-  } satisfies Record<DetectedAgentKind, (text: string) => void>;
+  } satisfies Record<Exclude<DetectedAgentKind, 'gemini'>, (text: string) => void>;
 
   const fillDraft = useCallback(
     (text: string) => {

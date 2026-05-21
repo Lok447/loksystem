@@ -7,23 +7,15 @@
 import { ipcBridge } from '@/common';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { ConfigStorage } from '@/common/config/storage';
-import { uuid } from '@/common/utils';
-import { useGeminiGoogleAuthModels } from '@/renderer/hooks/agent/useGeminiGoogleAuthModels';
-import { hasAvailableModels } from '../utils/modelUtils';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
+import { hasAvailableModels } from '../utils/modelUtils';
 
-/**
- * Build a unique key for a provider/model pair.
- */
 const buildModelKey = (providerId?: string, modelName?: string) => {
   if (!providerId || !modelName) return null;
   return `${providerId}:${modelName}`;
 };
 
-/**
- * Check if a model key still exists in the provider list.
- */
 const isModelKeyAvailable = (key: string | null, providers?: IProvider[]) => {
   if (!key || !providers || providers.length === 0) return false;
   return providers.some((provider) => {
@@ -32,10 +24,8 @@ const isModelKeyAvailable = (key: string | null, providers?: IProvider[]) => {
   });
 };
 
-/** Provider-based agent keys that share the model list UI */
 type ProviderAgentKey = 'gemini' | 'aionrs';
 
-/** Map agent key → storage key for persisting default model */
 const MODEL_STORAGE_KEY: Record<ProviderAgentKey, 'gemini.defaultModel' | 'aionrs.defaultModel'> = {
   gemini: 'gemini.defaultModel',
   aionrs: 'aionrs.defaultModel',
@@ -43,70 +33,21 @@ const MODEL_STORAGE_KEY: Record<ProviderAgentKey, 'gemini.defaultModel' | 'aionr
 
 export type GuidModelSelectionResult = {
   modelList: IProvider[];
-  isGoogleAuth: boolean;
-  geminiModeOptions: ReturnType<typeof useGeminiGoogleAuthModels>['geminiModeOptions'];
-  geminiModeLookup: Map<string, ReturnType<typeof useGeminiGoogleAuthModels>['geminiModeOptions'][number]>;
-  formatGeminiModelLabel: (provider: { platform?: string } | undefined, modelName?: string) => string;
   currentModel: TProviderWithModel | undefined;
   setCurrentModel: (modelInfo: TProviderWithModel) => Promise<void>;
 };
 
 /**
- * Hook that manages Gemini model list and selection state for the Guid page.
- * @param agentKey - current provider-based agent ('gemini' | 'aionrs'), defaults to 'gemini'
+ * Hook that manages provider-backed model selection for the Guid page.
+ * `gemini` is kept only as a legacy storage namespace; both agent keys now
+ * share the same provider list.
  */
 export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): GuidModelSelectionResult => {
-  const { geminiModeOptions, isGoogleAuth } = useGeminiGoogleAuthModels();
-  const { data: modelConfig } = useSWR('model.config.welcome', () => {
-    return ipcBridge.mode.getModelConfig.invoke().then((data) => {
-      return (data || []).filter((platform) => !!platform.model.length);
-    });
-  });
-
-  const geminiModelValues = useMemo(() => geminiModeOptions.map((option) => option.value), [geminiModeOptions]);
-
-  const modelList = useMemo(() => {
-    let allProviders: IProvider[] = [];
-
-    // Only expose the Gemini Google Auth provider when the current agent is
-    // 'gemini'. Other provider-based agents (e.g. aionrs) do not support
-    // Google login, so surfacing this provider would make the default-model
-    // fallback pick a Gemini auto model by mistake.
-    if (isGoogleAuth && agentKey === 'gemini') {
-      const geminiProvider: IProvider = {
-        id: uuid(),
-        name: 'Gemini Google Auth',
-        platform: 'gemini-with-google-auth',
-        baseUrl: '',
-        apiKey: '',
-        model: geminiModelValues,
-        capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
-      };
-      allProviders = [geminiProvider, ...(modelConfig || [])];
-    } else {
-      allProviders = modelConfig || [];
-    }
-
-    return allProviders.filter(hasAvailableModels);
-  }, [agentKey, geminiModelValues, isGoogleAuth, modelConfig]);
-
-  const geminiModeLookup = useMemo(() => {
-    const lookup = new Map<string, (typeof geminiModeOptions)[number]>();
-    geminiModeOptions.forEach((option) => lookup.set(option.value, option));
-    return lookup;
-  }, [geminiModeOptions]);
-
-  const formatGeminiModelLabel = useCallback(
-    (provider: { platform?: string } | undefined, modelName?: string) => {
-      if (!modelName) return '';
-      const isGoogleProvider = provider?.platform?.toLowerCase().includes('gemini-with-google-auth');
-      if (isGoogleProvider) {
-        return geminiModeLookup.get(modelName)?.label || modelName;
-      }
-      return modelName;
-    },
-    [geminiModeLookup]
+  const { data: modelConfig } = useSWR('model.config.welcome', () =>
+    ipcBridge.mode.getModelConfig.invoke().then((data) => (data || []).filter((platform) => !!platform.model.length))
   );
+
+  const modelList = useMemo(() => (modelConfig || []).filter(hasAvailableModels), [modelConfig]);
 
   const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
   const selectedModelKeyRef = useRef<string | null>(null);
@@ -125,13 +66,12 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
     [storageKey]
   );
 
-  // Set default model when modelList or agent changes
   useEffect(() => {
     const setDefaultModel = async () => {
       if (!modelList || modelList.length === 0) {
         return;
       }
-      // When agent switches, reset selection so we reload from the new storage key
+
       const agentChanged = prevStorageKeyRef.current !== null && prevStorageKeyRef.current !== storageKey;
       prevStorageKeyRef.current = storageKey;
       if (agentChanged) {
@@ -145,8 +85,8 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
         }
         return;
       }
-      const savedModel = await ConfigStorage.get(storageKey);
 
+      const savedModel = await ConfigStorage.get(storageKey);
       const isNewFormat = savedModel && typeof savedModel === 'object' && 'id' in savedModel;
 
       let defaultModel: IProvider | undefined;
@@ -154,7 +94,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
 
       if (isNewFormat) {
         const { id, useModel } = savedModel;
-        const exactMatch = modelList.find((m) => m.id === id);
+        const exactMatch = modelList.find((model) => model.id === id);
         if (exactMatch && exactMatch.model.includes(useModel)) {
           defaultModel = exactMatch;
           resolvedUseModel = useModel;
@@ -163,7 +103,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
           resolvedUseModel = defaultModel?.model[0] ?? '';
         }
       } else if (typeof savedModel === 'string') {
-        defaultModel = modelList.find((m) => m.model.includes(savedModel)) || modelList[0];
+        defaultModel = modelList.find((model) => model.model.includes(savedModel)) || modelList[0];
         resolvedUseModel = defaultModel?.model.includes(savedModel) ? savedModel : (defaultModel?.model[0] ?? '');
       } else {
         defaultModel = modelList[0];
@@ -181,13 +121,10 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
     setDefaultModel().catch((error) => {
       console.error('Failed to set default model:', error);
     });
-  }, [modelList, storageKey]);
+  }, [currentModel?.id, currentModel?.useModel, modelList, setCurrentModel, storageKey]);
+
   return {
     modelList,
-    isGoogleAuth,
-    geminiModeOptions,
-    geminiModeLookup,
-    formatGeminiModelLabel,
     currentModel,
     setCurrentModel,
   };

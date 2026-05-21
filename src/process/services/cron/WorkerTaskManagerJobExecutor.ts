@@ -33,6 +33,8 @@ async function getConversationService() {
   return mod.conversationServiceSingleton;
 }
 
+const normalizeCronBackend = (backend: string): string => (backend === 'gemini' ? 'aionrs' : backend);
+
 /** Executes cron jobs by delegating to WorkerTaskManager and tracking busy state via CronBusyGuard. */
 export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   constructor(
@@ -134,12 +136,12 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
     const hasSkill = await hasCronSkillFile(job.id);
     const needsSkillSuggest = job.target.executionMode === 'new_conversation' && !!workspace && !hasSkill;
-    const isGeminiLike =
-      job.metadata.agentConfig?.backend === 'gemini' || job.metadata.agentConfig?.backend === 'aionrs';
+    const normalizedBackend = normalizeCronBackend(job.metadata.agentConfig?.backend || '');
+    const isLokCliLike = normalizedBackend === 'aionrs';
 
-    // Gemini/Aionrs: inline SKILL_SUGGEST instructions in the task prompt (single-turn).
+    // Lok CLI: inline SKILL_SUGGEST instructions in the task prompt (single-turn).
     // Other agents: separate follow-up message via onFirstFinish (multi-turn).
-    const messageText = this.buildMessageText(job, hasSkill, needsSkillSuggest && isGeminiLike);
+    const messageText = this.buildMessageText(job, hasSkill, needsSkillSuggest && isLokCliLike);
 
     const triggeredAt = Date.now();
     const cronMeta: CronMessageMeta = {
@@ -170,8 +172,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       // Defensively unregister first in case a previous execution left a stale entry
       skillSuggestWatcher.unregister(conversationId);
 
-      if (isGeminiLike) {
-        // Gemini/Aionrs: SKILL_SUGGEST instructions are already in the prompt.
+      if (isLokCliLike) {
+        // Lok CLI: SKILL_SUGGEST instructions are already in the prompt.
         // Just register the watcher (no onFirstFinish) and start polling.
         skillSuggestWatcher.register(conversationId, job.id, workspace!);
         void this.detectSkillSuggestWithRetry(job.id, workspace!, conversationId, 0);
@@ -193,12 +195,13 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    */
   private async buildConversationForJob(job: CronJob): Promise<TChatConversation> {
     const config = job.metadata.agentConfig!;
-    const baseModel = await this.resolveModelForBackend(config.backend);
+    const normalizedBackend = normalizeCronBackend(config.backend);
+    const baseModel = await this.resolveModelForBackend(normalizedBackend);
     // If the job specifies a modelId, override the resolved model's useModel
     const model = config.modelId ? { ...baseModel, useModel: config.modelId } : baseModel;
     const convName = `${job.name} - ${this.formatExecutionTimestamp(job)}`;
 
-    const agentType = this.getAgentType(config.backend);
+    const agentType = this.getAgentType(normalizedBackend as AgentBackend);
 
     // Check if a per-task SKILL.md exists (user-saved via "Turn into skill").
     // If yes: inject it into the workspace and exclude both cron and cron-run builtin skills.
@@ -214,7 +217,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       name: convName,
       model,
       extra: {
-        backend: config.backend,
+        backend: normalizedBackend,
         agentName: config.name,
         cliPath: config.cliPath,
         customAgentId: config.customAgentId,
@@ -285,9 +288,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    * Map backend identifier to the AgentType used by createConversation.
    */
   private getAgentType(backend: AgentBackend): AgentType {
-    switch (backend) {
-      case 'gemini':
-        return 'gemini';
+    switch (normalizeCronBackend(backend)) {
       case 'aionrs':
         return 'aionrs';
       case 'openclaw-gateway':
@@ -366,41 +367,43 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    * Reads preferredModelId from user settings to match guid page behavior.
    */
   private async resolveModelForBackend(backend: string): Promise<TProviderWithModel> {
+    const normalizedBackend = normalizeCronBackend(backend);
     const providers = await ProcessConfig.get('model.config');
     const providerList = (providers && Array.isArray(providers) ? providers : []) as unknown as TProviderWithModel[];
 
     // Read preferred model ID from user config.
-    // Gemini stores its default model in 'gemini.defaultModel' (set by Guid page).
+    // Lok CLI stores its default model in 'aionrs.defaultModel'.
+    // Legacy Gemini cron jobs may still have gemini.defaultModel persisted.
     // ACP backends store in 'acp.config.<backend>.preferredModelId'.
     let preferredModelId: string | undefined;
-    if (backend === 'gemini') {
-      const savedModel = await ProcessConfig.get('gemini.defaultModel');
-      if (savedModel && typeof savedModel === 'object' && 'useModel' in savedModel) {
-        preferredModelId = savedModel.useModel;
-      } else if (typeof savedModel === 'string') {
-        preferredModelId = savedModel;
-      }
-    } else if (backend === 'aionrs') {
+    if (normalizedBackend === 'aionrs') {
       const savedModel = await ProcessConfig.get('aionrs.defaultModel');
       preferredModelId = savedModel?.useModel;
+      if (!preferredModelId && backend === 'gemini') {
+        const legacySavedModel = await ProcessConfig.get('gemini.defaultModel');
+        if (legacySavedModel && typeof legacySavedModel === 'object' && 'useModel' in legacySavedModel) {
+          preferredModelId = legacySavedModel.useModel;
+        } else if (typeof legacySavedModel === 'string') {
+          preferredModelId = legacySavedModel;
+        }
+      }
     } else {
       const acpConfig = await ProcessConfig.get('acp.config');
-      preferredModelId = (acpConfig?.[backend as AcpBackendAll] as Record<string, unknown>)?.preferredModelId as
+      preferredModelId = (acpConfig?.[normalizedBackend as AcpBackendAll] as Record<string, unknown>)?.preferredModelId as
         | string
         | undefined;
     }
 
-    // For gemini, prefer google-auth provider
-    if (backend === 'gemini') {
-      const googleAuth = providerList.find((p) => p.platform === 'gemini-with-google-auth' || p.platform === 'gemini');
-      if (googleAuth) {
-        const useModel = preferredModelId || googleAuth.useModel || 'auto';
-        return { ...googleAuth, useModel } as TProviderWithModel;
+    if (normalizedBackend === 'aionrs') {
+      const lokCliProvider = providerList.find((p) => p.enabled !== false);
+      if (lokCliProvider) {
+        const useModel = preferredModelId || lokCliProvider.useModel || lokCliProvider.model?.[0] || 'auto';
+        return { ...lokCliProvider, useModel } as TProviderWithModel;
       }
     }
 
     // For other backends, find a matching provider
-    const match = providerList.find((p) => p.platform === backend || p.id === backend);
+    const match = providerList.find((p) => p.platform === normalizedBackend || p.id === normalizedBackend);
     if (match) {
       const useModel = preferredModelId || match.useModel || 'auto';
       return { ...match, useModel } as TProviderWithModel;
@@ -408,16 +411,17 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
     // Fallback: return first available provider
     if (providerList.length > 0) {
-      const useModel = preferredModelId || providerList[0].useModel || 'auto';
-      return { ...providerList[0], useModel } as TProviderWithModel;
+      const fallbackProvider = providerList[0];
+      const useModel = preferredModelId || fallbackProvider.useModel || 'auto';
+      return { ...fallbackProvider, useModel } as TProviderWithModel;
     }
 
     // Last resort placeholder
     return {
-      id: `${backend}-fallback`,
-      name: backend,
+      id: `${normalizedBackend}-fallback`,
+      name: normalizedBackend,
       useModel: preferredModelId || 'auto',
-      platform: backend,
+      platform: normalizedBackend,
       baseUrl: '',
       apiKey: '',
     } as TProviderWithModel;
@@ -489,17 +493,18 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
         const latestConv = await convService.getConversation(childConversations[0].id);
         if (latestConv) {
           const config = job.metadata.agentConfig!;
+          const normalizedBackend = normalizeCronBackend(config.backend);
           const extra = latestConv.extra as Record<string, unknown> | undefined;
           const convBackend = extra?.backend as string | undefined;
           const configWorkspace = config.workspace || '';
           // Compare against cronWorkspace (what was configured), not workspace
           // (which may be overwritten by agent runtime, e.g. codex temp dir).
           const prevCronWorkspace = (extra?.cronWorkspace as string | undefined) ?? '';
-          const agentChanged = convBackend !== config.backend;
+          const agentChanged = convBackend !== normalizedBackend;
           const workspaceChanged = prevCronWorkspace !== configWorkspace;
 
           console.log(
-            `[CronExecutor] resolveConversation: convBackend=${convBackend}, configBackend=${config.backend}, agentChanged=${agentChanged}, prevCronWorkspace=${prevCronWorkspace}, configWorkspace=${configWorkspace}, workspaceChanged=${workspaceChanged}`
+            `[CronExecutor] resolveConversation: convBackend=${convBackend}, configBackend=${normalizedBackend}, agentChanged=${agentChanged}, prevCronWorkspace=${prevCronWorkspace}, configWorkspace=${configWorkspace}, workspaceChanged=${workspaceChanged}`
           );
 
           if (agentChanged || workspaceChanged) {
@@ -733,7 +738,6 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     };
 
     ipcBridge.conversation.responseStream.emit(message);
-    ipcBridge.geminiConversation.responseStream.emit(message);
     ipcBridge.acpConversation.responseStream.emit(message);
     ipcBridge.openclawConversation.responseStream.emit(message);
     console.log(`[CronExecutor] Emitted initial skill_suggest for job ${jobId}, conversation ${conversationId}`);
@@ -772,7 +776,6 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       data: { cronJobId, cronJobName, triggeredAt },
     };
     ipcBridge.conversation.responseStream.emit(ipcMessage);
-    ipcBridge.geminiConversation.responseStream.emit(ipcMessage);
     ipcBridge.acpConversation.responseStream.emit(ipcMessage);
     ipcBridge.openclawConversation.responseStream.emit(ipcMessage);
   }
@@ -813,9 +816,9 @@ ${userPrompt}`;
 }
 
 /**
- * New-conversation mode WITHOUT a saved skill — Gemini variant.
+ * New-conversation mode WITHOUT a saved skill — Lok CLI variant.
  * Includes SKILL_SUGGEST.md instructions inline so everything happens in a single turn.
- * Gemini's fire-and-forget sendMessage makes multi-turn skill-suggest unreliable.
+ * Lok CLI's fire-and-forget sendMessage makes multi-turn skill-suggest unreliable.
  */
 function buildNewConvPromptWithSkillSuggest(taskName: string, scheduleDesc: string, userPrompt: string): string {
   return `[Scheduled Task Context]

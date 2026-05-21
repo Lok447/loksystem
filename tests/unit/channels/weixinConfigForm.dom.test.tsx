@@ -68,7 +68,7 @@ vi.mock('@/common/config/storage', () => ({
   ConfigStorage: { get: vi.fn(async () => undefined), set: vi.fn(async () => {}) },
 }));
 
-vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector', () => ({
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector', () => ({
   default: ({ label }: { label?: string }) => <div data-testid='model-selector'>{label}</div>,
 }));
 

@@ -39,6 +39,7 @@ import QwenLogo from '@/renderer/assets/logos/ai-china/qwen.svg';
  */
 const AGENT_LOGO_MAP = {
   aionrs: LokCliLogo,
+  auggie: LokCliLogo,
   claude: ClaudeLogo,
   gemini: GeminiLogo,
   qwen: QwenLogo,

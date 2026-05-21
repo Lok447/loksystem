@@ -10,8 +10,8 @@ import { channel, webui, type IWebUIStatus } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
-import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
-import { useGeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
+import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
+import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { Input, InputNumber, Message, Select, Switch } from '@arco-design/web-react';
 import { CheckOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -47,27 +47,25 @@ const BUILTIN_CHANNEL_TYPES = new Set(['lark', 'dingtalk', 'weixin', 'wecom']);
 const REMOVED_CHANNEL_TYPES = new Set(['telegram', 'slack', 'discord']);
 
 /**
- * Internal hook: wraps useGeminiModelSelection with ConfigStorage persistence
+ * Internal hook: wraps useAionrsModelSelection with ConfigStorage persistence
  * for a specific channel config key (e.g. 'assistant.lark.defaultModel').
  *
  * Restoration is done by resolving the saved model reference into a full
  * TProviderWithModel and passing it as `initialModel` — this avoids triggering
  * the onSelectModel callback (and its toast) on mount.
  */
-const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModelSelection => {
+const useChannelModelSelection = (configKey: ChannelModelConfigKey): AionrsModelSelection => {
   const { t } = useTranslation();
 
   // Resolve persisted model into a full TProviderWithModel for initialModel.
   // useModelProviderList is SWR-backed so the duplicate call inside
-  // useGeminiModelSelection is deduplicated automatically.
+  // useAionrsModelSelection is deduplicated automatically.
   const { providers } = useModelProviderList();
   const [resolvedInitialModel, setResolvedInitialModel] = useState<TProviderWithModel | undefined>(undefined);
   const [restored, setRestored] = useState(false);
   const retryCountRef = useRef(0);
 
-  // Cap retries to prevent infinite re-runs when a saved provider ID is stale
-  // (e.g. provider deleted, or agent switched to a non-gemini backend).
-  // The Google Auth provider typically loads within 1-2 SWR cycles, so 5 is generous.
+  // Cap retries to prevent infinite re-runs when a saved provider ID is stale.
   const MAX_RESTORE_RETRIES = 5;
 
   useEffect(() => {
@@ -97,8 +95,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
         // Google Auth provider's model array only contains top-level modes
         // ('auto', 'auto-gemini-2.5', 'manual'), but sub-model values like
         // 'gemini-2.5-flash' are also valid — skip strict membership check.
-        const isGoogleAuth = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
-        if (isGoogleAuth || provider.model?.includes(saved.useModel)) {
+        if (provider.model?.includes(saved.useModel)) {
           setResolvedInitialModel({
             ...provider,
             useModel: saved.useModel,
@@ -137,7 +134,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
               customAgentId?: string;
               name?: string;
             }) || {
-              backend: 'gemini',
+              backend: 'aionrs',
             },
             model: modelRef,
           })
@@ -154,7 +151,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
     [configKey, t]
   );
 
-  return useGeminiModelSelection({
+  return useAionrsModelSelection({
     initialModel: resolvedInitialModel,
     onSelectModel,
   });

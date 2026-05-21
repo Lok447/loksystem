@@ -171,8 +171,8 @@ describe('ActivitySnapshotBuilder', () => {
 
     const snapshot = await new ActivitySnapshotBuilder(repo, taskManager).build();
 
-    const geminiAgent = snapshot.agents.find((a) => a.backend === 'gemini');
-    expect(geminiAgent?.conversations).toBe(2);
+    const lokCliAgent = snapshot.agents.find((a) => a.backend === 'aionrs');
+    expect(lokCliAgent?.conversations).toBe(2);
     expect(snapshot.agents).toHaveLength(2);
   });
 

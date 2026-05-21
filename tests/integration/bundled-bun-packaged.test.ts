@@ -100,7 +100,14 @@ describe('Packaged bundled bun resources integrity', () => {
       expect(manifest.version).toBeTruthy();
       expect(manifest.cacheDir).toBeTruthy();
       expect(Array.isArray(manifest.files)).toBe(true);
-      expect(manifest.skipped).not.toBe(true);
+
+      if (manifest.skipped) {
+        expect(manifest.sourceType).toBe('none');
+        expect(manifest.files).toEqual([]);
+        expect(manifest.reason).toBeTruthy();
+        continue;
+      }
+
       expect(['cache', 'download']).toContain(manifest.sourceType);
 
       if (manifest.variant) {
@@ -145,7 +152,11 @@ describe('Packaged bundled bun resources integrity', () => {
 
       const manifest = JSON.parse(fs.readFileSync(baselineManifestPath, 'utf8')) as BundledBunManifest;
       expect(manifest.variant).toBe('baseline');
-      expect(manifest.skipped).not.toBe(true);
+      if (manifest.skipped) {
+        expect(manifest.sourceType).toBe('none');
+        expect(manifest.reason).toBeTruthy();
+        continue;
+      }
     }
   });
 });

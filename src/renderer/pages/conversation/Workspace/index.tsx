@@ -34,7 +34,7 @@ import { useWorkspaceModals } from './hooks/useWorkspaceModals';
 import { useWorkspacePaste } from './hooks/useWorkspacePaste';
 import { useWorkspaceSearch } from './hooks/useWorkspaceSearch';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
-import type { WorkspaceProps, WorkspaceTab } from './types';
+import { normalizeWorkspaceEventPrefix, type WorkspaceProps, type WorkspaceTab } from './types';
 import {
   computeContextMenuPosition,
   extractNodeData,
@@ -48,7 +48,7 @@ import './workspace.css';
 const ChatWorkspace: React.FC<WorkspaceProps> = ({
   conversation_id,
   workspace,
-  eventPrefix = 'gemini',
+  eventPrefix = 'aionrs',
   messageApi: externalMessageApi,
   teamId,
 }) => {
@@ -56,6 +56,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { openPreview } = usePreviewContext();
+  const normalizedEventPrefix = normalizeWorkspaceEventPrefix(eventPrefix);
 
   // Message API setup
   const [internalMessageApi, messageContext] = Message.useMessage();
@@ -68,7 +69,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
   // Initialize all hooks
   const { isWorkspaceCollapsed, setIsWorkspaceCollapsed } = useWorkspaceCollapse();
-  const treeHook = useWorkspaceTree({ workspace, conversation_id, eventPrefix });
+  const treeHook = useWorkspaceTree({ workspace, conversation_id, eventPrefix: normalizedEventPrefix });
   const modalsHook = useWorkspaceModals();
   const pasteHook = useWorkspacePaste({
     conversationId: conversation_id,
@@ -95,7 +96,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
   const fileOpsHook = useWorkspaceFileOps({
     workspace,
-    eventPrefix,
+    eventPrefix: normalizedEventPrefix,
     messageApi,
     t,
     setFiles: treeHook.setFiles,
@@ -120,7 +121,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   // Setup events
   useWorkspaceEvents({
     conversation_id,
-    eventPrefix,
+    eventPrefix: normalizedEventPrefix,
     refreshWorkspace: treeHook.refreshWorkspace,
     clearSelection: treeHook.clearSelection,
     setFiles: treeHook.setFiles,
@@ -507,7 +508,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                       });
                     }
                   }
-                  emitter.emit(`${eventPrefix}.selected.file`, items);
+                  emitter.emit(`${normalizedEventPrefix}.selected.file`, items);
                 }}
                 onExpand={(keys) => {
                   treeHook.setExpandedKeys(keys);

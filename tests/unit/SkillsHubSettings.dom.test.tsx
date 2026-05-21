@@ -123,12 +123,12 @@ describe('SkillsHubSettings Component', () => {
       success: true,
       data: [
         {
-          name: 'Gemini CLI',
-          source: 'gemini',
-          path: '/home/gemini',
+          name: 'OpenCode',
+          source: 'opencode',
+          path: '/home/opencode',
           skills: [
-            { name: 'ExtSkill1', description: 'extdesc1', path: '/home/gemini/ext1' },
-            { name: 'ExtSkill2', description: 'extdesc2', path: '/home/gemini/ext2' },
+            { name: 'ExtSkill1', description: 'extdesc1', path: '/home/opencode/ext1' },
+            { name: 'ExtSkill2', description: 'extdesc2', path: '/home/opencode/ext2' },
           ],
         },
       ],
@@ -156,7 +156,7 @@ describe('SkillsHubSettings Component', () => {
     expect(screen.getByText('My Skills')).toBeInTheDocument();
 
     // Check external skills render
-    expect(screen.getByText('Gemini CLI')).toBeInTheDocument();
+    expect(screen.getByText('OpenCode')).toBeInTheDocument();
     expect(screen.getByText('ExtSkill1')).toBeInTheDocument();
 
     // Check my skills render
@@ -215,8 +215,32 @@ describe('SkillsHubSettings Component', () => {
     fireEvent.click(importButtons[0]);
 
     await waitFor(() => {
-      expect(mockImportSkillWithSymlink).toHaveBeenCalledWith({ skillPath: '/home/gemini/ext1' });
+      expect(mockImportSkillWithSymlink).toHaveBeenCalledWith({ skillPath: '/home/opencode/ext1' });
     });
+  });
+
+  it('should hide blocked external sources such as the removed Gemini backend', async () => {
+    mockDetectAndCountExternalSkills.mockResolvedValue({
+      success: true,
+      data: [
+        {
+          name: 'Legacy Gemini Source',
+          source: 'gemini',
+          path: '/home/gemini',
+          skills: [{ name: 'HiddenSkill', description: 'hidden', path: '/home/gemini/hidden-skill' }],
+        },
+      ],
+    });
+
+    render(<SkillsHubSettings />);
+
+    await waitFor(() => {
+      expect(mockDetectAndCountExternalSkills).toHaveBeenCalled();
+    });
+
+    expect(screen.queryByText('Legacy Gemini Source')).not.toBeInTheDocument();
+    expect(screen.queryByText('HiddenSkill')).not.toBeInTheDocument();
+    expect(screen.getByText('No supported external skill sources discovered')).toBeInTheDocument();
   });
 
   it('should call delete endpoint when deleting custom skill', async () => {

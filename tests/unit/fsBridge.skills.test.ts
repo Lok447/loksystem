@@ -352,7 +352,7 @@ describe('fsBridge skills functionality', () => {
 
   describe('detectAndCountExternalSkills', () => {
     it('should detect direct skills and nested skill packs from common and custom paths', async () => {
-      const geminiPath = path.resolve('/mock/home/.gemini/skills');
+      const globalAgentsPath = path.resolve('/mock/home/.agents/skills');
       const customSrcPath = path.resolve('/mock/my/custom/path');
 
       // Configure mock custom paths
@@ -361,20 +361,23 @@ describe('fsBridge skills functionality', () => {
       mockFsStore[workBase] = { isDirectory: true };
       mockFsStore[path.join(workBase, 'custom_external_skill_paths.json')] = { isDirectory: false }; // Let it use mockCustomExternalPaths
 
-      const yamlDirect1 = `---\nname: DirectGemini\ndescription: direct gemini skill\n---`;
-      const yamlNested1 = `---\nname: NestedGemini\n---`;
+      const yamlDirect1 = `---\nname: DirectBuiltin\ndescription: direct builtin skill\n---`;
+      const yamlNested1 = `---\nname: NestedBuiltin\n---`;
       const yamlCustom = `---\nname: CustomExtSkill\n---`;
 
-      // Setup Gemini direct skill
-      mockFsStore[geminiPath] = { isDirectory: true };
-      mockFsStore[path.join(geminiPath, 'direct-skill')] = { isDirectory: true };
-      mockFsStore[path.join(geminiPath, 'direct-skill', 'SKILL.md')] = { content: yamlDirect1, isDirectory: false };
+      // Setup Global Agents direct skill
+      mockFsStore[globalAgentsPath] = { isDirectory: true };
+      mockFsStore[path.join(globalAgentsPath, 'direct-skill')] = { isDirectory: true };
+      mockFsStore[path.join(globalAgentsPath, 'direct-skill', 'SKILL.md')] = {
+        content: yamlDirect1,
+        isDirectory: false,
+      };
 
-      // Setup Gemini nested skill pack
-      mockFsStore[path.join(geminiPath, 'pack-skill')] = { isDirectory: true };
-      mockFsStore[path.join(geminiPath, 'pack-skill', 'skills')] = { isDirectory: true };
-      mockFsStore[path.join(geminiPath, 'pack-skill', 'skills', 'nested-skill')] = { isDirectory: true };
-      mockFsStore[path.join(geminiPath, 'pack-skill', 'skills', 'nested-skill', 'SKILL.md')] = {
+      // Setup Global Agents nested skill pack
+      mockFsStore[path.join(globalAgentsPath, 'pack-skill')] = { isDirectory: true };
+      mockFsStore[path.join(globalAgentsPath, 'pack-skill', 'skills')] = { isDirectory: true };
+      mockFsStore[path.join(globalAgentsPath, 'pack-skill', 'skills', 'nested-skill')] = { isDirectory: true };
+      mockFsStore[path.join(globalAgentsPath, 'pack-skill', 'skills', 'nested-skill', 'SKILL.md')] = {
         content: yamlNested1,
         isDirectory: false,
       };
@@ -399,12 +402,12 @@ describe('fsBridge skills functionality', () => {
       expect(result.success, result.msg || JSON.stringify(result)).toBe(true);
       expect(Array.isArray(result.data)).toBe(true);
 
-      // Should find records for "Gemini CLI" and "My Custom Path" matching the valid files
-      const geminiGroup = result.data.find((d: any) => d.source === 'gemini');
-      expect(geminiGroup).toBeDefined();
-      expect(geminiGroup.skills).toHaveLength(2);
-      expect(geminiGroup.skills.some((s: any) => s.name === 'DirectGemini')).toBe(true);
-      expect(geminiGroup.skills.some((s: any) => s.name === 'NestedGemini')).toBe(true);
+      // Should find records for "Global Agents" and "My Custom Path" matching the valid files
+      const globalAgentsGroup = result.data.find((d: any) => d.source === 'global-agents');
+      expect(globalAgentsGroup).toBeDefined();
+      expect(globalAgentsGroup.skills).toHaveLength(2);
+      expect(globalAgentsGroup.skills.some((s: any) => s.name === 'DirectBuiltin')).toBe(true);
+      expect(globalAgentsGroup.skills.some((s: any) => s.name === 'NestedBuiltin')).toBe(true);
 
       const customGroup = result.data.find((d: any) => d.source.startsWith('custom-'));
       expect(customGroup).toBeDefined();

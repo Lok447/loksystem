@@ -10,7 +10,6 @@ import type { TChatConversation } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import { cronService } from './cron/cronServiceSingleton';
 import {
-  createGeminiAgent,
   createAcpAgent,
   createOpenClawAgent,
   createNanobotAgent,
@@ -126,21 +125,10 @@ export class ConversationServiceImpl implements IConversationService {
 
     switch (params.type) {
       case 'gemini': {
-        conversation = await createGeminiAgent(
-          params.model,
-          params.extra.workspace,
-          params.extra.defaultFiles as string[] | undefined,
-          params.extra.webSearchEngine,
-          params.extra.customWorkspace,
-          params.extra.contextFileName,
-          params.extra.presetRules,
-          params.extra.enabledSkills as string[] | undefined,
-          params.extra.presetAssistantId,
-          params.extra.sessionMode,
-          params.extra.isHealthCheck,
-          params.extra.extraSkillPaths as string[] | undefined,
-          params.extra.excludeBuiltinSkills as string[] | undefined
-        );
+        conversation = await createAionrsAgent({
+          ...params,
+          type: 'aionrs',
+        } as CreateConversationParams);
         break;
       }
       case 'acp': {

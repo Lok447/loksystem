@@ -1393,7 +1393,6 @@ export function initFsBridge(): void {
           name: 'Global Agents',
           path: path.join(homedir, '.agents', 'skills'),
         },
-        { name: 'Gemini CLI', path: path.join(homedir, '.gemini', 'skills') },
         { name: 'Claude Code', path: path.join(homedir, '.claude', 'skills') },
         {
           name: 'OpenCode',
@@ -1491,11 +1490,6 @@ export function initFsBridge(): void {
           name: 'Global Agents',
           path: path.join(homedir, '.agents', 'skills'),
           source: 'global-agents',
-        },
-        {
-          name: 'Gemini CLI',
-          path: path.join(homedir, '.gemini', 'skills'),
-          source: 'gemini',
         },
         {
           name: 'Claude Code',

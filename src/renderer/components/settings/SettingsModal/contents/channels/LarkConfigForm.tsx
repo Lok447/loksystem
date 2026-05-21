@@ -8,8 +8,8 @@ import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from 
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import { openExternalUrl } from '@/renderer/utils/platform';
-import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
-import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
+import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
+import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -52,7 +52,7 @@ const SectionHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ 
 
 interface LarkConfigFormProps {
   pluginStatus: IChannelPluginStatus | null;
-  modelSelection: GeminiModelSelection;
+  modelSelection: AionrsModelSelection;
   onStatusChange: (status: IChannelPluginStatus | null) => void;
 }
 
@@ -81,7 +81,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     Array<{ backend: string; name: string; customAgentId?: string; isPreset?: boolean }>
   >([]);
   const [selectedAgent, setSelectedAgent] = useState<{ backend: string; name?: string; customAgentId?: string }>({
-    backend: 'gemini',
+    backend: 'aionrs',
   });
 
   // Load pending pairings
@@ -146,12 +146,12 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
 
         if (saved && typeof saved === 'object' && 'backend' in saved && typeof (saved as any).backend === 'string') {
           setSelectedAgent({
-            backend: (saved as any).backend as string,
+            backend: ((saved as any).backend as string) === 'gemini' ? 'aionrs' : ((saved as any).backend as string),
             customAgentId: (saved as any).customAgentId,
             name: (saved as any).name,
           });
         } else if (typeof saved === 'string') {
-          setSelectedAgent({ backend: saved as string });
+          setSelectedAgent({ backend: saved === 'gemini' ? 'aionrs' : (saved as string) });
         }
       } catch (error) {
         console.error('[LarkConfig] Failed to load agents:', error);
@@ -341,7 +341,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   };
 
   const hasExistingUsers = authorizedUsers.length > 0;
-  const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
+  const isGeminiAgent = selectedAgent.backend === 'aionrs';
   const agentOptions: Array<{ backend: string; name: string; customAgentId?: string; isExtension?: boolean }> =
     availableAgents.length > 0 ? availableAgents : [{ backend: 'hermes', name: 'Lok CLI' }];
 
@@ -658,7 +658,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         label={t('settings.assistant.defaultModel', 'Default Model')}
         description={t('settings.lark.defaultModelDesc', 'Model used for Lark conversations')}
       >
-        <GeminiModelSelector
+        <AionrsModelSelector
           selection={isGeminiAgent ? modelSelection : undefined}
           disabled={!isGeminiAgent}
           label={

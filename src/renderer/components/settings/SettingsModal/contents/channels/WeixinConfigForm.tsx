@@ -7,8 +7,8 @@
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
-import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
-import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
+import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
+import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { Button, Dropdown, Empty, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -43,7 +43,7 @@ const SectionHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ 
 
 interface WeixinConfigFormProps {
   pluginStatus: IChannelPluginStatus | null;
-  modelSelection: GeminiModelSelection;
+  modelSelection: AionrsModelSelection;
   onStatusChange: (status: IChannelPluginStatus | null) => void;
 }
 
@@ -79,7 +79,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     backend: string;
     name?: string;
     customAgentId?: string;
-  }>({ backend: 'gemini' });
+  }>({ backend: 'aionrs' });
 
   // Close EventSource on unmount to prevent connection leaks.
   useEffect(() => {
@@ -233,7 +233,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
         ) {
           const s = saved as { backend: string; customAgentId?: string; name?: string };
           setSelectedAgent({
-            backend: s.backend,
+            backend: s.backend === 'gemini' ? 'aionrs' : s.backend,
             customAgentId: s.customAgentId,
             name: s.name,
           });
@@ -371,7 +371,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     }
   };
 
-  const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
+  const isGeminiAgent = selectedAgent.backend === 'aionrs';
   const agentOptions: Array<{
     backend: string;
     name: string;
@@ -530,7 +530,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
         label={t('settings.assistant.defaultModel', 'Default Model')}
         description={t('settings.weixin.defaultModelDesc', 'Model used for WeChat conversations')}
       >
-        <GeminiModelSelector
+        <AionrsModelSelector
           selection={isGeminiAgent ? modelSelection : undefined}
           disabled={!isGeminiAgent}
           label={

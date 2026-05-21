@@ -482,8 +482,8 @@ LokSystem는 **무료 오픈소스 Multi-AI Agent 데스크톱**입니다. macOS
 ## 빠른 질문과 답변
 
 <details>
-<summary><strong>Q: 먼저 Gemini CLI나 Claude Code를 설치해야 하나요?</strong></summary>
-A: <strong>아니요.</strong> LokSystem는 설치 후 즉시 작동하는 내장 AI Agent가 있습니다. Google로 로그인하거나 API 키를 입력하기만 하면 됩니다. Claude Code나 Gemini CLI와 같은 CLI 도구도 설치되어 있다면, LokSystem가 자동으로 감지하고 통합하여 더 많은 기능을 제공합니다.
+<summary><strong>Q: 먼저 추가 CLI 도구를 설치해야 하나요?</strong></summary>
+A: <strong>아니요.</strong> LokSystem는 설치 후 즉시 작동하는 내장 AI Agent가 있습니다. Google로 로그인하거나 API 키를 입력하기만 하면 됩니다. Claude Code, Codex, Qwen Code 같은 지원되는 CLI 도구도 설치되어 있다면, LokSystem가 자동으로 감지하고 통합하여 더 많은 기능을 제공합니다.
 </details>
 
 <details>
