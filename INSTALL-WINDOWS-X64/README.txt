@@ -7,11 +7,11 @@ Primary download channel:
 - GitHub Releases: https://github.com/Lok447/loksystem/releases
 
 Current version:
-- v1.9.25
+- v1.9.26
 
 Expected release assets:
-- LokSystem-1.9.25-win-x64.exe
-- LokSystem-1.9.25-win-x64.zip
+- LokSystem-1.9.26-win-x64.exe
+- LokSystem-1.9.26-win-x64.zip
 
 If you build locally, the generated files are usually under:
 - out/
