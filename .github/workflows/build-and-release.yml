@@ -11,6 +11,7 @@ on:
     branches: [dev]
     tags:
       - '*'
+  workflow_dispatch:
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
