@@ -14,11 +14,7 @@ const SystemSettings: React.FC = () => {
   const location = useLocation();
   const isAboutPage = location.pathname === '/settings/about';
 
-  return (
-    <SettingsPageWrapper contentClassName={isAboutPage ? 'max-w-640px' : undefined}>
-      {isAboutPage ? <AboutModalContent /> : <SystemModalContent />}
-    </SettingsPageWrapper>
-  );
+  return <SettingsPageWrapper>{isAboutPage ? <AboutModalContent /> : <SystemModalContent />}</SettingsPageWrapper>;
 };
 
 export default SystemSettings;
