@@ -5,14 +5,16 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import path from 'node:path';
 
 vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
 
-const handlers: Record<string, (...args: any[]) => any> = {};
+type MockHandler = (...args: unknown[]) => unknown;
+const handlers: Record<string, MockHandler> = {};
 
 function makeChannel(name: string) {
   return {
-    provider: vi.fn((fn: (...args: any[]) => any) => {
+    provider: vi.fn((fn: MockHandler) => {
       handlers[name] = fn;
     }),
     emit: vi.fn(),
@@ -170,7 +172,7 @@ describe('channelBridge', () => {
             extensionMeta: expect.objectContaining({
               extensionName: 'Demo Extension',
               description: 'Demo extension channel',
-              icon: 'asset://C:\\tmp\\ext\\icon.svg',
+              icon: `asset://${path.resolve('/tmp/ext', 'icon.svg')}`,
             }),
           }),
         ])

@@ -18,10 +18,12 @@ Object.defineProperty(window, 'matchMedia', {
 
 const mockOpenExternalUrl = vi.fn(() => Promise.resolve());
 
-const MockButton = ({
+function MockButton({
   children,
   onClick,
-}: React.PropsWithChildren<{ onClick?: () => void }>) => <button onClick={onClick}>{children}</button>;
+}: React.PropsWithChildren<{ onClick?: () => void }>) {
+  return <button onClick={onClick}>{children}</button>;
+}
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
