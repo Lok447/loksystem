@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
@@ -10,22 +10,32 @@
     />
     <style>
       :root {
-        --bg: #f5f7fa;
-        --surface: #ffffff;
-        --surface-alt: #f8fafc;
-        --border: #e5e7eb;
-        --border-strong: #d9dee7;
-        --text: #111827;
-        --text-secondary: #4b5563;
-        --text-tertiary: #6b7280;
+        --bg: #f2f6fc;
+        --bg-soft: #f7fafe;
+        --surface: rgba(255, 255, 255, 0.88);
+        --surface-strong: rgba(255, 255, 255, 0.96);
+        --surface-dark: #0f172a;
+        --surface-dark-2: #162033;
+        --border: rgba(148, 163, 184, 0.18);
+        --border-strong: rgba(148, 163, 184, 0.28);
+        --text: #0f172a;
+        --text-secondary: #475569;
+        --text-tertiary: #64748b;
+        --text-light: rgba(255, 255, 255, 0.84);
         --primary: #2563eb;
-        --primary-soft: rgba(37, 99, 235, 0.1);
-        --success: #0f766e;
-        --shadow: 0 12px 36px rgba(15, 23, 42, 0.06);
-        --radius-lg: 20px;
-        --radius-md: 14px;
-        --radius-sm: 10px;
-        --max-width: 1160px;
+        --primary-strong: #1d4ed8;
+        --primary-soft: rgba(37, 99, 235, 0.12);
+        --accent: #0f766e;
+        --shadow-xl: 0 34px 96px rgba(15, 23, 42, 0.11);
+        --shadow-lg: 0 24px 64px rgba(15, 23, 42, 0.08);
+        --shadow-md: 0 16px 40px rgba(15, 23, 42, 0.06);
+        --shadow-sm: 0 10px 24px rgba(15, 23, 42, 0.05);
+        --radius-2xl: 36px;
+        --radius-xl: 28px;
+        --radius-lg: 22px;
+        --radius-md: 18px;
+        --radius-sm: 14px;
+        --max-width: 1180px;
       }
 
       * {
@@ -39,8 +49,23 @@
       body {
         margin: 0;
         font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-        background: linear-gradient(180deg, #f8fafc 0%, #f5f7fa 100%);
         color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 28%),
+          radial-gradient(circle at 86% 16%, rgba(15, 118, 110, 0.1), transparent 18%),
+          linear-gradient(180deg, #fbfdff 0%, #f5f8fd 34%, var(--bg) 100%);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+        background-size: 36px 36px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.34), transparent 84%);
       }
 
       a {
@@ -53,19 +78,49 @@
         max-width: 100%;
       }
 
+      .shell {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .shell::before,
+      .shell::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        filter: blur(50px);
+        pointer-events: none;
+      }
+
+      .shell::before {
+        top: 120px;
+        left: -140px;
+        width: 280px;
+        height: 280px;
+        background: rgba(37, 99, 235, 0.12);
+      }
+
+      .shell::after {
+        top: 420px;
+        right: -120px;
+        width: 340px;
+        height: 340px;
+        background: rgba(15, 118, 110, 0.08);
+      }
+
       .site-header {
         position: sticky;
         top: 0;
-        z-index: 20;
-        backdrop-filter: blur(14px);
-        background: rgba(245, 247, 250, 0.88);
-        border-bottom: 1px solid rgba(217, 222, 231, 0.7);
+        z-index: 40;
+        backdrop-filter: blur(16px);
+        background: rgba(242, 246, 252, 0.8);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
       }
 
       .header-inner,
       .section,
       .footer-inner {
-        width: min(calc(100% - 32px), var(--max-width));
+        width: min(calc(100% - 36px), var(--max-width));
         margin: 0 auto;
       }
 
@@ -85,12 +140,12 @@
       }
 
       .brand-mark {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: #fff;
-        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(255, 255, 255, 0.95);
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
         overflow: hidden;
         flex-shrink: 0;
       }
@@ -99,6 +154,7 @@
         display: block;
         font-size: 18px;
         line-height: 1.2;
+        letter-spacing: -0.02em;
       }
 
       .brand-copy span {
@@ -106,71 +162,96 @@
         margin-top: 2px;
         color: var(--text-secondary);
         font-size: 12px;
-        line-height: 1.4;
+        line-height: 1.45;
       }
 
       .nav {
         display: flex;
         flex-wrap: wrap;
         justify-content: flex-end;
-        gap: 14px;
+        gap: 10px;
       }
 
       .nav a {
+        padding: 8px 12px;
+        border-radius: 999px;
         color: var(--text-secondary);
-        font-size: 14px;
-        line-height: 1.5;
+        font-size: 13px;
+        line-height: 1.4;
+        transition: background-color 0.2s ease, color 0.2s ease;
       }
 
       .nav a:hover {
+        background: rgba(255, 255, 255, 0.84);
         color: var(--text);
       }
 
       .hero {
-        padding: 56px 0 24px;
+        padding: 34px 0 18px;
       }
 
       .hero-card {
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
-        border: 1px solid var(--border);
-        border-radius: 28px;
-        box-shadow: var(--shadow);
-        padding: 40px;
+        position: relative;
+        overflow: hidden;
+        padding: 44px;
+        border-radius: var(--radius-2xl);
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        background:
+          linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(247, 250, 255, 0.9)),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.42));
+        box-shadow: var(--shadow-xl);
+      }
+
+      .hero-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at right top, rgba(37, 99, 235, 0.18), transparent 24%),
+          radial-gradient(circle at 24% 74%, rgba(15, 118, 110, 0.12), transparent 16%);
+        pointer-events: none;
       }
 
       .eyebrow {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 6px 12px;
+        min-height: 34px;
+        padding: 0 14px;
         border-radius: 999px;
-        background: var(--primary-soft);
-        color: var(--primary);
-        font-size: 13px;
-        font-weight: 600;
+        border: 1px solid rgba(37, 99, 235, 0.16);
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--primary-strong);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
       .hero-grid {
+        position: relative;
+        z-index: 1;
         display: grid;
-        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.9fr);
-        gap: 28px;
-        margin-top: 20px;
+        grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+        gap: 30px;
+        margin-top: 22px;
         align-items: stretch;
       }
 
-      .hero h1 {
-        margin: 18px 0 14px;
-        font-size: clamp(34px, 4vw, 52px);
-        line-height: 1.14;
-        letter-spacing: -0.03em;
+      .hero-copy h1 {
+        margin: 18px 0 16px;
+        max-width: 760px;
+        font-size: clamp(40px, 4.2vw, 66px);
+        line-height: 1.02;
+        letter-spacing: -0.05em;
       }
 
-      .hero p {
+      .hero-copy p {
         margin: 0;
-        max-width: 720px;
-        font-size: 16px;
-        line-height: 1.8;
+        max-width: 710px;
         color: var(--text-secondary);
+        font-size: 16px;
+        line-height: 1.9;
       }
 
       .hero-actions {
@@ -184,13 +265,13 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 44px;
+        min-height: 46px;
         padding: 0 18px;
-        border-radius: 12px;
+        border-radius: 14px;
         border: 1px solid transparent;
         font-size: 14px;
         font-weight: 600;
-        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
       }
 
       .button:hover {
@@ -198,95 +279,285 @@
       }
 
       .button-primary {
-        background: var(--text);
+        background: linear-gradient(135deg, #101828 0%, #1e293b 100%);
         color: #fff;
-        box-shadow: 0 12px 24px rgba(17, 24, 39, 0.14);
+        box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
       }
 
       .button-secondary {
-        background: #fff;
+        background: rgba(255, 255, 255, 0.88);
+        border-color: rgba(148, 163, 184, 0.24);
         color: var(--text);
-        border-color: var(--border-strong);
       }
 
-      .hero-panel,
+      .hero-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .metric {
+        padding: 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        background: rgba(255, 255, 255, 0.74);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 24px;
+        line-height: 1.1;
+        letter-spacing: -0.04em;
+      }
+
+      .metric span {
+        display: block;
+        margin-top: 8px;
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .product-stage,
       .card,
       .compare-table,
       .faq-item,
       .quick-step,
-      .footer-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
+      .footer-card,
+      .story-card,
+      .panel-card,
+      .track-card {
         border-radius: var(--radius-lg);
-        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+        background: var(--surface);
+        backdrop-filter: blur(12px);
+        box-shadow: var(--shadow-lg);
       }
 
-      .hero-panel {
-        padding: 22px;
+      .product-stage {
+        position: relative;
+        overflow: hidden;
+        padding: 18px;
+        background:
+          linear-gradient(180deg, rgba(13, 23, 42, 0.98), rgba(18, 32, 51, 0.96)),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #fff;
       }
 
-      .hero-panel h2,
-      .section-header h2 {
+      .product-stage::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 10% 14%, rgba(37, 99, 235, 0.22), transparent 26%),
+          radial-gradient(circle at 90% 20%, rgba(15, 118, 110, 0.18), transparent 18%);
+        pointer-events: none;
+      }
+
+      .stage-topbar {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .window-dots {
+        display: flex;
+        gap: 6px;
+      }
+
+      .window-dots span {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.35);
+      }
+
+      .stage-label {
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .stage-grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 1.25fr 0.95fr;
+        gap: 14px;
+      }
+
+      .stage-main,
+      .stage-side {
+        display: grid;
+        gap: 14px;
+      }
+
+      .stage-card {
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      }
+
+      .stage-chat {
+        padding: 18px;
+      }
+
+      .stage-chat h2,
+      .stage-card h3 {
         margin: 0;
-        font-size: 22px;
-        line-height: 1.3;
+        font-size: 15px;
+        line-height: 1.5;
+        color: #fff;
       }
 
-      .hero-panel ul {
+      .stage-chat p,
+      .stage-card p,
+      .stage-list li,
+      .stage-mini li {
+        color: var(--text-light);
+        font-size: 13px;
+        line-height: 1.75;
+      }
+
+      .terminal-block {
+        margin-top: 14px;
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(3, 7, 18, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        font-family: "Consolas", "SFMono-Regular", monospace;
+        font-size: 12px;
+        line-height: 1.8;
+        color: rgba(255, 255, 255, 0.82);
+        white-space: pre-line;
+      }
+
+      .stage-list,
+      .stage-mini {
         list-style: none;
         padding: 0;
-        margin: 18px 0 0;
+        margin: 0;
         display: grid;
-        gap: 12px;
+        gap: 10px;
       }
 
-      .hero-panel li {
-        display: flex;
-        gap: 12px;
-        align-items: flex-start;
-        color: var(--text-secondary);
+      .stage-side .stage-card {
+        padding: 16px;
+      }
+
+      .stage-side .stage-card strong {
+        display: block;
+        color: #fff;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .stage-side .stage-card p {
+        margin: 8px 0 0;
+      }
+
+      .stage-board {
+        padding: 18px;
+      }
+
+      .board-columns {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .board-column {
+        padding: 12px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .board-column span {
+        display: block;
+        color: rgba(255, 255, 255, 0.56);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .board-column p {
+        margin: 10px 0 0;
+      }
+
+      .floating-note {
+        position: absolute;
+        right: 22px;
+        bottom: 22px;
+        max-width: 210px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(12px);
+        font-size: 12px;
         line-height: 1.7;
-      }
-
-      .bullet {
-        width: 10px;
-        height: 10px;
-        margin-top: 9px;
-        border-radius: 999px;
-        background: var(--primary);
-        flex-shrink: 0;
+        color: rgba(255, 255, 255, 0.76);
+        box-shadow: 0 18px 40px rgba(2, 6, 23, 0.22);
       }
 
       .section {
-        padding: 24px 0;
+        position: relative;
+        padding: 22px 0;
       }
 
       .section-header {
         display: flex;
         align-items: flex-end;
         justify-content: space-between;
-        gap: 16px;
+        gap: 18px;
         margin-bottom: 18px;
       }
 
-      .section-header p {
-        margin: 8px 0 0;
-        max-width: 760px;
-        color: var(--text-secondary);
-        line-height: 1.75;
+      .section-header h2 {
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.3;
+        letter-spacing: -0.03em;
       }
 
-      .intro-grid,
+      .section-header p {
+        margin: 10px 0 0;
+        max-width: 760px;
+        color: var(--text-secondary);
+        line-height: 1.85;
+        font-size: 15px;
+      }
+
+      .story-grid,
       .feature-grid,
       .scenario-grid,
       .quick-grid,
-      .footer-grid {
+      .footer-grid,
+      .capability-grid {
         display: grid;
         gap: 16px;
       }
 
-      .intro-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+      .story-grid {
+        grid-template-columns: 1.25fr 1fr 1fr;
+      }
+
+      .capability-grid {
+        grid-template-columns: 1.15fr 0.85fr;
       }
 
       .feature-grid {
@@ -302,31 +573,94 @@
       }
 
       .footer-grid {
-        grid-template-columns: 1.2fr 0.9fr 0.9fr;
+        grid-template-columns: 1.25fr 0.9fr 0.9fr;
       }
 
+      .story-card,
       .card,
       .quick-step,
-      .footer-card {
+      .footer-card,
+      .track-card {
         padding: 22px;
       }
 
-      .card h3,
-      .quick-step h3,
-      .footer-card h3 {
-        margin: 0 0 10px;
-        font-size: 18px;
-        line-height: 1.4;
+      .story-card.featured {
+        padding: 26px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(244, 248, 255, 0.93));
       }
 
+      .story-kicker {
+        color: var(--primary-strong);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .story-card h3,
+      .card h3,
+      .quick-step h3,
+      .footer-card h3,
+      .track-card h3 {
+        margin: 0 0 10px;
+        font-size: 19px;
+        line-height: 1.42;
+        letter-spacing: -0.02em;
+      }
+
+      .story-card p,
       .card p,
       .quick-step p,
       .footer-card p,
-      .footer-card li {
+      .footer-card li,
+      .track-card p {
         margin: 0;
         color: var(--text-secondary);
-        line-height: 1.75;
+        line-height: 1.8;
         font-size: 14px;
+      }
+
+      .story-points,
+      .timeline,
+      .footer-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 16px 0 0;
+        display: grid;
+        gap: 10px;
+      }
+
+      .story-points li,
+      .timeline li,
+      .footer-card li {
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.8;
+      }
+
+      .story-points li strong,
+      .timeline li strong {
+        color: var(--text);
+      }
+
+      .track-list {
+        display: grid;
+        gap: 14px;
+      }
+
+      .track-card {
+        background: rgba(255, 255, 255, 0.8);
+      }
+
+      .track-card small,
+      .quick-step small {
+        display: inline-block;
+        margin-bottom: 12px;
+        color: var(--primary-strong);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
       .tag-row {
@@ -339,8 +673,8 @@
       .tag {
         padding: 7px 10px;
         border-radius: 999px;
-        background: var(--surface-alt);
-        border: 1px solid var(--border);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(248, 250, 252, 0.88);
         color: var(--text-secondary);
         font-size: 12px;
       }
@@ -356,16 +690,16 @@
 
       th,
       td {
-        padding: 16px 18px;
+        padding: 18px;
         text-align: left;
-        border-bottom: 1px solid var(--border);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
         vertical-align: top;
         font-size: 14px;
-        line-height: 1.7;
+        line-height: 1.8;
       }
 
       thead th {
-        background: #f8fafc;
+        background: rgba(248, 250, 252, 0.88);
         color: var(--text);
         font-size: 13px;
         font-weight: 700;
@@ -386,7 +720,6 @@
       }
 
       .faq-item {
-        padding: 0;
         overflow: hidden;
       }
 
@@ -394,6 +727,7 @@
         cursor: pointer;
         list-style: none;
         padding: 18px 22px;
+        font-size: 15px;
         font-weight: 600;
       }
 
@@ -405,27 +739,12 @@
         margin: 0;
         padding: 0 22px 20px;
         color: var(--text-secondary);
-        line-height: 1.8;
+        line-height: 1.85;
         font-size: 14px;
       }
 
       .footer {
-        padding: 24px 0 48px;
-      }
-
-      .footer-card ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: grid;
-        gap: 10px;
-      }
-
-      .footer-note {
-        margin-top: 18px;
-        color: var(--text-tertiary);
-        font-size: 13px;
-        line-height: 1.8;
+        padding: 18px 0 52px;
       }
 
       .foot-links {
@@ -435,18 +754,32 @@
         margin-top: 16px;
       }
 
-      @media (max-width: 1080px) {
+      .footer-note {
+        margin-top: 18px;
+        color: var(--text-tertiary);
+        font-size: 13px;
+        line-height: 1.8;
+      }
+
+      @media (max-width: 1120px) {
         .hero-grid,
-        .intro-grid,
+        .story-grid,
         .feature-grid,
         .scenario-grid,
         .quick-grid,
-        .footer-grid {
+        .footer-grid,
+        .capability-grid,
+        .stage-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .board-columns,
+        .hero-metrics {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
       }
 
-      @media (max-width: 720px) {
+      @media (max-width: 820px) {
         .header-inner {
           align-items: flex-start;
           flex-direction: column;
@@ -457,26 +790,36 @@
         }
 
         .hero {
-          padding-top: 28px;
+          padding-top: 24px;
         }
 
         .hero-card {
           padding: 24px;
-          border-radius: 22px;
+          border-radius: 24px;
         }
 
         .hero-grid,
-        .intro-grid,
+        .story-grid,
         .feature-grid,
         .scenario-grid,
         .quick-grid,
-        .footer-grid {
+        .footer-grid,
+        .capability-grid,
+        .hero-metrics,
+        .stage-grid,
+        .board-columns {
           grid-template-columns: 1fr;
+        }
+
+        .floating-note {
+          position: static;
+          margin-top: 14px;
+          max-width: none;
         }
 
         .section,
         .footer {
-          padding: 18px 0;
+          padding: 16px 0;
         }
 
         th,
@@ -487,318 +830,416 @@
     </style>
   </head>
   <body>
-    <header class="site-header">
-      <div class="header-inner">
-        <a class="brand" href="#top">
-          <span class="brand-mark"><img src="./lok.png" alt="LokSystem Logo" /></span>
-          <span class="brand-copy">
-            <strong>LokSystem</strong>
-            <span>AI 原生协同平台</span>
-          </span>
-        </a>
-        <nav class="nav">
-          <a href="#overview">整体介绍</a>
-          <a href="#features">功能特性</a>
-          <a href="#scenarios">使用场景</a>
-          <a href="#compare">产品对比</a>
-          <a href="#quickstart">快速开始</a>
-          <a href="#faq">常见问题</a>
-        </nav>
-      </div>
-    </header>
+    <div class="shell">
+      <header class="site-header">
+        <div class="header-inner">
+          <a class="brand" href="#top">
+            <span class="brand-mark"><img src="./lok.png" alt="LokSystem Logo" /></span>
+            <span class="brand-copy">
+              <strong>LokSystem</strong>
+              <span>AI 原生协同平台</span>
+            </span>
+          </a>
+          <nav class="nav">
+            <a href="#overview">整体介绍</a>
+            <a href="#features">功能特性</a>
+            <a href="#scenarios">使用场景</a>
+            <a href="#compare">产品对比</a>
+            <a href="#quickstart">快速开始</a>
+            <a href="#faq">常见问题</a>
+          </nav>
+        </div>
+      </header>
 
-    <main id="top">
-      <section class="section hero">
-        <div class="hero-card section">
-          <span class="eyebrow">AI Native Collaboration Platform</span>
-          <div class="hero-grid">
-            <div>
-              <h1>把本地工作区、智能体协作与企业交付，收束到同一个 LokSystem 工作台。</h1>
-              <p>
-                LokSystem 面向真实生产环境打造，不只是聊天入口，也不只是单一命令行代理。
-                它将本地 Agent 工作台、多 Agent 协同、远程 WebUI、企业渠道接入、Office 原生产出与 MCP 扩展整合为统一系统，
-                让个人与团队都能围绕同一工作空间持续推进任务、交付结果。
-              </p>
-              <div class="hero-actions">
-                <a class="button button-primary" href="#features">查看核心能力</a>
-                <a class="button button-secondary" href="#quickstart">快速开始</a>
-                <a class="button button-secondary" href="https://github.com/iOfficeAI/LokSystem" target="_blank" rel="noreferrer">GitHub 仓库</a>
+      <main id="top">
+        <section class="section hero">
+          <div class="hero-card">
+            <span class="eyebrow">AI Native Collaboration Platform</span>
+            <div class="hero-grid">
+              <div class="hero-copy">
+                <h1>把本地工作区、智能体协作与企业交付，收束到同一个 LokSystem 工作台。</h1>
+                <p>
+                  LokSystem 面向真实生产环境打造，不只是聊天入口，也不只是单一命令行代理。它将本地 Agent 工作台、多 Agent 协同、远程 WebUI、企业渠道接入、Office 原生产出与 MCP 扩展整合为统一系统，让个人与团队都能围绕同一工作空间持续推进任务、交付结果。
+                </p>
+                <div class="hero-actions">
+                  <a class="button button-primary" href="#features">查看核心能力</a>
+                  <a class="button button-secondary" href="#quickstart">快速开始</a>
+                  <a class="button button-secondary" href="https://github.com/iOfficeAI/LokSystem" target="_blank" rel="noreferrer">GitHub 仓库</a>
+                </div>
+                <div class="hero-metrics">
+                  <div class="metric">
+                    <strong>Workspace</strong>
+                    <span>围绕真实文件与任务上下文工作，而非孤立对话。</span>
+                  </div>
+                  <div class="metric">
+                    <strong>Multi-Agent</strong>
+                    <span>支持 Leader / Teammate 并行协作与结果回收。</span>
+                  </div>
+                  <div class="metric">
+                    <strong>Office Output</strong>
+                    <span>覆盖 PPT、Word、Excel、PDF 等生产级交付物。</span>
+                  </div>
+                </div>
               </div>
+
+              <aside class="product-stage">
+                <div class="stage-topbar">
+                  <div class="window-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                  <div class="stage-label">LokSystem Workspace Preview</div>
+                </div>
+
+                <div class="stage-grid">
+                  <div class="stage-main">
+                    <section class="stage-card stage-chat">
+                      <h2>统一工作台视角</h2>
+                      <p>在同一界面中查看任务、对话、文件、预览和多 Agent 进度，让工作推进更像一套完整系统，而不是一串零散回答。</p>
+                      <div class="terminal-block">leader@loksystem
+拆解需求 → 指派 Agent → 追踪进度
+
+task/1  改造官网页面与设置入口
+task/2  整理 Office 产物输出说明
+task/3  验证 WebUI 与远程访问链路
+
+status: 3 tasks running in parallel...</div>
+                    </section>
+
+                    <section class="stage-card stage-board">
+                      <h3>任务与产物并行推进</h3>
+                      <div class="board-columns">
+                        <div class="board-column">
+                          <span>Backlog</span>
+                          <p>需求梳理、资料归档、交付目标确认</p>
+                        </div>
+                        <div class="board-column">
+                          <span>Doing</span>
+                          <p>多 Agent 协同执行、代码修改、文档生成</p>
+                        </div>
+                        <div class="board-column">
+                          <span>Done</span>
+                          <p>HTML 页面、Office 产物、FAQ 与说明文档</p>
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+
+                  <div class="stage-side">
+                    <section class="stage-card">
+                      <strong>本地 Agent 工作台</strong>
+                      <p>围绕文件、任务、预览与对话展开，Agent 在真实目录中工作。</p>
+                    </section>
+                    <section class="stage-card">
+                      <strong>远程 WebUI + 企业渠道</strong>
+                      <p>支持 WebUI、微信、企微、飞书、钉钉等远程触达方式。</p>
+                    </section>
+                    <section class="stage-card">
+                      <strong>生产级交付</strong>
+                      <p>PPT、Word、Excel、PDF 与代码文件都能纳入统一交付链路。</p>
+                    </section>
+                  </div>
+                </div>
+
+                <div class="floating-note">
+                  不只是“会回答”的 AI 页面，而是更接近真实产品工作台的系统官网表达。
+                </div>
+              </aside>
             </div>
-            <aside class="hero-panel">
-              <h2>当前版本能力概览</h2>
-              <ul>
-                <li><span class="bullet"></span><span><strong>本地工作台：</strong>围绕文件、任务、预览与对话展开，Agent 在你的真实目录中工作。</span></li>
-                <li><span class="bullet"></span><span><strong>多 Agent 协同：</strong>支持 Leader / Teammate 分工、任务拆解、并行执行与结果回传。</span></li>
-                <li><span class="bullet"></span><span><strong>远程触达：</strong>支持 WebUI 与微信、企微、飞书、钉钉等渠道接入，便于移动端和异地访问。</span></li>
-                <li><span class="bullet"></span><span><strong>Office 交付：</strong>支持 PPT、Word、Excel、PDF 等原生产出与预览闭环。</span></li>
-                <li><span class="bullet"></span><span><strong>可扩展系统：</strong>统一管理 MCP、技能与工具链，降低多 Agent 配置成本。</span></li>
+          </div>
+        </section>
+
+        <section class="section" id="overview">
+          <div class="section-header">
+            <div>
+              <h2>整体介绍</h2>
+              <p>LokSystem 的定位是“AI 原生协同平台”，不是把更多模型堆在同一个对话框里，而是把任务、上下文、工具、产物与协作链路真正打通。</p>
+            </div>
+          </div>
+          <div class="story-grid">
+            <article class="story-card featured">
+              <div class="story-kicker">Platform Story</div>
+              <h3>从“会回答”进化为“会推进工作的系统”</h3>
+              <p>LokSystem 更关心完整工作流：谁在执行、在哪里执行、如何协同、如何预览结果、最终如何交付。这也是它区别于单纯 AI 聊天客户端的关键。</p>
+              <ul class="story-points">
+                <li><strong>统一工作区：</strong>同一目录、同一任务上下文、同一结果沉淀。</li>
+                <li><strong>统一操作面：</strong>对话、任务、文件、预览、远程访问整合到一个系统。</li>
+                <li><strong>统一交付链：</strong>从问题理解到最终文档、代码或汇报材料产出。</li>
               </ul>
+            </article>
+            <article class="story-card">
+              <h3>面向真实工作流</h3>
+              <p>从代码修改、资料整理、日报周报，到演示文稿、文档、表格与 PDF 交付，LokSystem 更强调完整链路，而非单轮回答。</p>
+            </article>
+            <article class="story-card">
+              <h3>面向协作而设计</h3>
+              <p>你可以把多个 Agent 放进同一工作空间，让它们分工、共享上下文、同步任务板，再由主 Agent 汇总结果并继续推进。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="features">
+          <div class="section-header">
+            <div>
+              <h2>功能特性</h2>
+              <p>围绕 LokSystem 当前项目能力，官网页按“系统能力模块”而不是营销话术进行组织，方便你快速理解它能做什么、适合谁用。</p>
+            </div>
+          </div>
+          <div class="feature-grid">
+            <article class="card">
+              <h3>本地 Agent 工作台</h3>
+              <p>Agent 直接围绕本地目录开展工作，支持文件读写、代码修改、资料整理、预览查看与任务持续跟进。</p>
+              <div class="tag-row">
+                <span class="tag">Workspace</span>
+                <span class="tag">File First</span>
+                <span class="tag">Preview</span>
+              </div>
+            </article>
+            <article class="card">
+              <h3>多 Agent 协同执行</h3>
+              <p>支持 Leader 统一拆解任务、调度 Teammate 并行工作，适合复杂需求拆分、多人协同与长链路执行。</p>
+              <div class="tag-row">
+                <span class="tag">Team Mode</span>
+                <span class="tag">Parallel</span>
+                <span class="tag">Mailbox</span>
+              </div>
+            </article>
+            <article class="card">
+              <h3>兼容多种 Agent 生态</h3>
+              <p>内置 Lok CLI，并可统一接入 Codex、OpenCode、Qwen Code、OpenClaw 等工作流，减少切换与重复配置。</p>
+              <div class="tag-row">
+                <span class="tag">Lok CLI</span>
+                <span class="tag">Codex</span>
+                <span class="tag">OpenClaw</span>
+              </div>
+            </article>
+            <article class="card">
+              <h3>远程 WebUI 与渠道接入</h3>
+              <p>除桌面端外，还支持浏览器端访问，并可接入微信、企微、飞书、钉钉等渠道，实现远程查看与协作触发。</p>
+              <div class="tag-row">
+                <span class="tag">WebUI</span>
+                <span class="tag">WeChat</span>
+                <span class="tag">Feishu / DingTalk</span>
+              </div>
+            </article>
+            <article class="card">
+              <h3>Office 原生产出</h3>
+              <p>面向 PPT、Word、Excel、PDF 等交付结果进行优化，不止生成文本，还强调产物质量、预览闭环与业务落地。</p>
+              <div class="tag-row">
+                <span class="tag">PPT</span>
+                <span class="tag">Word</span>
+                <span class="tag">Excel / PDF</span>
+              </div>
+            </article>
+            <article class="card">
+              <h3>MCP 与技能扩展</h3>
+              <p>统一配置工具、技能与 MCP 服务，一次接入即可在多 Agent 环境下复用，适合持续扩展能力边界。</p>
+              <div class="tag-row">
+                <span class="tag">MCP</span>
+                <span class="tag">Skills</span>
+                <span class="tag">Tooling</span>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="scenarios">
+          <div class="section-header">
+            <div>
+              <h2>使用场景</h2>
+              <p>LokSystem 适合那些“任务不是一句话就结束”的场景，特别适用于需要跨文件、跨工具、跨成员推进的业务流程。</p>
+            </div>
+          </div>
+          <div class="capability-grid">
+            <div class="scenario-grid">
+              <article class="card">
+                <h3>研发与交付</h3>
+                <p>代码分析、批量改造、测试验证、文档补全，由多个 Agent 分工协作，提高复杂项目处理效率。</p>
+              </article>
+              <article class="card">
+                <h3>运营与汇报</h3>
+                <p>整理资料、生成日报周报、制作汇报 PPT、补写方案与说明文档，输出更贴近最终可交付形态。</p>
+              </article>
+              <article class="card">
+                <h3>企业内外协同</h3>
+                <p>通过 WebUI 或企业常用渠道远程触达工作台，适用于移动审批、异地协作、外出跟进等场景。</p>
+              </article>
+              <article class="card">
+                <h3>长期任务托管</h3>
+                <p>把重复性任务、巡检、收集与持续生成类需求交给系统长期执行，减少人工盯守与跨工具切换。</p>
+              </article>
+            </div>
+            <aside class="track-list">
+              <article class="track-card">
+                <small>Usage Track</small>
+                <h3>个人工作台</h3>
+                <p>适合代码、写作、方案、报表与知识整理，强调高频、持续、可回看。</p>
+              </article>
+              <article class="track-card">
+                <small>Usage Track</small>
+                <h3>团队协作流</h3>
+                <p>适合多角色分工推进需求、远程同步状态、集中沉淀产物。</p>
+              </article>
+              <article class="track-card">
+                <small>Usage Track</small>
+                <h3>企业交付链</h3>
+                <p>适合把 Agent 与 Office 产物输出、渠道分发和流程管控真正连接起来。</p>
+              </article>
             </aside>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="section" id="overview">
-        <div class="section-header">
-          <div>
-            <h2>整体介绍</h2>
-            <p>LokSystem 的定位是“AI 原生协同平台”，不是把更多模型堆在同一个对话框里，而是把任务、上下文、工具、产物与协作链路真正打通。</p>
+        <section class="section" id="compare">
+          <div class="section-header">
+            <div>
+              <h2>产品对比</h2>
+              <p>如果把“AI 聊天工具”“单一 CLI Agent”和“LokSystem 协同平台”放在一起看，差异主要体现在工作空间、协作机制与交付闭环。</p>
+            </div>
           </div>
-        </div>
-        <div class="intro-grid">
-          <article class="card">
-            <h3>面向真实工作流</h3>
-            <p>从代码修改、资料整理、日报周报，到演示文稿、文档、表格与 PDF 交付，LokSystem 更强调完整链路，而非单轮回答。</p>
-          </article>
-          <article class="card">
-            <h3>面向协作而设计</h3>
-            <p>你可以把多个 Agent 放进同一工作空间，让它们分工、共享上下文、同步任务板，再由主 Agent 汇总结果并继续推进。</p>
-          </article>
-          <article class="card">
-            <h3>面向可控与可落地</h3>
-            <p>权限、预览、工具与交付物都在同一系统中可见。既适合个人深度使用，也适合团队内网或远程场景部署。</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="section" id="features">
-        <div class="section-header">
-          <div>
-            <h2>功能特性</h2>
-            <p>围绕 LokSystem 当前项目能力，官网页按“系统能力模块”而不是营销话术进行组织，方便你快速理解它能做什么、适合谁用。</p>
+          <div class="compare-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>对比项</th>
+                  <th>普通 AI 聊天工具</th>
+                  <th>单一 CLI Agent</th>
+                  <th>LokSystem</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>工作空间</td>
+                  <td>以对话为主，上下文依赖手动粘贴</td>
+                  <td>面向单终端会话</td>
+                  <td><span class="emphasis">围绕本地 Workspace 持续工作，文件、任务、预览同屏联动</span></td>
+                </tr>
+                <tr>
+                  <td>协作方式</td>
+                  <td>通常为单模型单线程</td>
+                  <td>通常为单 Agent 执行</td>
+                  <td><span class="emphasis">支持多 Agent 协同、任务拆解、并行推进与结果回收</span></td>
+                </tr>
+                <tr>
+                  <td>远程使用</td>
+                  <td>多为网页聊天入口</td>
+                  <td>依赖额外远控方案</td>
+                  <td><span class="emphasis">支持 WebUI + 微信 / 企微 / 飞书 / 钉钉等渠道触达</span></td>
+                </tr>
+                <tr>
+                  <td>交付物类型</td>
+                  <td>偏文本回答</td>
+                  <td>偏代码与终端输出</td>
+                  <td><span class="emphasis">兼顾代码、文档、表格、PPT、PDF 等生产级结果</span></td>
+                </tr>
+                <tr>
+                  <td>工具扩展</td>
+                  <td>能力边界固定</td>
+                  <td>各 Agent 常需单独配置</td>
+                  <td><span class="emphasis">统一管理 MCP、技能与工具链，复用配置更高效</span></td>
+                </tr>
+                <tr>
+                  <td>持续执行</td>
+                  <td>多为即时问答</td>
+                  <td>脚本化后可执行，但协作弱</td>
+                  <td><span class="emphasis">适合长任务、定时任务与持续推进型工作流</span></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </div>
-        <div class="feature-grid">
-          <article class="card">
-            <h3>本地 Agent 工作台</h3>
-            <p>Agent 直接围绕本地目录开展工作，支持文件读写、代码修改、资料整理、预览查看与任务持续跟进。</p>
-            <div class="tag-row">
-              <span class="tag">Workspace</span>
-              <span class="tag">File First</span>
-              <span class="tag">Preview</span>
-            </div>
-          </article>
-          <article class="card">
-            <h3>多 Agent 协同执行</h3>
-            <p>支持 Leader 统一拆解任务、调度 Teammate 并行工作，适合复杂需求拆分、多人协同与长链路执行。</p>
-            <div class="tag-row">
-              <span class="tag">Team Mode</span>
-              <span class="tag">Parallel</span>
-              <span class="tag">Mailbox</span>
-            </div>
-          </article>
-          <article class="card">
-            <h3>兼容多种 Agent 生态</h3>
-            <p>内置 Lok CLI，并可统一接入 Codex、OpenCode、Qwen Code、OpenClaw 等工作流，减少切换与重复配置。</p>
-            <div class="tag-row">
-              <span class="tag">Lok CLI</span>
-              <span class="tag">Codex</span>
-              <span class="tag">OpenClaw</span>
-            </div>
-          </article>
-          <article class="card">
-            <h3>远程 WebUI 与渠道接入</h3>
-            <p>除桌面端外，还支持浏览器端访问，并可接入微信、企微、飞书、钉钉等渠道，实现远程查看与协作触发。</p>
-            <div class="tag-row">
-              <span class="tag">WebUI</span>
-              <span class="tag">WeChat</span>
-              <span class="tag">Feishu / DingTalk</span>
-            </div>
-          </article>
-          <article class="card">
-            <h3>Office 原生产出</h3>
-            <p>面向 PPT、Word、Excel、PDF 等交付结果进行优化，不止生成文本，还强调产物质量、预览闭环与业务落地。</p>
-            <div class="tag-row">
-              <span class="tag">PPT</span>
-              <span class="tag">Word</span>
-              <span class="tag">Excel / PDF</span>
-            </div>
-          </article>
-          <article class="card">
-            <h3>MCP 与技能扩展</h3>
-            <p>统一配置工具、技能与 MCP 服务，一次接入即可在多 Agent 环境下复用，适合持续扩展能力边界。</p>
-            <div class="tag-row">
-              <span class="tag">MCP</span>
-              <span class="tag">Skills</span>
-              <span class="tag">Tooling</span>
-            </div>
-          </article>
-        </div>
-      </section>
+        </section>
 
-      <section class="section" id="scenarios">
-        <div class="section-header">
-          <div>
-            <h2>使用场景</h2>
-            <p>LokSystem 适合那些“任务不是一句话就结束”的场景，特别适用于需要跨文件、跨工具、跨成员推进的业务流程。</p>
+        <section class="section" id="quickstart">
+          <div class="section-header">
+            <div>
+              <h2>快速开始</h2>
+              <p>如果你第一次接触 LokSystem，可以先从四步跑通完整体验：打开工作台、选择 Agent、接入工具、产出结果。</p>
+            </div>
           </div>
-        </div>
-        <div class="scenario-grid">
-          <article class="card">
-            <h3>研发与交付</h3>
-            <p>代码分析、批量改造、测试验证、文档补全，由多个 Agent 分工协作，提高复杂项目处理效率。</p>
-          </article>
-          <article class="card">
-            <h3>运营与汇报</h3>
-            <p>整理资料、生成日报周报、制作汇报 PPT、补写方案与说明文档，输出更贴近最终可交付形态。</p>
-          </article>
-          <article class="card">
-            <h3>企业内外协同</h3>
-            <p>通过 WebUI 或企业常用渠道远程触达工作台，适用于移动审批、异地协作、外出跟进等场景。</p>
-          </article>
-          <article class="card">
-            <h3>长期任务托管</h3>
-            <p>把重复性任务、巡检、收集与持续生成类需求交给系统长期执行，减少人工盯守与跨工具切换。</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="section" id="compare">
-        <div class="section-header">
-          <div>
-            <h2>产品对比</h2>
-            <p>如果把“AI 聊天工具”“单一 CLI Agent”和“LokSystem 协同平台”放在一起看，差异主要体现在工作空间、协作机制与交付闭环。</p>
+          <div class="quick-grid">
+            <article class="quick-step">
+              <small>Step 01</small>
+              <h3>安装并启动</h3>
+              <p>启动 LokSystem 后，先熟悉系统设置、工作区与关于页入口，确认本地工作目录与基础环境。</p>
+            </article>
+            <article class="quick-step">
+              <small>Step 02</small>
+              <h3>选择协作方式</h3>
+              <p>可先使用内置 Lok CLI，也可根据需求接入 Codex、OpenCode、Qwen Code、OpenClaw 等已有 Agent 工作流。</p>
+            </article>
+            <article class="quick-step">
+              <small>Step 03</small>
+              <h3>配置能力扩展</h3>
+              <p>在设置中按需接入 MCP、技能、WebUI 或远程渠道，让 Agent 从对话能力扩展到真实执行能力。</p>
+            </article>
+            <article class="quick-step">
+              <small>Step 04</small>
+              <h3>开始交付任务</h3>
+              <p>从代码处理、资料整理、表格分析、PPT 生成等实际任务开始，逐步建立你的个人或团队工作流。</p>
+            </article>
           </div>
-        </div>
-        <div class="compare-table">
-          <table>
-            <thead>
-              <tr>
-                <th>对比项</th>
-                <th>普通 AI 聊天工具</th>
-                <th>单一 CLI Agent</th>
-                <th>LokSystem</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>工作空间</td>
-                <td>以对话为主，上下文依赖手动粘贴</td>
-                <td>面向单终端会话</td>
-                <td><span class="emphasis">围绕本地 Workspace 持续工作，文件、任务、预览同屏联动</span></td>
-              </tr>
-              <tr>
-                <td>协作方式</td>
-                <td>通常为单模型单线程</td>
-                <td>通常为单 Agent 执行</td>
-                <td><span class="emphasis">支持多 Agent 协同、任务拆解、并行推进与结果回收</span></td>
-              </tr>
-              <tr>
-                <td>远程使用</td>
-                <td>多为网页聊天入口</td>
-                <td>依赖额外远控方案</td>
-                <td><span class="emphasis">支持 WebUI + 微信 / 企微 / 飞书 / 钉钉等渠道触达</span></td>
-              </tr>
-              <tr>
-                <td>交付物类型</td>
-                <td>偏文本回答</td>
-                <td>偏代码与终端输出</td>
-                <td><span class="emphasis">兼顾代码、文档、表格、PPT、PDF 等生产级结果</span></td>
-              </tr>
-              <tr>
-                <td>工具扩展</td>
-                <td>能力边界固定</td>
-                <td>各 Agent 常需单独配置</td>
-                <td><span class="emphasis">统一管理 MCP、技能与工具链，复用配置更高效</span></td>
-              </tr>
-              <tr>
-                <td>持续执行</td>
-                <td>多为即时问答</td>
-                <td>脚本化后可执行，但协作弱</td>
-                <td><span class="emphasis">适合长任务、定时任务与持续推进型工作流</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+        </section>
 
-      <section class="section" id="quickstart">
-        <div class="section-header">
-          <div>
-            <h2>快速开始</h2>
-            <p>如果你第一次接触 LokSystem，可以先从四步跑通完整体验：打开工作台、选择 Agent、接入工具、产出结果。</p>
-          </div>
-        </div>
-        <div class="quick-grid">
-          <article class="quick-step">
-            <h3>01 安装并启动</h3>
-            <p>启动 LokSystem 后，先熟悉系统设置、工作区与关于页入口，确认本地工作目录与基础环境。</p>
-          </article>
-          <article class="quick-step">
-            <h3>02 选择协作方式</h3>
-            <p>可先使用内置 Lok CLI，也可根据需求接入 Codex、OpenCode、Qwen Code、OpenClaw 等已有 Agent 工作流。</p>
-          </article>
-          <article class="quick-step">
-            <h3>03 配置能力扩展</h3>
-            <p>在设置中按需接入 MCP、技能、WebUI 或远程渠道，让 Agent 从对话能力扩展到真实执行能力。</p>
-          </article>
-          <article class="quick-step">
-            <h3>04 开始交付任务</h3>
-            <p>从代码处理、资料整理、表格分析、PPT 生成等实际任务开始，逐步建立你的个人或团队工作流。</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="section" id="faq">
-        <div class="section-header">
-          <div>
-            <h2>常见问题</h2>
-            <p>以下问题来自 LokSystem 常见上手场景，帮助你快速判断它是否适合当前团队与业务流程。</p>
-          </div>
-        </div>
-        <div class="faq-list">
-          <details class="faq-item" open>
-            <summary>LokSystem 和普通 AI 客户端最大的区别是什么？</summary>
-            <p>LokSystem 更强调“协同工作台”而不是“对话框”。它把文件、任务、预览、远程访问、多 Agent 协作和交付物产出整合进同一个系统，适合持续推进真实任务。</p>
-          </details>
-          <details class="faq-item">
-            <summary>一定要先安装很多 CLI 工具才能使用吗？</summary>
-            <p>不一定。LokSystem 可以从内置能力开始使用；如果你已经有 Codex、OpenCode、Qwen Code、OpenClaw 等环境，再接入后能获得更完整的多 Agent 工作流。</p>
-          </details>
-          <details class="faq-item">
-            <summary>它更适合个人还是团队？</summary>
-            <p>两者都适合。个人可以把它当作本地 AI 工作台，团队则更适合利用多 Agent、WebUI、企业渠道和 Office 交付能力，把工作流延展到多人协同与远程触达。</p>
-          </details>
-          <details class="faq-item">
-            <summary>LokSystem 适合哪些典型任务？</summary>
-            <p>典型包括代码与文档改造、知识整理、汇报材料生产、表格分析、PPT 输出、长期任务托管，以及需要跨工具持续推进的复杂工作。</p>
-          </details>
-        </div>
-      </section>
-    </main>
-
-    <footer class="footer">
-      <div class="footer-inner">
-        <div class="footer-grid">
-          <section class="footer-card">
-            <h3>关于 LokSystem</h3>
-            <p>LokSystem 全新 AI 原生协同平台，打通人机协作壁垒，依托智能体能力赋能团队高效协作。它面向真实工作空间、真实工具链和真实交付物而设计。</p>
-            <div class="foot-links">
-              <a class="button button-secondary" href="https://github.com/iOfficeAI/LokSystem" target="_blank" rel="noreferrer">查看仓库</a>
-              <a class="button button-secondary" href="https://github.com/iOfficeAI/LokSystem/releases" target="_blank" rel="noreferrer">发布版本</a>
+        <section class="section" id="faq">
+          <div class="section-header">
+            <div>
+              <h2>常见问题</h2>
+              <p>以下问题来自 LokSystem 常见上手场景，帮助你快速判断它是否适合当前团队与业务流程。</p>
             </div>
-          </section>
-          <section class="footer-card">
-            <h3>能力范围</h3>
-            <ul>
-              <li>本地 Agent 工作台与共享 Workspace</li>
-              <li>多 Agent 协同、任务拆解与并行执行</li>
-              <li>WebUI、微信、企微、飞书、钉钉等远程触达</li>
-              <li>PPT、Word、Excel、PDF 等原生产出</li>
-            </ul>
-          </section>
-          <section class="footer-card">
-            <h3>说明</h3>
-            <ul>
-              <li>本页为随项目分发的本地官网说明页。</li>
-              <li>内容基于当前项目能力组织，便于在桌面端直接查看。</li>
-              <li>如需获取最新源码与版本信息，请访问 GitHub 官方仓库。</li>
-            </ul>
-          </section>
+          </div>
+          <div class="faq-list">
+            <details class="faq-item" open>
+              <summary>LokSystem 和普通 AI 客户端最大的区别是什么？</summary>
+              <p>LokSystem 更强调“协同工作台”而不是“对话框”。它把文件、任务、预览、远程访问、多 Agent 协作和交付物产出整合进同一个系统，适合持续推进真实任务。</p>
+            </details>
+            <details class="faq-item">
+              <summary>一定要先安装很多 CLI 工具才能使用吗？</summary>
+              <p>不一定。LokSystem 可以从内置能力开始使用；如果你已经有 Codex、OpenCode、Qwen Code、OpenClaw 等环境，再接入后能获得更完整的多 Agent 工作流。</p>
+            </details>
+            <details class="faq-item">
+              <summary>它更适合个人还是团队？</summary>
+              <p>两者都适合。个人可以把它当作本地 AI 工作台，团队则更适合利用多 Agent、WebUI、企业渠道和 Office 交付能力，把工作流延展到多人协同与远程触达。</p>
+            </details>
+            <details class="faq-item">
+              <summary>LokSystem 适合哪些典型任务？</summary>
+              <p>典型包括代码与文档改造、知识整理、汇报材料生产、表格分析、PPT 输出、长期任务托管，以及需要跨工具持续推进的复杂工作。</p>
+            </details>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div class="footer-inner">
+          <div class="footer-grid">
+            <section class="footer-card">
+              <h3>关于 LokSystem</h3>
+              <p>LokSystem 全新 AI 原生协同平台，打通人机协作壁垒，依托智能体能力赋能团队高效协作。它面向真实工作空间、真实工具链和真实交付物而设计。</p>
+              <div class="foot-links">
+                <a class="button button-secondary" href="https://github.com/iOfficeAI/LokSystem" target="_blank" rel="noreferrer">查看仓库</a>
+                <a class="button button-secondary" href="https://github.com/iOfficeAI/LokSystem/releases" target="_blank" rel="noreferrer">发布版本</a>
+              </div>
+            </section>
+            <section class="footer-card">
+              <h3>能力范围</h3>
+              <ul>
+                <li>本地 Agent 工作台与共享 Workspace</li>
+                <li>多 Agent 协同、任务拆解与并行执行</li>
+                <li>WebUI、微信、企微、飞书、钉钉等远程触达</li>
+                <li>PPT、Word、Excel、PDF 等原生产出</li>
+              </ul>
+            </section>
+            <section class="footer-card">
+              <h3>说明</h3>
+              <ul>
+                <li>本页为随项目分发的本地官网说明页。</li>
+                <li>内容基于当前项目能力组织，便于在桌面端直接查看。</li>
+                <li>如需获取最新源码与版本信息，请访问 GitHub 官方仓库。</li>
+              </ul>
+            </section>
+          </div>
+          <div class="footer-note">© 2025 LokSystem. All rights reserved. 当前页面用于应用内“官网”入口展示，便于在其他终端随项目一同分发与打开。</div>
         </div>
-        <div class="footer-note">© 2025 LokSystem. All rights reserved. 当前页面用于应用内“官网”入口展示，便于在其他终端随项目一同分发与打开。</div>
-      </div>
-    </footer>
+      </footer>
+    </div>
   </body>
 </html>
