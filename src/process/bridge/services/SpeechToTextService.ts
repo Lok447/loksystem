@@ -141,8 +141,89 @@ const resolveProviderApiKey = (provider: SpeechToTextProvider, config: SpeechToT
   return apiKey;
 };
 
-export class SpeechToTextService {
-  static async transcribe(request: SpeechToTextRequest): Promise<SpeechToTextResult> {
+const transcribeWithOpenAI = async (
+  config: SpeechToTextConfig,
+  request: SpeechToTextRequest
+): Promise<SpeechToTextResult> => {
+  const apiKey = resolveProviderApiKey('openai', config);
+  const audioBuffer = Buffer.from(normalizeAudioBuffer(request.audioBuffer));
+  const blob = new Blob([audioBuffer], {
+    type: request.mimeType || 'application/octet-stream',
+  });
+  const formData = new FormData();
+  formData.append('file', blob, request.fileName);
+  formData.append('model', config.openai?.model || DEFAULT_OPENAI_MODEL);
+
+  const language = request.languageHint || config.openai?.language;
+  if (language) {
+    // OpenAI Whisper requires ISO 639-1 codes (e.g. "en"), not BCP 47 (e.g. "en-us")
+    formData.append('language', language.split('-')[0].toLowerCase());
+  }
+  if (config.openai?.prompt) {
+    formData.append('prompt', config.openai.prompt);
+  }
+  if (typeof config.openai?.temperature === 'number') {
+    formData.append('temperature', String(config.openai.temperature));
+  }
+
+  const response = await fetch(buildOpenAIUrl(config.openai?.baseUrl), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`STT_REQUEST_FAILED:${await toErrorMessage(response)}`);
+  }
+
+  const payload = (await response.json()) as OpenAITranscriptionResponse;
+  return {
+    language: payload.language || language,
+    model: config.openai?.model || DEFAULT_OPENAI_MODEL,
+    provider: 'openai',
+    text: payload.text?.trim() || '',
+  };
+};
+
+const transcribeWithDeepgram = async (
+  config: SpeechToTextConfig,
+  request: SpeechToTextRequest
+): Promise<SpeechToTextResult> => {
+  const apiKey = resolveProviderApiKey('deepgram', config);
+  const response = await fetch(buildDeepgramUrl(config.deepgram, request.languageHint), {
+    method: 'POST',
+    headers: {
+      Authorization: `Token ${apiKey}`,
+      'Content-Type': request.mimeType || 'application/octet-stream',
+    },
+    body: Buffer.from(normalizeAudioBuffer(request.audioBuffer)),
+  });
+
+  if (!response.ok) {
+    throw new Error(`STT_REQUEST_FAILED:${await toErrorMessage(response)}`);
+  }
+
+  const payload = (await response.json()) as DeepgramTranscriptionResponse;
+  const channel = payload.results?.channels?.[0];
+  const transcript = channel?.alternatives?.[0]?.transcript?.trim() || '';
+  return {
+    language: request.languageHint || config.deepgram?.language || channel?.detected_language,
+    model: config.deepgram?.model || DEFAULT_DEEPGRAM_MODEL,
+    provider: 'deepgram',
+    text: transcript,
+  };
+};
+
+const transcribeWithBuiltin = async (
+  _config: SpeechToTextConfig,
+  _request: SpeechToTextRequest
+): Promise<SpeechToTextResult> => {
+  throw new Error('STT_BUILTIN_NOT_SUPPORTED');
+};
+
+const transcribe = async (request: SpeechToTextRequest): Promise<SpeechToTextResult> => {
     const requestId = createRequestId();
     const startedAt = Date.now();
     mainLog(STT_LOG_TAG, 'Transcription requested', {
@@ -165,10 +246,10 @@ export class SpeechToTextService {
 
       const result =
         config.provider === 'openai'
-          ? await this.transcribeWithOpenAI(config, request)
+          ? await transcribeWithOpenAI(config, request)
           : config.provider === 'deepgram'
-            ? await this.transcribeWithDeepgram(config, request)
-            : await this.transcribeWithBuiltin(config, request);
+            ? await transcribeWithDeepgram(config, request)
+            : await transcribeWithBuiltin(config, request);
 
       mainLog(STT_LOG_TAG, 'Transcription completed', {
         requestId,
@@ -189,87 +270,8 @@ export class SpeechToTextService {
       });
       throw error;
     }
-  }
+};
 
-  private static async transcribeWithOpenAI(
-    config: SpeechToTextConfig,
-    request: SpeechToTextRequest
-  ): Promise<SpeechToTextResult> {
-    const apiKey = resolveProviderApiKey('openai', config);
-    const audioBuffer = Buffer.from(normalizeAudioBuffer(request.audioBuffer));
-    const blob = new Blob([audioBuffer], {
-      type: request.mimeType || 'application/octet-stream',
-    });
-    const formData = new FormData();
-    formData.append('file', blob, request.fileName);
-    formData.append('model', config.openai?.model || DEFAULT_OPENAI_MODEL);
-
-    const language = request.languageHint || config.openai?.language;
-    if (language) {
-      // OpenAI Whisper requires ISO 639-1 codes (e.g. "en"), not BCP 47 (e.g. "en-us")
-      formData.append('language', language.split('-')[0].toLowerCase());
-    }
-    if (config.openai?.prompt) {
-      formData.append('prompt', config.openai.prompt);
-    }
-    if (typeof config.openai?.temperature === 'number') {
-      formData.append('temperature', String(config.openai.temperature));
-    }
-
-    const response = await fetch(buildOpenAIUrl(config.openai?.baseUrl), {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error(`STT_REQUEST_FAILED:${await toErrorMessage(response)}`);
-    }
-
-    const payload = (await response.json()) as OpenAITranscriptionResponse;
-    return {
-      language: payload.language || language,
-      model: config.openai?.model || DEFAULT_OPENAI_MODEL,
-      provider: 'openai',
-      text: payload.text?.trim() || '',
-    };
-  }
-
-  private static async transcribeWithDeepgram(
-    config: SpeechToTextConfig,
-    request: SpeechToTextRequest
-  ): Promise<SpeechToTextResult> {
-    const apiKey = resolveProviderApiKey('deepgram', config);
-    const response = await fetch(buildDeepgramUrl(config.deepgram, request.languageHint), {
-      method: 'POST',
-      headers: {
-        Authorization: `Token ${apiKey}`,
-        'Content-Type': request.mimeType || 'application/octet-stream',
-      },
-      body: Buffer.from(normalizeAudioBuffer(request.audioBuffer)),
-    });
-
-    if (!response.ok) {
-      throw new Error(`STT_REQUEST_FAILED:${await toErrorMessage(response)}`);
-    }
-
-    const payload = (await response.json()) as DeepgramTranscriptionResponse;
-    const channel = payload.results?.channels?.[0];
-    const transcript = channel?.alternatives?.[0]?.transcript?.trim() || '';
-    return {
-      language: request.languageHint || config.deepgram?.language || channel?.detected_language,
-      model: config.deepgram?.model || DEFAULT_DEEPGRAM_MODEL,
-      provider: 'deepgram',
-      text: transcript,
-    };
-  }
-
-  private static async transcribeWithBuiltin(
-    _config: SpeechToTextConfig,
-    _request: SpeechToTextRequest
-  ): Promise<SpeechToTextResult> {
-    throw new Error('STT_BUILTIN_NOT_SUPPORTED');
-  }
-}
+export const SpeechToTextService = {
+  transcribe,
+};

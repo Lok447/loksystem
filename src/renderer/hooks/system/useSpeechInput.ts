@@ -99,6 +99,22 @@ const getBrowserSpeechRecognitionConstructor = (): BrowserSpeechRecognitionConst
   return recognitionConstructor || null;
 };
 
+// Native browser speech/media APIs still expose event properties like `onerror`.
+// We keep the wiring localized in these helpers instead of reshaping the whole hook.
+/* oxlint-disable unicorn/prefer-add-event-listener */
+const detachRecognitionHandlers = (recognition: BrowserSpeechRecognitionInstance) => {
+  recognition.onend = null;
+  recognition.onerror = null;
+  recognition.onresult = null;
+};
+
+const detachRecorderHandlers = (recorder: MediaRecorder) => {
+  recorder.ondataavailable = null;
+  recorder.onerror = null;
+  recorder.onstop = null;
+};
+/* oxlint-enable unicorn/prefer-add-event-listener */
+
 export const appendSpeechTranscript = (base: string, transcript: string): string => {
   const normalizedTranscript = transcript.trim();
   if (!normalizedTranscript) {
@@ -352,9 +368,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
       return;
     }
 
-    recognition.onend = null;
-    recognition.onerror = null;
-    recognition.onresult = null;
+    detachRecognitionHandlers(recognition);
     recognitionRef.current = null;
   }, []);
 
@@ -409,6 +423,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
     recognition.interimResults = false;
     recognition.lang = config.builtin?.locale?.trim() || recognitionLocale;
 
+    /* oxlint-disable unicorn/prefer-add-event-listener */
     await new Promise<void>((resolve, reject) => {
       recognition.onresult = (event) => {
         const transcript = Array.from(event.results || [])
@@ -426,8 +441,8 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
       };
 
       recognition.onerror = (event) => {
-        const errorCode = event.error || 'unknown';
-        switch (errorCode) {
+        const recognitionErrorCode = event.error || 'unknown';
+        switch (recognitionErrorCode) {
           case 'not-allowed':
           case 'service-not-allowed':
             reject(new DOMException('Permission denied', 'NotAllowedError'));
@@ -443,7 +458,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
             reject(new Error('STT_BUILTIN_NOT_SUPPORTED'));
             break;
           default:
-            reject(new Error(`STT_REQUEST_FAILED:${errorCode}`));
+            reject(new Error(`STT_REQUEST_FAILED:${recognitionErrorCode}`));
         }
       };
 
@@ -457,6 +472,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
         reject(error);
       }
     });
+    /* oxlint-enable unicorn/prefer-add-event-listener */
   }, [cleanupRecognition, onTranscriptRef, recognitionLocale]);
 
   const startRecording = useCallback(async () => {
@@ -496,6 +512,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
       chunksRef.current = [];
       await startSpeechVisualizer(stream);
 
+      /* oxlint-disable unicorn/prefer-add-event-listener */
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           chunksRef.current.push(event.data);
@@ -515,6 +532,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
         cleanupRecorder();
         void transcribeBlob(audioBlob);
       };
+      /* oxlint-enable unicorn/prefer-add-event-listener */
 
       setErrorCode(null);
       setErrorMessage(null);
@@ -565,9 +583,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
     return () => {
       const recorder = recorderRef.current;
       if (recorder) {
-        recorder.ondataavailable = null;
-        recorder.onerror = null;
-        recorder.onstop = null;
+        detachRecorderHandlers(recorder);
       }
       if (recorder?.state !== 'inactive') {
         try {

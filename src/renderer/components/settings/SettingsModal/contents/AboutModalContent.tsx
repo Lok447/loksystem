@@ -19,6 +19,14 @@ const PHONE_NUMBER = '13434766647';
 
 const getOfficialSiteUrl = () => new URL('official-site/index.html', window.location.href).href;
 
+const openLink = async (url: string) => {
+  try {
+    await openExternalUrl(url);
+  } catch (error) {
+    console.error('Failed to open link:', error);
+  }
+};
+
 const SettingRow: React.FC<{
   title: string;
   description: string;
@@ -38,14 +46,6 @@ const AboutModalContent: React.FC = () => {
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const [contactModalVisible, setContactModalVisible] = React.useState(false);
-
-  const openLink = async (url: string) => {
-    try {
-      await openExternalUrl(url);
-    } catch (error) {
-      console.error('Failed to open link:', error);
-    }
-  };
 
   return (
     <div className={classNames('h-full w-full overflow-y-auto overflow-x-hidden', isPageMode ? 'px-0' : 'px-24px')}>
