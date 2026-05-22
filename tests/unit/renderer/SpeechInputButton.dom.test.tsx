@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-let speechToTextEnabled = false;
+let speechToTextEnabled = true;
 let speechInputAvailability: 'record' | 'file' | 'unsupported' = 'record';
 let speechInputStatus: 'idle' | 'recording' | 'transcribing' | 'error' = 'idle';
 let speechInputRecordingDurationMs = 0;
@@ -65,7 +65,7 @@ import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 
 describe('SpeechInputButton', () => {
   beforeEach(() => {
-    speechToTextEnabled = false;
+    speechToTextEnabled = true;
     speechInputAvailability = 'record';
     speechInputStatus = 'idle';
     speechInputRecordingDurationMs = 0;
@@ -80,6 +80,7 @@ describe('SpeechInputButton', () => {
   });
 
   it('stays hidden when speech-to-text is disabled', async () => {
+    speechToTextEnabled = false;
     render(<SpeechInputButton onTranscript={vi.fn()} />);
 
     await waitFor(() => {
@@ -100,6 +101,7 @@ describe('SpeechInputButton', () => {
   });
 
   it('refreshes visibility when the speech-to-text config changes', async () => {
+    speechToTextEnabled = false;
     render(<SpeechInputButton onTranscript={vi.fn()} />);
 
     await waitFor(() => {

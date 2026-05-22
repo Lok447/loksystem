@@ -10,6 +10,11 @@ import {
   type IMcpServer,
   BUILTIN_IMAGE_GEN_ID,
 } from '@/common/config/storage';
+import {
+  DEFAULT_SPEECH_TO_TEXT_CONFIG,
+  normalizeSpeechToTextConfig,
+  SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT,
+} from '@/common/config/speechToText';
 import type { SpeechToTextConfig, SpeechToTextProvider } from '@/common/types/speech';
 import { acpConversation } from '@/common/adapter/ipcBridge';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch, Input } from '@arco-design/web-react';
@@ -38,40 +43,6 @@ import { useSettingsViewMode } from '../settingsViewContext';
 type MessageInstance = ReturnType<typeof Message.useMessage>[0];
 
 const isBuiltinImageGenServer = (server: IMcpServer) => server.builtin === true && server.id === BUILTIN_IMAGE_GEN_ID;
-const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'loksystem:speech-to-text-config-changed';
-const DEFAULT_SPEECH_TO_TEXT_CONFIG: SpeechToTextConfig = {
-  enabled: false,
-  provider: 'openai',
-  openai: {
-    apiKey: '',
-    baseUrl: '',
-    language: '',
-    model: 'whisper-1',
-  },
-  deepgram: {
-    apiKey: '',
-    baseUrl: '',
-    detectLanguage: true,
-    language: '',
-    model: 'nova-2',
-    punctuate: true,
-    smartFormat: true,
-  },
-};
-
-const normalizeSpeechToTextConfig = (config?: SpeechToTextConfig): SpeechToTextConfig => ({
-  ...DEFAULT_SPEECH_TO_TEXT_CONFIG,
-  ...config,
-  openai: {
-    ...DEFAULT_SPEECH_TO_TEXT_CONFIG.openai,
-    ...config?.openai,
-  },
-  deepgram: {
-    ...DEFAULT_SPEECH_TO_TEXT_CONFIG.deepgram,
-    ...config?.deepgram,
-  },
-});
-
 const SpeechToTextSettingsSection: React.FC<{
   config: SpeechToTextConfig;
   onChange: (updater: (current: SpeechToTextConfig) => SpeechToTextConfig) => void;
@@ -148,10 +119,17 @@ const SpeechToTextSettingsSection: React.FC<{
       <Form layout='horizontal' labelAlign='left' className='space-y-12px'>
         <Form.Item label={t('settings.speechToTextProvider')}>
           <LokSelect value={config.provider} onChange={handleProviderChange}>
+            <LokSelect.Option value='builtin'>{t('settings.speechToTextProviderBuiltin')}</LokSelect.Option>
             <LokSelect.Option value='openai'>{t('settings.speechToTextProviderOpenAI')}</LokSelect.Option>
             <LokSelect.Option value='deepgram'>{t('settings.speechToTextProviderDeepgram')}</LokSelect.Option>
           </LokSelect>
         </Form.Item>
+
+        {config.provider === 'builtin' ? (
+          <div className='text-13px text-t-secondary leading-[1.7]'>
+            {t('settings.speechToTextBuiltinDescription')}
+          </div>
+        ) : null}
 
         {config.provider === 'openai' ? (
           <>
@@ -172,7 +150,9 @@ const SpeechToTextSettingsSection: React.FC<{
               <Input value={config.openai?.language} onChange={(value) => handleOpenAIChange('language', value)} />
             </Form.Item>
           </>
-        ) : (
+        ) : null}
+
+        {config.provider === 'deepgram' ? (
           <>
             <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextApiKey', 'required')}>
               <Input.Password
@@ -209,7 +189,7 @@ const SpeechToTextSettingsSection: React.FC<{
               />
             </Form.Item>
           </>
-        )}
+        ) : null}
       </Form>
     </div>
   );

@@ -5,6 +5,7 @@
  */
 
 import { ConfigStorage } from '@/common/config/storage';
+import { normalizeSpeechToTextConfig, SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT } from '@/common/config/speechToText';
 import { Message, Button, Tooltip } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -36,8 +37,6 @@ const SpeechStopIcon = () => (
 
 const SpeechLoaderIcon = () => <span className='speech-loader-spinner' aria-hidden='true' />;
 
-const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'loksystem:speech-to-text-config-changed';
-
 const getAvailabilityMessageKey = (availability: SpeechInputAvailability) => {
   switch (availability) {
     case 'file':
@@ -64,6 +63,8 @@ const getErrorMessageKey = (errorCode: SpeechInputErrorCode) => {
     case 'permission-denied':
       return 'conversation.chat.speech.permissionDenied';
     case 'recording-unsupported':
+      return 'conversation.chat.speech.recordingUnsupported';
+    case 'recognition-unsupported':
       return 'conversation.chat.speech.recordingUnsupported';
     case 'transcription-failed':
       return 'conversation.chat.speech.transcriptionFailed';
@@ -131,16 +132,16 @@ const SpeechInputButton: React.FC<SpeechInputButtonProps> = ({ disabled, locale,
 
     const syncSpeechToTextEnabled = async () => {
       try {
-        const config = await ConfigStorage.get('tools.speechToText');
+        const config = normalizeSpeechToTextConfig(await ConfigStorage.get('tools.speechToText'));
         if (cancelled) {
           return;
         }
-        setIsSpeechToTextEnabled(Boolean(config?.enabled));
+        setIsSpeechToTextEnabled(Boolean(config.enabled));
       } catch {
         if (cancelled) {
           return;
         }
-        setIsSpeechToTextEnabled(false);
+        setIsSpeechToTextEnabled(true);
       } finally {
         if (!cancelled) {
           setIsConfigLoaded(true);

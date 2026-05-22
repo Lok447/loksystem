@@ -10,9 +10,16 @@ import {
 } from '@/renderer/hooks/system/useSpeechInput';
 
 const mockTranscribeAudioBlob = vi.fn();
+const mockConfigGet = vi.fn();
 
 vi.mock('@/renderer/services/SpeechToTextService', () => ({
   transcribeAudioBlob: (...args: unknown[]) => mockTranscribeAudioBlob(...args),
+}));
+
+vi.mock('@/common/config/storage', () => ({
+  ConfigStorage: {
+    get: (...args: unknown[]) => mockConfigGet(...args),
+  },
 }));
 
 vi.mock('@/renderer/utils/platform', () => ({
@@ -99,6 +106,7 @@ describe('getSpeechInputAvailabilityForEnvironment', () => {
 describe('pickRecordingMimeType', () => {
   afterEach(() => {
     mockTranscribeAudioBlob.mockReset();
+    mockConfigGet.mockReset();
     vi.unstubAllGlobals();
     vi.useRealTimers();
   });
@@ -120,6 +128,14 @@ describe('pickRecordingMimeType', () => {
 
 describe('useSpeechInput', () => {
   afterEach(() => {
+    mockConfigGet.mockResolvedValue({
+      enabled: true,
+      provider: 'openai',
+      openai: {
+        apiKey: 'test-key',
+        model: 'whisper-1',
+      },
+    });
     vi.useRealTimers();
   });
 

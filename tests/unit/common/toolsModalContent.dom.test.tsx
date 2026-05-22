@@ -374,12 +374,20 @@ describe('ToolsModalContent image generation status refresh', () => {
   it('shows required and optional markers for OpenAI and Deepgram speech-to-text fields', async () => {
     render(<ToolsModalContent />);
 
+    await screen.findByText(/settings\.speechToTextBuiltinDescription/);
+
+    expect(screen.queryByLabelText(/settings\.speechToTextApiKey/)).toBeNull();
+    expect(screen.queryAllByText(/settings\.speechToTextRequired/)).toHaveLength(0);
+    expect(screen.queryAllByText(/settings\.speechToTextOptional/)).toHaveLength(0);
+
+    const providerSelect = screen.getByLabelText(/settings\.speechToTextProvider/);
+    fireEvent.change(providerSelect, { target: { value: 'openai' } });
+
     await screen.findByLabelText(/settings\.speechToTextApiKey/);
 
     expect(screen.getAllByText(/settings\.speechToTextRequired/)).toHaveLength(1);
     expect(screen.getAllByText(/settings\.speechToTextOptional/)).toHaveLength(3);
 
-    const providerSelect = screen.getByLabelText(/settings\.speechToTextProvider/);
     fireEvent.change(providerSelect, { target: { value: 'deepgram' } });
 
     await screen.findByLabelText(/settings\.speechToTextDetectLanguage/);

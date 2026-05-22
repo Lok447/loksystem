@@ -8,6 +8,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { transcribeAudioBlob } from '@/renderer/services/SpeechToTextService';
 import { isElectronDesktop } from '@/renderer/utils/platform';
+import { ConfigStorage } from '@/common/config/storage';
+import { normalizeSpeechToTextConfig } from '@/common/config/speechToText';
 
 export type SpeechInputAvailability = 'record' | 'file' | 'unsupported';
 export type SpeechInputStatus = 'idle' | 'recording' | 'transcribing' | 'error';
@@ -20,8 +22,30 @@ export type SpeechInputErrorCode =
   | 'not-configured'
   | 'permission-denied'
   | 'recording-unsupported'
+  | 'recognition-unsupported'
   | 'transcription-failed'
   | 'unknown';
+
+type BrowserSpeechRecognitionResultEvent = Event & {
+  results: ArrayLike<ArrayLike<{ transcript?: string }>>;
+};
+
+type BrowserSpeechRecognitionErrorEvent = Event & {
+  error?: string;
+};
+
+type BrowserSpeechRecognitionInstance = EventTarget & {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onend: null | (() => void);
+  onerror: null | ((event: BrowserSpeechRecognitionErrorEvent) => void);
+  onresult: null | ((event: BrowserSpeechRecognitionResultEvent) => void);
+  start: () => void;
+  stop: () => void;
+};
+
+type BrowserSpeechRecognitionConstructor = new () => BrowserSpeechRecognitionInstance;
 
 type SpeechInputEnvironment = {
   hasFileInput: boolean;
@@ -54,6 +78,26 @@ const createNextWaveformLevels = (previous: number[], nextLevel: number): number
   ...previous.slice(1),
   clampWaveformLevel(nextLevel),
 ];
+
+const getBrowserSpeechRecognitionConstructor = (): BrowserSpeechRecognitionConstructor | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const recognitionConstructor = (
+    window as Window & {
+      SpeechRecognition?: BrowserSpeechRecognitionConstructor;
+      webkitSpeechRecognition?: BrowserSpeechRecognitionConstructor;
+    }
+  ).SpeechRecognition ||
+    (
+      window as Window & {
+        webkitSpeechRecognition?: BrowserSpeechRecognitionConstructor;
+      }
+    ).webkitSpeechRecognition;
+
+  return recognitionConstructor || null;
+};
 
 export const appendSpeechTranscript = (base: string, transcript: string): string => {
   const normalizedTranscript = transcript.trim();
@@ -141,6 +185,11 @@ const mapSpeechInputError = (error: unknown): SpeechInputErrorCode => {
   const message = error instanceof Error ? error.message : String(error);
 
   if (
+    message.includes('STT_BUILTIN_NOT_SUPPORTED')
+  ) {
+    return 'recognition-unsupported';
+  }
+  if (
     message.includes('STT_OPENAI_NOT_CONFIGURED') ||
     message.includes('STT_DEEPGRAM_NOT_CONFIGURED') ||
     message.includes('STT_DISABLED')
@@ -170,6 +219,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
   const [recordingDurationMs, setRecordingDurationMs] = useState(0);
   const [recordingLevels, setRecordingLevels] = useState<number[]>(() => createInitialWaveformLevels());
   const recorderRef = useRef<MediaRecorder | null>(null);
+  const recognitionRef = useRef<BrowserSpeechRecognitionInstance | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const recordingStartedAtRef = useRef<number | null>(null);
@@ -296,6 +346,18 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
     void cleanupAudioAnalysis();
   }, [cleanupAudioAnalysis, pauseSpeechVisualizer]);
 
+  const cleanupRecognition = useCallback(() => {
+    const recognition = recognitionRef.current;
+    if (!recognition) {
+      return;
+    }
+
+    recognition.onend = null;
+    recognition.onerror = null;
+    recognition.onresult = null;
+    recognitionRef.current = null;
+  }, []);
+
   const clearError = useCallback(() => {
     setErrorCode(null);
     setErrorMessage(null);
@@ -334,7 +396,90 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
     [onTranscriptRef, recognitionLocale, resetSpeechVisualizer]
   );
 
+  const transcribeWithBuiltinRecognition = useCallback(async () => {
+    const RecognitionCtor = getBrowserSpeechRecognitionConstructor();
+    if (!RecognitionCtor) {
+      throw new Error('STT_BUILTIN_NOT_SUPPORTED');
+    }
+
+    const config = normalizeSpeechToTextConfig(await ConfigStorage.get('tools.speechToText'));
+    const recognition = new RecognitionCtor();
+    recognitionRef.current = recognition;
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = config.builtin?.locale?.trim() || recognitionLocale;
+
+    await new Promise<void>((resolve, reject) => {
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results || [])
+          .map((result) => result?.[0]?.transcript || '')
+          .join(' ')
+          .trim();
+
+        if (!transcript) {
+          reject(new Error('STT_REQUEST_FAILED: empty transcript'));
+          return;
+        }
+
+        onTranscriptRef.current(transcript);
+        resolve();
+      };
+
+      recognition.onerror = (event) => {
+        const errorCode = event.error || 'unknown';
+        switch (errorCode) {
+          case 'not-allowed':
+          case 'service-not-allowed':
+            reject(new DOMException('Permission denied', 'NotAllowedError'));
+            break;
+          case 'audio-capture':
+            reject(new DOMException('Audio capture failed', 'NotFoundError'));
+            break;
+          case 'aborted':
+            reject(new Error('STT_ABORTED'));
+            break;
+          case 'language-not-supported':
+          case 'network':
+            reject(new Error('STT_BUILTIN_NOT_SUPPORTED'));
+            break;
+          default:
+            reject(new Error(`STT_REQUEST_FAILED:${errorCode}`));
+        }
+      };
+
+      recognition.onend = () => {
+        cleanupRecognition();
+      };
+
+      try {
+        recognition.start();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }, [cleanupRecognition, onTranscriptRef, recognitionLocale]);
+
   const startRecording = useCallback(async () => {
+    const config = normalizeSpeechToTextConfig(await ConfigStorage.get('tools.speechToText'));
+
+    if (config.provider === 'builtin') {
+      try {
+        setStatus('transcribing');
+        setErrorCode(null);
+        setErrorMessage(null);
+        await transcribeWithBuiltinRecognition();
+        setStatus('idle');
+        resetSpeechVisualizer();
+      } catch (error) {
+        cleanupRecognition();
+        setErrorCode(mapSpeechInputError(error));
+        setErrorMessage(null);
+        setStatus('error');
+        resetSpeechVisualizer();
+      }
+      return;
+    }
+
     if (availability !== 'record') {
       setErrorCode('recording-unsupported');
       setStatus('error');
@@ -382,9 +527,24 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
       setStatus('error');
       resetSpeechVisualizer();
     }
-  }, [availability, cleanupRecorder, resetSpeechVisualizer, startSpeechVisualizer, transcribeBlob]);
+  }, [
+    availability,
+    cleanupRecognition,
+    cleanupRecorder,
+    resetSpeechVisualizer,
+    startSpeechVisualizer,
+    transcribeBlob,
+    transcribeWithBuiltinRecognition,
+  ]);
 
   const stopRecording = useCallback(() => {
+    const recognition = recognitionRef.current;
+    if (recognition && status === 'transcribing') {
+      recognition.stop();
+      cleanupRecognition();
+      return;
+    }
+
     const recorder = recorderRef.current;
     if (!recorder || status !== 'recording') {
       return;
@@ -392,7 +552,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
 
     setStatus('transcribing');
     recorder.stop();
-  }, [status]);
+  }, [cleanupRecognition, status]);
 
   const transcribeFile = useCallback(
     async (file: Blob) => {
@@ -416,9 +576,10 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
           // Ignore teardown failures from partially started recording sessions.
         }
       }
+      cleanupRecognition();
       cleanupRecorder();
     };
-  }, [cleanupRecorder]);
+  }, [cleanupRecognition, cleanupRecorder]);
 
   return {
     availability,

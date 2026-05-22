@@ -11,6 +11,7 @@ import type {
   SpeechToTextRequest,
   SpeechToTextResult,
 } from '@/common/types/speech';
+import { normalizeSpeechToTextConfig } from '@/common/config/speechToText';
 import { mainError, mainLog, mainWarn } from '@process/utils/mainLogger';
 import { ProcessConfig } from '@process/utils/initStorage';
 
@@ -116,12 +117,12 @@ const buildDeepgramUrl = (config: SpeechToTextConfig['deepgram'], languageHint?:
 };
 
 const resolveSpeechToTextConfig = async (): Promise<SpeechToTextConfig> => {
-  const config = await ProcessConfig.get('tools.speechToText');
-  if (!config?.enabled) {
+  const rawConfig = await ProcessConfig.get('tools.speechToText');
+  if (!rawConfig?.enabled) {
     mainWarn(STT_LOG_TAG, 'Speech-to-text request rejected because feature is disabled');
     throw new Error('STT_DISABLED');
   }
-  return config;
+  return normalizeSpeechToTextConfig(rawConfig);
 };
 
 const resolveProviderApiKey = (provider: SpeechToTextProvider, config: SpeechToTextConfig): string => {
@@ -154,13 +155,20 @@ export class SpeechToTextService {
       mainLog(STT_LOG_TAG, 'Resolved speech-to-text provider', {
         requestId,
         provider: config.provider,
-        model: config.provider === 'openai' ? config.openai?.model || DEFAULT_OPENAI_MODEL : config.deepgram?.model,
+        model:
+          config.provider === 'openai'
+            ? config.openai?.model || DEFAULT_OPENAI_MODEL
+            : config.provider === 'deepgram'
+              ? config.deepgram?.model
+              : 'builtin-browser',
       });
 
       const result =
         config.provider === 'openai'
           ? await this.transcribeWithOpenAI(config, request)
-          : await this.transcribeWithDeepgram(config, request);
+          : config.provider === 'deepgram'
+            ? await this.transcribeWithDeepgram(config, request)
+            : await this.transcribeWithBuiltin(config, request);
 
       mainLog(STT_LOG_TAG, 'Transcription completed', {
         requestId,
@@ -256,5 +264,12 @@ export class SpeechToTextService {
       provider: 'deepgram',
       text: transcript,
     };
+  }
+
+  private static async transcribeWithBuiltin(
+    _config: SpeechToTextConfig,
+    _request: SpeechToTextRequest
+  ): Promise<SpeechToTextResult> {
+    throw new Error('STT_BUILTIN_NOT_SUPPORTED');
   }
 }

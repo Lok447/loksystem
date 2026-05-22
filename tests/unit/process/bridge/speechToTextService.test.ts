@@ -101,6 +101,24 @@ describe('SpeechToTextService', () => {
     );
   });
 
+  it('rejects builtin speech-to-text requests in the process bridge so renderer can use local recognition instead', async () => {
+    vi.mocked(ProcessConfig.get).mockResolvedValue({
+      enabled: true,
+      provider: 'builtin',
+      builtin: {
+        locale: 'zh-CN',
+      },
+    });
+
+    await expect(
+      SpeechToTextService.transcribe({
+        audioBuffer: new Uint8Array([1, 2, 3]),
+        fileName: 'sample.webm',
+        mimeType: 'audio/webm',
+      })
+    ).rejects.toThrow('STT_BUILTIN_NOT_SUPPORTED');
+  });
+
   it('accepts desktop IPC audio payloads serialized as plain objects', async () => {
     vi.mocked(ProcessConfig.get).mockResolvedValue({
       enabled: true,
