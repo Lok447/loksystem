@@ -12,16 +12,21 @@ on:
     tags:
       - '*'
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: Optional release tag name. Defaults to v<package.json version> for manual releases.
+        required: false
+        type: string
 
 env:
-  BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+  BUN_INSTALL_REGISTRY: "https://registry.npmjs.org/"
 
 jobs:
   build-pipeline:
     name: Build Pipeline
     uses: ./.github/workflows/_build-reusable.yml
-    # dev 分支或正式 tag 触发构建（排除 -dev- tag，避免重复构建）
-    if: github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-'))
+    # Support automatic builds from dev/tag and manual builds from the Actions page.
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-'))
     with:
       matrix: >-
         {"include":[
@@ -34,12 +39,10 @@ jobs:
         ]}
     secrets: inherit
 
-  # 自动重试 workflow（当构建失败时）
   auto-retry-workflow:
     name: Auto Retry on Build Failure
     runs-on: ubuntu-latest
     needs: build-pipeline
-    # 关键：只在首次失败时触发，避免无限循环
     if: |
       failure() &&
       github.run_attempt == 1 &&
@@ -49,7 +52,7 @@ jobs:
       - name: Log retry information
         run: |
           echo "=========================================="
-          echo "🔄 Auto retry triggered (first failure)"
+          echo "Auto retry triggered (first failure)"
           echo "=========================================="
           echo "Build failed on first attempt, preparing auto retry..."
           echo "Current attempt: ${{ github.run_attempt }}"
@@ -58,7 +61,7 @@ jobs:
 
       - name: Wait before retry (5 min cooldown)
         run: |
-          echo "⏳ Waiting 5 minutes before retry..."
+          echo "Waiting 5 minutes before retry..."
           echo "Start: $(date)"
           sleep 300
           echo "End: $(date)"
@@ -66,9 +69,8 @@ jobs:
 
       - name: Trigger workflow rerun
         run: |
-          echo "🔄 Triggering full workflow rerun (attempt 2)..."
+          echo "Triggering full workflow rerun (attempt 2)..."
 
-          # Use re-run API (not rerun-failed-jobs, to avoid loops)
           response=$(curl -X POST \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
@@ -79,23 +81,22 @@ jobs:
 
           if [ "$http_code" = "201" ]; then
             echo ""
-            echo "✅ Retry triggered successfully"
+            echo "Retry triggered successfully"
             echo "This will be attempt 2"
             echo "Details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           else
             echo ""
-            echo "❌ Retry trigger failed, HTTP status: $http_code"
+            echo "Retry trigger failed, HTTP status: $http_code"
             echo "Response:"
             echo "$response" | head -n-1
             exit 1
           fi
 
-  # 自动创建tag（仅 dev 分支推送时）
   create-tag:
     name: Create Tag from Branch
     runs-on: ubuntu-latest
     needs: [build-pipeline]
-    if: success() && github.ref == 'refs/heads/dev'
+    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/dev'
     outputs:
       tag_name: ${{ steps.create_tag.outputs.tag_name }}
       is_dev: ${{ steps.create_tag.outputs.is_dev }}
@@ -109,7 +110,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
@@ -123,25 +124,22 @@ jobs:
           COMMIT_SHORT=$(git rev-parse --short HEAD)
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
 
-          # 根据分支确定 tag 格式
           if [ "$BRANCH_NAME" = "dev" ]; then
             TAG_NAME="v${VERSION}-dev-${COMMIT_SHORT}"
             IS_DEV="true"
-            echo "🔧 Development release: $TAG_NAME"
+            echo "Development release: $TAG_NAME"
           else
             TAG_NAME="v$VERSION"
             IS_DEV="false"
-            echo "🚀 Production release: $TAG_NAME"
+            echo "Production release: $TAG_NAME"
           fi
 
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
           echo "is_dev=$IS_DEV" >> $GITHUB_OUTPUT
 
-          # 检查远程tag是否已存在
           if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
             if [ "$IS_DEV" = "false" ]; then
-              # Main 分支：需要递增版本并修改 package.json
-              echo "⚠️ Tag $TAG_NAME already exists, auto-incrementing version..."
+              echo "Tag $TAG_NAME already exists, auto-incrementing version..."
 
               if [[ $VERSION =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
                 MAJOR=${BASH_REMATCH[1]}
@@ -150,61 +148,51 @@ jobs:
                 NEW_PATCH=$((PATCH + 1))
                 NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
 
-                echo "📝 Updating package.json version to $NEW_VERSION"
-
-                # 更新 package.json 版本号
+                echo "Updating package.json version to $NEW_VERSION"
                 bun pm version $NEW_VERSION
 
-                # 配置git用户信息
                 git config user.name "github-actions[bot]"
                 git config user.email "github-actions[bot]@users.noreply.github.com"
 
-                # 提交版本更新
                 git add package.json bun.lock
                 git commit -m "chore: bump version to $NEW_VERSION"
                 git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
                 git push origin $BRANCH_NAME
 
-                # 获取新的 commit ID
                 COMMIT_SHORT=$(git rev-parse --short HEAD)
                 TAG_NAME="v${NEW_VERSION}-${COMMIT_SHORT}"
 
-                echo "🚀 New tag with updated version: $TAG_NAME"
+                echo "New tag with updated version: $TAG_NAME"
                 echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
               else
                 TAG_NAME="v${VERSION}-${COMMIT_SHORT}"
-                echo "⚠️ Fallback: creating tag with commit ID: $TAG_NAME"
+                echo "Fallback: creating tag with commit ID: $TAG_NAME"
                 echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
               fi
             else
-              # Dev 分支 tag 已存在则失败（不应该发生）
-              echo "⚠️ Dev tag $TAG_NAME already exists, this shouldn't happen"
+              echo "Dev tag $TAG_NAME already exists, this should not happen"
               exit 1
             fi
           fi
 
-          # 配置git用户信息（如果前面没配置）
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # 创建并推送tag
           echo "Creating tag: $TAG_NAME"
           git tag $TAG_NAME
           git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
           git push origin $TAG_NAME
-          echo "✅ Successfully created and pushed tag: $TAG_NAME"
+          echo "Successfully created and pushed tag: $TAG_NAME"
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-  # 发布到 GitHub Releases
   release:
     name: Create Release
     runs-on: ubuntu-latest
     needs: [build-pipeline, create-tag]
-    # Tag 推送时 create-tag 会被跳过，所以需要检查两种情况（排除 -dev- tag 避免重复）
-    if: always() && needs.build-pipeline.result == 'success' && (needs.create-tag.result == 'success' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
-    # dev 分支使用 dev-release 环境，正式 tag 使用 release 环境
-    environment: ${{ needs.create-tag.outputs.is_dev == 'true' && 'dev-release' || 'release' }}
+    # Tag push skips create-tag, so manual dispatch and tag push need their own path here.
+    if: always() && needs.build-pipeline.result == 'success' && (github.event_name == 'workflow_dispatch' || needs.create-tag.result == 'success' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
+    environment: ${{ ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/dev') || needs.create-tag.outputs.is_dev == 'true') && 'dev-release' || 'release' }}
 
     steps:
       - name: Checkout code
@@ -213,17 +201,34 @@ jobs:
       - name: Get version for release
         id: version
         run: |
-          # 判断触发来源：正式 tag 推送 or dev 分支
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            # 正式 Tag 推送触发（-dev- tag 已被排除，不会到达这里）
             TAG_NAME="${GITHUB_REF#refs/tags/}"
             IS_DEV="false"
-            echo "🚀 Creating stable release from tag: $TAG_NAME"
+            echo "Creating stable release from tag: $TAG_NAME"
+          elif [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            INPUT_TAG="${{ github.event.inputs.tag_name }}"
+
+            if [ -n "$INPUT_TAG" ]; then
+              TAG_NAME="$INPUT_TAG"
+            elif [ "$GITHUB_REF" = "refs/heads/dev" ]; then
+              VERSION=$(node -p "require('./package.json').version")
+              TAG_NAME="v${VERSION}-dev-manual-${GITHUB_SHA::7}"
+            else
+              VERSION=$(node -p "require('./package.json').version")
+              TAG_NAME="v$VERSION"
+            fi
+
+            if [[ "$TAG_NAME" == *"-dev-"* ]] || [ "$GITHUB_REF" = "refs/heads/dev" ]; then
+              IS_DEV="true"
+              echo "Creating manual development release: $TAG_NAME"
+            else
+              IS_DEV="false"
+              echo "Creating manual release: $TAG_NAME"
+            fi
           else
-            # dev 分支触发，使用 create-tag job 的输出
             TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
             IS_DEV="${{ needs.create-tag.outputs.is_dev }}"
-            echo "🔧 Creating development release: $TAG_NAME"
+            echo "Creating development release: $TAG_NAME"
           fi
 
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
@@ -242,6 +247,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag_name }}
+          target_commitish: ${{ github.sha }}
           name: ${{ steps.version.outputs.is_dev == 'true' && format('Development Build {0}', steps.version.outputs.tag_name) || steps.version.outputs.tag_name }}
           files: |
             release-assets/**/*.exe
