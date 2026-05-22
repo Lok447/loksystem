@@ -517,6 +517,7 @@ const ToolsModalContent: React.FC = () => {
   const [imageGenerationModel, setImageGenerationModel] = useState<
     IConfigStorageRefer['tools.imageGenerationModel'] | undefined
   >();
+  const [imageGenerationConfigMode, setImageGenerationConfigMode] = useState<'existing' | 'manual'>('existing');
   const [speechToTextConfig, setSpeechToTextConfig] = useState<SpeechToTextConfig>(DEFAULT_SPEECH_TO_TEXT_CONFIG);
   const [isUpdatingImageGeneration, setIsUpdatingImageGeneration] = useState(false);
   const { modelListWithImage: data } = useConfigModelListWithImage();
@@ -564,6 +565,14 @@ const ToolsModalContent: React.FC = () => {
 
     void loadConfigs();
   }, []);
+
+  useEffect(() => {
+    if (!imageGenerationModel) return;
+    const hasProviderMatch = !!data?.find((platform) => platform.id === imageGenerationModel.id);
+    const nextMode =
+      imageGenerationModel.id === 'manual-image-generation' || !hasProviderMatch ? 'manual' : 'existing';
+    setImageGenerationConfigMode((prev) => (prev === nextMode ? prev : nextMode));
+  }, [data, imageGenerationModel?.id]);
 
   const updateSpeechToTextConfig = useCallback((updater: (current: SpeechToTextConfig) => SpeechToTextConfig) => {
     setSpeechToTextConfig((current) => {
@@ -645,6 +654,7 @@ const ToolsModalContent: React.FC = () => {
   // Sync imageGenerationModel apiKey when provider apiKey changes
   useEffect(() => {
     if (!imageGenerationModel || !data) return;
+    if (imageGenerationConfigMode === 'manual') return;
 
     const currentProvider = data.find((p) => p.id === imageGenerationModel.id);
 
@@ -666,7 +676,7 @@ const ToolsModalContent: React.FC = () => {
       });
       void syncMcpServerEnv({});
     }
-  }, [data, imageGenerationModel?.id, imageGenerationModel?.apiKey, syncMcpServerEnv]);
+  }, [data, imageGenerationConfigMode, imageGenerationModel?.id, imageGenerationModel?.apiKey, syncMcpServerEnv]);
 
   const handleImageGenerationModelChange = useCallback(
     (value: Partial<IConfigStorageRefer['tools.imageGenerationModel']>) => {
@@ -681,6 +691,22 @@ const ToolsModalContent: React.FC = () => {
       });
     },
     [syncMcpServerEnv]
+  );
+
+  const handleManualImageGenerationFieldChange = useCallback(
+    (field: 'platform' | 'baseUrl' | 'apiKey' | 'useModel', value: string) => {
+      setImageGenerationConfigMode('manual');
+      handleImageGenerationModelChange({
+        id: 'manual-image-generation',
+        name: 'Manual Image Model',
+        model: value && field === 'useModel' ? [value] : imageGenerationModel?.model || [],
+        platform: field === 'platform' ? value : imageGenerationModel?.platform || '',
+        baseUrl: field === 'baseUrl' ? value : imageGenerationModel?.baseUrl || '',
+        apiKey: field === 'apiKey' ? value : imageGenerationModel?.apiKey || '',
+        useModel: field === 'useModel' ? value : imageGenerationModel?.useModel || '',
+      });
+    },
+    [handleImageGenerationModelChange, imageGenerationModel]
   );
 
   const handleImageGenerationToggle = useCallback(
@@ -780,12 +806,7 @@ const ToolsModalContent: React.FC = () => {
                   />
                 )}
                 <Switch
-                  disabled={
-                    isUpdatingImageGeneration ||
-                    !builtinImageGenServer ||
-                    !imageGenerationModelList.length ||
-                    !imageGenerationModel?.useModel
-                  }
+                  disabled={isUpdatingImageGeneration || !builtinImageGenServer || !imageGenerationModel?.useModel}
                   checked={Boolean(builtinImageGenServer?.enabled)}
                   onChange={handleImageGenerationToggle}
                 />
@@ -795,8 +816,42 @@ const ToolsModalContent: React.FC = () => {
             <Divider className='mt-0px mb-20px' />
 
             <Form layout='horizontal' labelAlign='left' className='space-y-12px'>
-              <Form.Item label={t('settings.imageGenerationModel')}>
-                {imageGenerationModelList.length > 0 ? (
+              <Form.Item label={t('settings.modelProvider')}>
+                <LokSelect
+                  value={imageGenerationConfigMode}
+                  onChange={(value) => {
+                    const nextMode = value as 'existing' | 'manual';
+                    setImageGenerationConfigMode(nextMode);
+                    if (nextMode === 'existing' && imageGenerationModelList.length > 0) {
+                      const platform = imageGenerationModelList[0];
+                      const firstModel = platform.model[0];
+                      if (firstModel) {
+                        handleImageGenerationModelChange({
+                          ...platform,
+                          useModel: firstModel,
+                        });
+                      }
+                    }
+                    if (nextMode === 'manual') {
+                      handleImageGenerationModelChange({
+                        id: 'manual-image-generation',
+                        name: 'Manual Image Model',
+                        model: imageGenerationModel?.model || [],
+                        platform: imageGenerationModel?.platform || '',
+                        baseUrl: imageGenerationModel?.baseUrl || '',
+                        apiKey: imageGenerationModel?.apiKey || '',
+                        useModel: imageGenerationModel?.useModel || '',
+                      });
+                    }
+                  }}
+                >
+                  <LokSelect.Option value='existing'>{t('settings.selectModel')}</LokSelect.Option>
+                  <LokSelect.Option value='manual'>{t('settings.platformCustom')}</LokSelect.Option>
+                </LokSelect>
+              </Form.Item>
+
+              {imageGenerationConfigMode === 'existing' ? (
+                <Form.Item label={t('settings.imageGenerationModel')}>
                   <LokSelect
                     value={
                       imageGenerationModel?.id && imageGenerationModel?.useModel
@@ -807,6 +862,7 @@ const ToolsModalContent: React.FC = () => {
                       const [platformId, modelName] = value.split('|');
                       const platform = imageGenerationModelList.find((p) => p.id === platformId);
                       if (platform) {
+                        setImageGenerationConfigMode('existing');
                         handleImageGenerationModelChange({
                           ...platform,
                           useModel: modelName,
@@ -822,40 +878,74 @@ const ToolsModalContent: React.FC = () => {
                           </LokSelect.Option>
                         ))}
                       </LokSelect.OptGroup>
-                    ))}
-                  </LokSelect>
-                ) : (
-                  <div className='text-t-secondary flex items-center'>
-                    {t('settings.noAvailable')}
-                    <Tooltip
-                      content={
-                        <div>
-                          {t('settings.needHelpTooltip')}
-                          <a
-                            href='https://github.com/iOfficeAI/LokSystem/wiki/LokSystem-Image-Generation-Tool-Model-Configuration-Guide'
-                            target='_blank'
-                            rel='noopener noreferrer'
-                            className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px'
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {t('settings.configGuide')}
-                          </a>
-                        </div>
-                      }
-                    >
-                      <a
-                        href='https://github.com/iOfficeAI/LokSystem/wiki/LokSystem-Image-Generation-Tool-Model-Configuration-Guide'
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='ml-8px text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] cursor-pointer'
-                        onClick={(e) => e.stopPropagation()}
+                      ))}
+                    </LokSelect>
+                  {!imageGenerationModelList.length ? (
+                    <div className='text-t-secondary flex items-center mt-8px'>
+                      {t('settings.noAvailable')}
+                      <Tooltip
+                        content={
+                          <div>
+                            {t('settings.needHelpTooltip')}
+                            <a
+                              href='https://github.com/iOfficeAI/LokSystem/wiki/LokSystem-Image-Generation-Tool-Model-Configuration-Guide'
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px'
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {t('settings.configGuide')}
+                            </a>
+                          </div>
+                        }
                       >
-                        <Help theme='outline' size='14' />
-                      </a>
-                    </Tooltip>
-                  </div>
-                )}
-              </Form.Item>
+                        <a
+                          href='https://github.com/iOfficeAI/LokSystem/wiki/LokSystem-Image-Generation-Tool-Model-Configuration-Guide'
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className='ml-8px text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] cursor-pointer'
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Help theme='outline' size='14' />
+                        </a>
+                      </Tooltip>
+                    </div>
+                  ) : null}
+                </Form.Item>
+              ) : null}
+
+              {imageGenerationConfigMode === 'manual' ? (
+                <>
+                  <Form.Item label={t('settings.modelPlatform')}>
+                    <Input
+                      value={imageGenerationModel?.platform || ''}
+                      onChange={(value) => handleManualImageGenerationFieldChange('platform', value)}
+                      placeholder='openai-compatible'
+                    />
+                  </Form.Item>
+                  <Form.Item label={t('settings.baseUrl')}>
+                    <Input
+                      value={imageGenerationModel?.baseUrl || ''}
+                      onChange={(value) => handleManualImageGenerationFieldChange('baseUrl', value)}
+                      placeholder='https://your-openai-compatible-endpoint/v1'
+                    />
+                  </Form.Item>
+                  <Form.Item label={t('settings.apiKey')}>
+                    <Input.Password
+                      visibilityToggle
+                      value={imageGenerationModel?.apiKey || ''}
+                      onChange={(value) => handleManualImageGenerationFieldChange('apiKey', value)}
+                    />
+                  </Form.Item>
+                  <Form.Item label={t('settings.modelName')}>
+                    <Input
+                      value={imageGenerationModel?.useModel || ''}
+                      onChange={(value) => handleManualImageGenerationFieldChange('useModel', value)}
+                      placeholder='gpt-image-1'
+                    />
+                  </Form.Item>
+                </>
+              ) : null}
             </Form>
           </div>
           <SpeechToTextSettingsSection config={speechToTextConfig} onChange={updateSpeechToTextConfig} />

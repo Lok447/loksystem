@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -327,16 +327,12 @@ describe('ToolsModalContent image generation status refresh', () => {
       expect(testState.mockSyncMcpToAgents).toHaveBeenCalledOnce();
     });
 
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await Promise.resolve();
 
     expect(testState.mockCheckSingleServerInstallStatus).not.toHaveBeenCalled();
 
-    await act(async () => {
-      testState.syncDeferred.resolve();
-      await testState.syncDeferred.promise;
-    });
+    testState.syncDeferred.resolve();
+    await testState.syncDeferred.promise;
 
     await waitFor(() => {
       expect(testState.mockCheckSingleServerInstallStatus).toHaveBeenCalledOnce();
@@ -363,7 +359,7 @@ describe('ToolsModalContent image generation status refresh', () => {
     fireEvent.change(apiKeyInput, { target: { value: 'deepgram-secret' } });
 
     await waitFor(() => {
-      expect(testState.mockConfigSet).toHaveBeenLastCalledWith(
+      expect(testState.mockConfigSet).toHaveBeenCalledWith(
         'tools.speechToText',
         expect.objectContaining({
           provider: 'deepgram',
@@ -390,5 +386,37 @@ describe('ToolsModalContent image generation status refresh', () => {
 
     expect(screen.getAllByText(/settings\.speechToTextRequired/)).toHaveLength(1);
     expect(screen.getAllByText(/settings\.speechToTextOptional/)).toHaveLength(6);
+  });
+
+  it('allows manually configuring image generation model fields from MCP & Voice settings', async () => {
+    render(<ToolsModalContent />);
+
+    const modeSelect = await screen.findByLabelText(/^settings\.modelProvider$/);
+    fireEvent.change(modeSelect, { target: { value: 'manual' } });
+
+    const platformInput = await screen.findByLabelText(/^settings\.modelPlatform$/);
+    fireEvent.change(platformInput, { target: { value: 'openai-compatible' } });
+
+    const baseUrlInput = await screen.findByLabelText(/^settings\.baseUrl$/);
+    fireEvent.change(baseUrlInput, { target: { value: 'https://manual.example.com/v1' } });
+
+    const apiKeyInput = await screen.findByLabelText(/^settings\.apiKey$/);
+    fireEvent.change(apiKeyInput, { target: { value: 'manual-key' } });
+
+    const modelNameInput = await screen.findByLabelText(/^settings\.modelName$/);
+    fireEvent.change(modelNameInput, { target: { value: 'gpt-image-1' } });
+
+    await waitFor(() => {
+      expect(testState.mockConfigSet).toHaveBeenCalledWith(
+        'tools.imageGenerationModel',
+        expect.objectContaining({
+          id: 'manual-image-generation',
+          platform: 'openai-compatible',
+          baseUrl: 'https://manual.example.com/v1',
+          apiKey: 'manual-key',
+          useModel: 'gpt-image-1',
+        })
+      );
+    });
   });
 });
