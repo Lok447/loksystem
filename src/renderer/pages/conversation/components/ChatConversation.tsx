@@ -325,17 +325,15 @@ const ChatConversation: React.FC<{
           backend:
             conversation?.type === 'acp'
               ? conversation?.extra?.backend
-              : conversation?.type === 'aionrs'
-                ? 'aionrs'
-                : conversation?.type === 'codex'
-                  ? 'codex'
-                  : conversation?.type === 'openclaw-gateway'
-                    ? 'openclaw-gateway'
-                    : conversation?.type === 'nanobot'
-                      ? 'nanobot'
-                      : conversation?.type === 'remote'
-                        ? 'remote'
-                        : undefined,
+              : conversation?.type === 'codex'
+                ? 'codex'
+                : conversation?.type === 'openclaw-gateway'
+                  ? 'openclaw-gateway'
+                  : conversation?.type === 'nanobot'
+                    ? 'nanobot'
+                    : conversation?.type === 'remote'
+                      ? 'remote'
+                      : undefined,
           agentName: conversationAgentName,
         };
 

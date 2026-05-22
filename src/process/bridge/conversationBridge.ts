@@ -169,7 +169,9 @@ export function initConversationBridge(
   // Legacy API kept for compatibility; Gemini runtime no longer exists.
   ipcBridge.conversation.reloadContext.provider(async ({ conversation_id }) => {
     try {
-      const task = await workerTaskManager.getOrBuildTask(conversation_id).catch(() => undefined);
+      const task = await workerTaskManager
+        .getOrBuildTask(conversation_id)
+        .catch((): undefined => undefined);
       if (!task) return { success: false, msg: 'conversation not found' };
       return { success: false, msg: 'reloadContext is no longer supported after Gemini removal' };
     } catch (e: unknown) {

@@ -111,7 +111,7 @@ const AgentChatSlot: React.FC<{
               <AionrsHeaderModelSelector
                 key={agent.conversationId}
                 conversationId={agent.conversationId}
-                initialModel={conversation?.model as TProviderWithModel | undefined}
+                initialModel={conversation && 'model' in conversation ? (conversation.model as TProviderWithModel) : undefined}
               />
             </div>
           )}

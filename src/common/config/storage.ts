@@ -562,7 +562,7 @@ export interface IProvider {
   >;
 }
 
-export type TProviderWithModel = Omit<IProvider, 'model'> & {
+export type TProviderWithModel = IProvider & {
   useModel: string;
 };
 

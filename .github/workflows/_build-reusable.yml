@@ -15,6 +15,10 @@ on:
         description: 'Skip code quality checks (faster builds for debugging)'
         type: boolean
         default: false
+      skip_format_check:
+        description: 'Skip repository-wide formatting check while keeping lint, typecheck, and tests'
+        type: boolean
+        default: false
       append_commit_hash:
         description: 'Append short commit hash to artifact names'
         type: boolean
@@ -61,7 +65,8 @@ jobs:
       - name: Run ESLint
         run: bun run lint
 
-      - name: Check Prettier formatting
+      - name: Check formatting
+        if: ${{ !inputs.skip_format_check }}
         run: bun run format:check
 
       - name: TypeScript type check

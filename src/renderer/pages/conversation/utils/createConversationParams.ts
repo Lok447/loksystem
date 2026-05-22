@@ -112,6 +112,7 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
     name: provider.name,
     baseUrl: provider.baseUrl,
     apiKey: provider.apiKey,
+    model: provider.model,
     useModel: enabledModel || provider.model[0],
     capabilities: provider.capabilities,
     contextLimit: provider.contextLimit,

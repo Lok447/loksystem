@@ -215,12 +215,12 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     const params: CreateConversationParams = {
       type: agentType,
       name: convName,
-      model,
-      extra: {
-        backend: normalizedBackend,
-        agentName: config.name,
-        cliPath: config.cliPath,
-        customAgentId: config.customAgentId,
+        model,
+        extra: {
+          backend: normalizedBackend as AgentBackend,
+          agentName: config.name,
+          cliPath: config.cliPath,
+          customAgentId: config.customAgentId,
         presetAssistantId: config.isPreset ? config.customAgentId : undefined,
         cronJobId: job.id,
         cronWorkspace: config.workspace || '',
@@ -420,6 +420,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     return {
       id: `${normalizedBackend}-fallback`,
       name: normalizedBackend,
+      model: [preferredModelId || 'auto'],
       useModel: preferredModelId || 'auto',
       platform: normalizedBackend,
       baseUrl: '',

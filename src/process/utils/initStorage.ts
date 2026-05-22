@@ -267,7 +267,7 @@ const normalizeLegacyConversation = (conversation: TChatConversation): TChatConv
   return {
     ...conversation,
     type: 'aionrs',
-    model: modelRecord as TProviderWithModel,
+    model: modelRecord as unknown as TProviderWithModel,
   } as TChatConversation;
 };
 

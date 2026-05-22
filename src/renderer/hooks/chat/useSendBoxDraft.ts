@@ -53,6 +53,8 @@ type Draft =
     };
 
 type DraftStoreKey = Exclude<TChatConversation['type'], 'gemini'>;
+type DraftByType<K extends TChatConversation['type']> =
+  K extends 'gemini' ? Extract<Draft, { _type: 'gemini' | 'aionrs' }> : Extract<Draft, { _type: K }>;
 
 /**
  * 当前支持的对话类型以及对应的草稿对象
@@ -68,10 +70,10 @@ const store: Record<DraftStoreKey, Map<string, Draft>> = {
 
 const normalizeDraftType = (type: TChatConversation['type']): DraftStoreKey => (type === 'gemini' ? 'aionrs' : type);
 
-const setDraft = <K extends TChatConversation['type']>(
-  type: K,
+const setDraft = (
+  type: TChatConversation['type'],
   conversation_id: string,
-  draft: Extract<Draft, { _type: K }> | undefined
+  draft: Draft | undefined
 ) => {
   const normalizedType = normalizeDraftType(type);
   if (draft) {
@@ -83,11 +85,8 @@ const setDraft = <K extends TChatConversation['type']>(
   }
 };
 
-const getDraft = <K extends TChatConversation['type']>(
-  type: K,
-  conversation_id: string
-): Extract<Draft, { _type: K }> | undefined => {
-  return store[normalizeDraftType(type)].get(conversation_id) as Extract<Draft, { _type: K }> | undefined;
+const getDraft = <K extends TChatConversation['type']>(type: K, conversation_id: string): DraftByType<K> | undefined => {
+  return store[normalizeDraftType(type)].get(conversation_id) as DraftByType<K> | undefined;
 };
 
 /**
@@ -95,7 +94,7 @@ const getDraft = <K extends TChatConversation['type']>(
  */
 export const getSendBoxDraftHook = <K extends TChatConversation['type']>(
   type: K,
-  initialValue: Extract<Draft, { _type: K }>
+  initialValue: DraftByType<K>
 ) => {
   function useDraft(conversation_id: string) {
     const swrRet = useSWR([`/send-box/${type}/draft/${conversation_id}`, conversation_id], ([_, id]) => {
@@ -103,11 +102,11 @@ export const getSendBoxDraftHook = <K extends TChatConversation['type']>(
     });
 
     const mutateDraft = useCallback(
-      (draft: (k: Extract<Draft, { _type: K }>) => typeof k | undefined): void => {
+      (draft: (k: DraftByType<K>) => DraftByType<K> | undefined): void => {
         swrRet
           .mutate(
             (prev) => {
-              const newDraft = draft(prev ?? initialValue);
+              const newDraft = draft((prev as DraftByType<K> | undefined) ?? initialValue);
               setDraft(type, conversation_id, newDraft);
               return newDraft;
             },
@@ -122,7 +121,7 @@ export const getSendBoxDraftHook = <K extends TChatConversation['type']>(
 
     return {
       get data() {
-        return swrRet.data;
+        return swrRet.data as DraftByType<K> | undefined;
       },
       mutate: mutateDraft,
     };
