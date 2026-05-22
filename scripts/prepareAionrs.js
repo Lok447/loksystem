@@ -89,6 +89,20 @@ function resolveLatestTag() {
     // network issue or rate-limited
   }
 
+  // 3. Follow GitHub's public "latest release" redirect without using the API.
+  // This avoids API rate limits when no token is available in CI.
+  try {
+    const out = execFileSync(
+      'curl',
+      ['-fsSL', '-o', '/dev/null', '-w', '%{url_effective}', `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`],
+      { encoding: 'utf-8', timeout: 15000 }
+    ).trim();
+    const match = out.match(/\/releases\/tag\/([^/?#]+)$/);
+    if (match?.[1]) return match[1];
+  } catch {
+    // redirect lookup failed
+  }
+
   return null;
 }
 
@@ -197,7 +211,22 @@ function prepareAionrs() {
   if (version === 'latest') {
     const resolved = resolveLatestTag();
     if (!resolved) {
-      throw new Error('Failed to resolve latest aionrs release tag from GitHub API');
+      console.warn('Failed to resolve latest aionrs release tag; skipping bundled aionrs for this build');
+      const targetDir = path.join(projectRoot, 'resources', 'bundled-aionrs', runtimeKey);
+      removeDirectorySafe(targetDir);
+      ensureDirectory(targetDir);
+      writeJson(path.join(targetDir, 'manifest.json'), {
+        platform,
+        arch,
+        version: 'latest',
+        generatedAt: new Date().toISOString(),
+        sourceType: 'none',
+        source: {},
+        files: [],
+        skipped: true,
+        reason: 'failed to resolve latest aionrs release tag',
+      });
+      return { prepared: false, reason: 'tag_resolution_failed' };
     }
     tag = resolved;
     console.log(`Resolved aionrs "latest" → ${tag}`);
