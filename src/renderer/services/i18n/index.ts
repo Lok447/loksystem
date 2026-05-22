@@ -46,6 +46,8 @@ const DEFAULT_WEB_LANGUAGE = 'zh-CN';
 const LANGUAGE_EXPLICIT_SELECTION_KEY = 'loksystem.language.explicit';
 const initialRendererLanguage =
   typeof window !== 'undefined' && !window.electronAPI ? DEFAULT_WEB_LANGUAGE : DEFAULT_LANGUAGE;
+const webFallbackLanguage =
+  DEFAULT_WEB_LANGUAGE === DEFAULT_LANGUAGE ? DEFAULT_LANGUAGE : [DEFAULT_WEB_LANGUAGE, DEFAULT_LANGUAGE];
 
 const isBrowserWebRuntime = typeof window !== 'undefined' && !window.electronAPI;
 
@@ -108,7 +110,7 @@ i18n
       },
     },
     lng: getInitialLanguageHint(),
-    fallbackLng: isBrowserWebRuntime ? ['zh-CN', DEFAULT_LANGUAGE] : DEFAULT_LANGUAGE,
+    fallbackLng: isBrowserWebRuntime ? webFallbackLanguage : DEFAULT_LANGUAGE,
     debug: false,
     interpolation: { escapeValue: false },
   })

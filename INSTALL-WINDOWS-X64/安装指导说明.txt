@@ -1,0 +1,27 @@
+LokSystem Windows x64 下载说明
+
+此目录现在只保留说明文件，不再把安装包直接提交到 Git 仓库。
+
+正式对外发布时，请到 GitHub Releases 下载：
+https://github.com/Lok447/loksystem/releases
+
+当前版本：
+- v1.9.25
+
+对应安装包文件名：
+- LokSystem-1.9.25-win-x64.exe
+- LokSystem-1.9.25-win-x64.zip
+
+用户安装步骤：
+1. 打开 Releases 页面
+2. 下载 `LokSystem-1.9.25-win-x64.exe`
+3. 双击运行安装程序
+4. 按提示完成安装
+5. 安装完成后，从桌面或开始菜单启动 `LokSystem`
+
+如果只是本地打包自测，构建产物通常在：
+- out/
+
+发布约定：
+- 仓库不再跟踪 `.exe`、`.zip`、`.msi` 安装包
+- 安装包统一作为 GitHub Release assets 管理

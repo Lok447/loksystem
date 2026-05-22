@@ -41,6 +41,10 @@ npm run dist:linux
 
 The release pipeline expects artifact names to follow the `LokSystem-<version>-<platform>-<arch>` convention.
 
+Packaged installers are release assets, not source-controlled repository files.
+Keep `INSTALL-WINDOWS-X64/` for human-readable guidance only, and publish the
+actual `.exe` / `.zip` / `.msi` payloads via GitHub Releases.
+
 Local smoke test:
 
 ```bash

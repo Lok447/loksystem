@@ -116,6 +116,15 @@ If artifact naming changes, update both:
 - `scripts/create-mock-release-artifacts.sh`
 - `scripts/verify-release-assets.sh`
 
+## Repository Hygiene
+
+Do not commit packaged installers into the Git history.
+
+- keep `out/` local-only
+- keep `INSTALL-WINDOWS-X64/` as a pointer directory with docs only
+- upload `.exe`, `.zip`, `.msi`, `.dmg`, `.deb`, and updater metadata through GitHub Releases
+- treat GitHub Release assets as the canonical download channel for end users
+
 ## Troubleshooting
 
 ### Draft release created without expected assets

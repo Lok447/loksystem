@@ -29,6 +29,77 @@ const DMG_RETRY_DELAY_SEC = 30;
 // Incremental build: hash of source files to detect changes
 const INCREMENTAL_CACHE_FILE = 'out/.build-hash';
 
+function quoteShellArg(value) {
+  if (value === undefined || value === null) return '';
+  const stringValue = String(value);
+  if (stringValue.length === 0) {
+    return process.platform === 'win32' ? '""' : "''";
+  }
+
+  if (process.platform === 'win32') {
+    if (!/[\s"]/u.test(stringValue)) return stringValue;
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+
+  if (!/[\s'"\\$`]/u.test(stringValue)) return stringValue;
+  return `'${stringValue.replace(/'/g, `'\\''`)}'`;
+}
+
+function commandExists(command) {
+  const checker = process.platform === 'win32' ? 'where' : 'which';
+  return spawnSync(checker, [command], { stdio: 'ignore' }).status === 0;
+}
+
+function getLocalToolPath(tool) {
+  const binDir = path.resolve(__dirname, '..', 'node_modules', '.bin');
+  const candidates = process.platform === 'win32' ? [`${tool}.cmd`, `${tool}.exe`, tool] : [tool];
+
+  for (const candidate of candidates) {
+    const fullPath = path.join(binDir, candidate);
+    if (fs.existsSync(fullPath)) {
+      return fullPath;
+    }
+  }
+
+  return null;
+}
+
+function getPackageToolPrefix(tool) {
+  const localToolPath = getLocalToolPath(tool);
+  if (localToolPath) {
+    return quoteShellArg(localToolPath);
+  }
+
+  if (commandExists('bunx')) {
+    return `bunx ${quoteShellArg(tool)}`;
+  }
+
+  if (commandExists('npx')) {
+    return `npx --yes ${quoteShellArg(tool)}`;
+  }
+
+  if (commandExists('npm')) {
+    return `npm exec --yes ${quoteShellArg(tool)} --`;
+  }
+
+  throw new Error(
+    `Unable to find a runner for "${tool}". Expected node_modules/.bin, bunx, npx, or npm to be available.`
+  );
+}
+
+function buildPackageToolCommand(tool, args = []) {
+  const prefix = getPackageToolPrefix(tool);
+  const suffix = args.map(quoteShellArg).join(' ');
+  return suffix ? `${prefix} ${suffix}` : prefix;
+}
+
+function runPackageTool(tool, args = [], options = {}) {
+  return execSync(buildPackageToolCommand(tool, args), {
+    shell: true,
+    ...options,
+  });
+}
+
 function walkFiles(dir, acc = []) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
@@ -223,9 +294,8 @@ function createDmgWithPrepackaged(appDir, targetArch) {
   if (!appName) throw new Error(`No .app found in ${appDir}`);
   const appPath = path.join(appDir, appName);
 
-  execSync(`bunx electron-builder --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`, {
+  runPackageTool('electron-builder', ['--mac', 'dmg', `--${targetArch}`, '--prepackaged', appPath, '--publish=never'], {
     stdio: 'inherit',
-    shell: process.platform === 'win32',
   });
 }
 
@@ -399,9 +469,8 @@ try {
   if (!skipViteBuild) {
     // Run electron-vite to build all bundles (main + preload + renderer)
     console.log(`📦 Building ${targetArch}...`);
-    execSync(`bunx electron-vite build`, {
+    runPackageTool('electron-vite', ['build'], {
       stdio: 'inherit',
-      shell: process.platform === 'win32',
       env: {
         ...process.env,
         ELECTRON_BUILDER_ARCH: targetArch,
@@ -541,7 +610,7 @@ try {
     cleanupWindowsPackOutput();
   }
 
-  const builderCommand = `bunx electron-builder ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
+  const builderCommand = `${buildPackageToolCommand('electron-builder')} ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
   try {
     buildWithDmgRetry(builderCommand, targetArch);
   } catch (error) {

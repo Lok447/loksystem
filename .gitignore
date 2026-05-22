@@ -95,6 +95,9 @@ typings/
 
 # Electron-Forge
 out/
+INSTALL-WINDOWS-X64/*.exe
+INSTALL-WINDOWS-X64/*.zip
+INSTALL-WINDOWS-X64/*.msi
 
 # IDE and Editor files
 .idea
