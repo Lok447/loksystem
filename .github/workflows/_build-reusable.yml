@@ -33,6 +33,7 @@ env:
   LOKSYSTEM_HUB_TAG: 'dist-ebc6a2b'
   # aionrs binary version to bundle (used by scripts/prepareAionrs.js)
   AIONRS_VERSION: 'latest'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   code-quality:
