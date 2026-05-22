@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -18,6 +18,11 @@ Object.defineProperty(window, 'matchMedia', {
 
 const mockOpenExternalUrl = vi.fn(() => Promise.resolve());
 
+const MockButton = ({
+  children,
+  onClick,
+}: React.PropsWithChildren<{ onClick?: () => void }>) => <button onClick={onClick}>{children}</button>;
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
@@ -30,17 +35,12 @@ vi.mock('@icon-park/react', () => ({
 }));
 
 vi.mock('@arco-design/web-react', () => {
-  const Button = ({
-    children,
-    onClick,
-  }: React.PropsWithChildren<{ onClick?: () => void }>) => <button onClick={onClick}>{children}</button>;
-
   const Typography = {
     Title: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
     Text: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
   };
 
-  return { Button, Typography };
+  return { Button: MockButton, Typography };
 });
 
 vi.mock('@/renderer/components/base/LokModal', () => ({

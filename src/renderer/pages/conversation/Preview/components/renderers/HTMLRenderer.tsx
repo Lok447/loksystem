@@ -95,6 +95,7 @@ async function inlineRelativeResources(html: string, basePath: string): Promise<
     const [fullMatch, before, src, after] = match;
     try {
       const absolutePath = resolveRelativePath(basePath, src);
+      // oxlint-disable-next-line eslint/no-await-in-loop -- replacement ordering depends on the current HTML string
       const dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: absolutePath });
       if (dataUrl) {
         // getImageBase64 已经返回完整的 data URL / getImageBase64 already returns complete data URL
@@ -117,6 +118,7 @@ async function inlineRelativeResources(html: string, basePath: string): Promise<
     if (isStylesheet) {
       try {
         const absolutePath = resolveRelativePath(basePath, href);
+        // oxlint-disable-next-line eslint/no-await-in-loop -- CSS content must be resolved before mutating the active HTML output
         const cssContent = await ipcBridge.fs.readFile.invoke({ path: absolutePath });
         if (cssContent) {
           // 替换 CSS 中的相对 url() 引用为 base64 / Replace relative url() references in CSS with base64
@@ -130,6 +132,7 @@ async function inlineRelativeResources(html: string, basePath: string): Promise<
               // CSS 文件的基础路径 / Base path for CSS file
               const cssBasePath = absolutePath;
               const resourcePath = resolveRelativePath(cssBasePath, urlPath);
+              // oxlint-disable-next-line eslint/no-await-in-loop -- url() replacements mutate the current CSS string sequentially
               const dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: resourcePath });
               if (dataUrl) {
                 // getImageBase64 已经返回完整的 data URL / getImageBase64 already returns complete data URL
@@ -157,6 +160,7 @@ async function inlineRelativeResources(html: string, basePath: string): Promise<
     const [fullMatch, before, src, after] = match;
     try {
       const absolutePath = resolveRelativePath(basePath, src);
+      // oxlint-disable-next-line eslint/no-await-in-loop -- replacement ordering depends on the current HTML string
       const scriptContent = await ipcBridge.fs.readFile.invoke({ path: absolutePath });
       if (scriptContent) {
         // 保留其他属性（如 type, defer, async 等，但 async/defer 对 inline 无效）

@@ -1,4 +1,4 @@
-﻿import type { IProvider } from '@/common/config/storage';
+import type { IProvider } from '@/common/config/storage';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import LokModal from '@/renderer/components/base/LokModal';
 import { Select } from '@arco-design/web-react';
@@ -15,7 +15,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
     const optionsList = useMemo(() => {
       const models = Array.isArray(modelList) ? modelList : modelList?.models || [];
       if (!models || !data?.model) return models;
-      return models.map((item) => ({ ...item, disabled: data.model.includes(item.value) }));
+      return models.map((item) => Object.assign({}, item, { disabled: data.model.includes(item.value) }));
     }, [modelList, data?.model]);
 
     const handleConfirm = useCallback(() => {

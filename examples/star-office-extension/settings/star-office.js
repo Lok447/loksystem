@@ -1,3 +1,16 @@
+const now = () => Date.now();
+const rnd = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const runtimeToState = (runtimeStatus) => {
+  if (runtimeStatus === 'running') return 'executing';
+  if (runtimeStatus === 'pending') return 'syncing';
+  return 'idle';
+};
+const formatTime = (ts) => {
+  const d = new Date(ts);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+};
+
 (() => {
   const statsEl = document.getElementById('stats');
   const agentLayerEl = document.getElementById('agent-layer');
@@ -19,11 +32,6 @@
   let mode = 'mock';
   let lastSnapshot = null;
 
-  const now = () => Date.now();
-  const rnd = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
   const STATUS_TEXT = {
     idle: '待命',
     writing: '写作',
@@ -31,17 +39,6 @@
     executing: '执行',
     syncing: '同步',
     error: '错误',
-  };
-
-  const runtimeToState = (runtimeStatus) => {
-    if (runtimeStatus === 'running') return 'executing';
-    if (runtimeStatus === 'pending') return 'syncing';
-    return 'idle';
-  };
-
-  const formatTime = (ts) => {
-    const d = new Date(ts);
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
   };
 
   const normalizeSnapshot = (input) => {

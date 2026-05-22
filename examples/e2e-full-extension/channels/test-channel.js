@@ -22,7 +22,7 @@ class E2eTestChannelPlugin {
     return { ok: true };
   }
 
-  async sendMessage(to, message) {
+  async sendMessage(_to, _message) {
     return { delivered: false, reason: 'mock-plugin' };
   }
 

@@ -1,4 +1,4 @@
-﻿import type { IProvider } from '@/common/config/storage';
+import type { IProvider } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
