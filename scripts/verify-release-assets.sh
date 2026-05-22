@@ -94,7 +94,7 @@ find_single_match() {
 }
 
 assert_metadata_file "latest.yml" '(win-(x64|amd64)|win32-(x64|amd64)|windows-(x64|amd64)).*\.(exe|msi|zip)$'
-assert_metadata_file "latest-mac.yml" '(mac-(x64|amd64)|darwin-(x64|amd64)).*\.(dmg|zip)$'
+assert_metadata_file "latest-mac.yml" '(mac-(x64|amd64|arm64)|darwin-(x64|amd64|arm64)).*\.(dmg|zip)$'
 assert_metadata_file "latest-linux.yml" '(linux-(x64|amd64)).*\.(deb|AppImage|rpm|zip)$'
 assert_metadata_file "latest-linux-arm64.yml" '(linux-(arm64|aarch64)).*\.(deb|AppImage|rpm|zip)$'
 assert_metadata_file "latest-win-arm64.yml" '(win-arm64|win32-arm64|windows-arm64).*\.(exe|msi|zip)$'
