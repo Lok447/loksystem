@@ -27,6 +27,16 @@ function ensureDirectory(dirPath) {
   }
 }
 
+function commandExists(command) {
+  const checker = process.platform === 'win32' ? 'where' : 'which';
+  try {
+    execFileSync(checker, [command], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function removeDirectorySafe(dirPath) {
   fs.rmSync(dirPath, { recursive: true, force: true });
 }
@@ -126,9 +136,33 @@ function getDownloadUrl(assetName, tag) {
   return `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/${tag}/${assetName}`;
 }
 
-function downloadFile(url, outputPath) {
+function downloadFile(url, outputPath, assetName, tag) {
   console.log(`  Downloading aionrs from ${url}`);
   if (process.platform === 'win32') {
+    const outputDir = path.dirname(outputPath);
+
+    // Prefer GitHub CLI for release assets on Windows because it is more
+    // resilient than Invoke-WebRequest in restricted or flaky DNS setups.
+    if (assetName && tag && commandExists('gh')) {
+      try {
+        execFileSync(
+          'gh',
+          ['release', 'download', tag, '--repo', `${GITHUB_OWNER}/${GITHUB_REPO}`, '--pattern', assetName, '--dir', outputDir],
+          { timeout: 120000, stdio: 'inherit' }
+        );
+        if (fs.existsSync(outputPath)) return;
+      } catch (error) {
+        console.warn(`  gh download failed: ${error.message}`);
+      }
+    }
+
+    try {
+      execFileSync('curl.exe', ['-L', '--fail', '--silent', '--show-error', '-o', outputPath, url], { timeout: 120000 });
+      if (fs.existsSync(outputPath)) return;
+    } catch (error) {
+      console.warn(`  curl download failed: ${error.message}`);
+    }
+
     const ps = `$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '${url}' -OutFile '${outputPath.replace(/'/g, "''")}'`;
     execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], { timeout: 120000 });
     return;
@@ -182,7 +216,7 @@ function downloadAndExtract(platform, arch, tag) {
   removeDirectorySafe(tempDir);
   ensureDirectory(tempDir);
 
-  downloadFile(url, archivePath);
+  downloadFile(url, archivePath, assetName, tag);
   extractArchive(archivePath, extractDir, platform);
 
   const binaryName = getBinaryName(platform);
