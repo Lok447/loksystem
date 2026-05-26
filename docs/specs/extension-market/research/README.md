@@ -1,7 +1,7 @@
 # Extension 系统深度调研
 
 > 日期：2026-03-30 (初版) · 2026-03-31 (更新: 沙箱 bug 修复)
-> 目的：深度调研 AionUI Extension 系统现状，为 Agent Hub / Assistant Hub / MCP Hub / Skill Hub 等市场化建设提供基础
+> 目的：深度调研 LokSystem Extension 系统现状，为 Agent Hub / Assistant Hub / MCP Hub / Skill Hub 等市场化建设提供基础
 
 ## 文档索引
 
@@ -65,7 +65,7 @@ contributes.acpAdapters 非空 → 出现在 Agent Hub
 
 ## Extension 系统概览
 
-Extension 系统是 AionUI 的插件化基础设施，允许第三方通过声明式 manifest (`aion-extension.json`) 向 AionUI 贡献多种能力类型。系统横跨 Electron 主进程、渲染进程和 Worker Thread 三层。
+Extension 系统是 LokSystem 的插件化基础设施，允许第三方通过声明式 manifest (`aion-extension.json`) 向 LokSystem 贡献多种能力类型。系统横跨 Electron 主进程、渲染进程和 Worker Thread 三层。
 
 ### Manifest 结构 (`aion-extension.json`)
 

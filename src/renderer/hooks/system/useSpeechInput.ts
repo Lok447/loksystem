@@ -9,7 +9,7 @@ import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { transcribeAudioBlob } from '@/renderer/services/SpeechToTextService';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { ConfigStorage } from '@/common/config/storage';
-import { normalizeSpeechToTextConfig } from '@/common/config/speechToText';
+import { normalizeSpeechToTextConfig, validateSpeechToTextConfig } from '@/common/config/speechToText';
 
 export type SpeechInputAvailability = 'record' | 'file' | 'unsupported';
 export type SpeechInputStatus = 'idle' | 'recording' | 'transcribing' | 'error';
@@ -67,6 +67,10 @@ const SPEECH_WAVEFORM_SAMPLE_COUNT = 40;
 const SPEECH_WAVEFORM_MIN_LEVEL = 0.015;
 const SPEECH_WAVEFORM_MAX_LEVEL = 1;
 const SPEECH_VISUALIZER_INTERVAL_MS = 80;
+const BUILTIN_RECOGNITION_UNSUPPORTED_MESSAGE =
+  'Built-in live speech recognition is unavailable here. Use the desktop app, upload an audio file, or configure OpenAI Whisper / Deepgram.';
+const LIVE_RECORDING_UNAVAILABLE_MESSAGE =
+  'Live recording is unavailable in this environment. Use the desktop app or HTTPS, upload an audio file, or switch back to the built-in provider.';
 
 const createInitialWaveformLevels = (): number[] =>
   Array.from({ length: SPEECH_WAVEFORM_SAMPLE_COUNT }, (_, index) => ((index + 1) % 6 === 0 ? 0.04 : 0.015));
@@ -398,11 +402,17 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
         setStatus('idle');
         resetSpeechVisualizer();
       } catch (error) {
-        setErrorCode(mapSpeechInputError(error));
+        const mappedError = mapSpeechInputError(error);
+        setErrorCode(mappedError);
         const message = error instanceof Error ? error.message : String(error);
-        setErrorMessage(
-          message.startsWith('STT_REQUEST_FAILED:') ? message.replace('STT_REQUEST_FAILED:', '').trim() : null
-        );
+        let detail = message.startsWith('STT_REQUEST_FAILED:') ? message.replace('STT_REQUEST_FAILED:', '').trim() : null;
+
+        if (!detail && mappedError === 'not-configured') {
+          const readiness = validateSpeechToTextConfig(await ConfigStorage.get('tools.speechToText'));
+          detail = readiness.message;
+        }
+
+        setErrorMessage(detail);
         setStatus('error');
         resetSpeechVisualizer();
       }
@@ -477,6 +487,15 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
 
   const startRecording = useCallback(async () => {
     const config = normalizeSpeechToTextConfig(await ConfigStorage.get('tools.speechToText'));
+    const readiness = validateSpeechToTextConfig(config);
+
+    if (!readiness.ready) {
+      setErrorCode('not-configured');
+      setErrorMessage(readiness.message);
+      setStatus('error');
+      resetSpeechVisualizer();
+      return;
+    }
 
     if (config.provider === 'builtin') {
       try {
@@ -488,8 +507,9 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
         resetSpeechVisualizer();
       } catch (error) {
         cleanupRecognition();
-        setErrorCode(mapSpeechInputError(error));
-        setErrorMessage(null);
+        const mappedError = mapSpeechInputError(error);
+        setErrorCode(mappedError);
+        setErrorMessage(mappedError === 'recognition-unsupported' ? BUILTIN_RECOGNITION_UNSUPPORTED_MESSAGE : null);
         setStatus('error');
         resetSpeechVisualizer();
       }
@@ -498,6 +518,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
 
     if (availability !== 'record') {
       setErrorCode('recording-unsupported');
+      setErrorMessage(LIVE_RECORDING_UNAVAILABLE_MESSAGE);
       setStatus('error');
       return;
     }

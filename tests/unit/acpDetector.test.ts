@@ -62,6 +62,25 @@ describe('AgentRegistry', () => {
   });
 
   describe('initialize', () => {
+    it('uses HERMES_CLI_PATH when the override exists', async () => {
+      const hermesCliPath = 'D:\\tools\\hermes\\hermes.exe';
+      vi.stubEnv('HERMES_CLI_PATH', hermesCliPath);
+      vi.doMock('node:fs', () => ({
+        existsSync: vi.fn((candidate: string) => candidate === hermesCliPath),
+      }));
+
+      try {
+        const registry = await createFreshRegistry();
+        await registry.initialize();
+        const agents = registry.getDetectedAgents();
+
+        expect(agents[0]).toMatchObject({ backend: 'hermes', cliPath: hermesCliPath });
+      } finally {
+        vi.unstubAllEnvs();
+        vi.doUnmock('node:fs');
+      }
+    });
+
     it('should detect built-in CLIs that are available on PATH', async () => {
       mockDetectBuiltinAgents.mockResolvedValue([
         makeAcpAgent({

@@ -25,6 +25,25 @@ const prepareAionrs = require('./prepareAionrs');
 // "Device not configured" hdiutil errors (electron-builder#8415, actions/runner-images#12323).
 const DMG_RETRY_MAX = 3;
 const DMG_RETRY_DELAY_SEC = 30;
+const HUB_RESOURCES_RELATIVE_DIR = path.join('resources', 'hub');
+const HUB_RESOURCES_BACKUP_RELATIVE_DIR = path.join('resources', '.hub-build-backup');
+const LEGACY_BUILD_PATH_MARKERS = ['C:\\tmp\\loksystem-fork-sync', 'C:/tmp/loksystem-fork-sync'];
+const TEXT_SCAN_EXTENSIONS = new Set([
+  '.cmd',
+  '.cjs',
+  '.css',
+  '.html',
+  '.js',
+  '.json',
+  '.md',
+  '.mjs',
+  '.ps1',
+  '.sh',
+  '.txt',
+  '.xml',
+  '.yaml',
+  '.yml',
+]);
 
 // Incremental build: hash of source files to detect changes
 const INCREMENTAL_CACHE_FILE = 'out/.build-hash';
@@ -112,6 +131,11 @@ function walkFiles(dir, acc = []) {
     }
   }
   return acc;
+}
+
+function copyDirectorySafe(sourceDir, targetDir) {
+  if (!fs.existsSync(sourceDir)) return;
+  fs.cpSync(sourceDir, targetDir, { recursive: true, force: true });
 }
 
 function computeSourceHash() {
@@ -260,6 +284,84 @@ function tryRemoveDir(targetDir) {
     console.log(`❌ Failed to remove ${targetDir}: ${error.message}`);
     return false;
   }
+}
+
+function hasHubResourceCache(projectRoot) {
+  const hubDir = path.join(projectRoot, HUB_RESOURCES_RELATIVE_DIR);
+  return fs.existsSync(path.join(hubDir, 'index.json'));
+}
+
+function prepareHubResourcesWithFallback(projectRoot) {
+  const hubDir = path.join(projectRoot, HUB_RESOURCES_RELATIVE_DIR);
+  const backupDir = path.join(projectRoot, HUB_RESOURCES_BACKUP_RELATIVE_DIR);
+  const hadCachedResources = hasHubResourceCache(projectRoot);
+
+  if (hadCachedResources) {
+    tryRemoveDir(backupDir);
+    copyDirectorySafe(hubDir, backupDir);
+  }
+
+  try {
+    execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
+  } catch (error) {
+    if (!hadCachedResources || !fs.existsSync(path.join(backupDir, 'index.json'))) {
+      throw error;
+    }
+
+    console.warn('[hub] Refresh failed, restoring cached hub resources for this package build');
+    tryRemoveDir(hubDir);
+    copyDirectorySafe(backupDir, hubDir);
+  } finally {
+    tryRemoveDir(backupDir);
+  }
+}
+
+function collectLegacyPathHits(rootDir) {
+  const hits = [];
+  if (!fs.existsSync(rootDir)) return hits;
+
+  for (const entry of fs.readdirSync(rootDir, { withFileTypes: true })) {
+    const fullPath = path.join(rootDir, entry.name);
+    if (entry.isDirectory()) {
+      hits.push(...collectLegacyPathHits(fullPath));
+      continue;
+    }
+
+    if (!entry.isFile()) continue;
+    const extension = path.extname(entry.name).toLowerCase();
+    if (!TEXT_SCAN_EXTENSIONS.has(extension)) continue;
+
+    try {
+      const content = fs.readFileSync(fullPath, 'utf8');
+      const marker = LEGACY_BUILD_PATH_MARKERS.find((candidate) => content.includes(candidate));
+      if (marker) {
+        hits.push({
+          file: fullPath,
+          marker,
+        });
+      }
+    } catch {}
+  }
+
+  return hits;
+}
+
+function verifyNoLegacyBuildPathDependencies(outDir) {
+  const hits = collectLegacyPathHits(outDir);
+  if (hits.length === 0) return;
+
+  const preview = hits
+    .slice(0, 8)
+    .map(({ file, marker }) => `- ${path.relative(outDir, file)} -> ${marker}`)
+    .join('\n');
+
+  throw new Error(
+    [
+      'Packaged output still references a legacy local repository path.',
+      'Please remove the hard-coded dependency before releasing.',
+      preview,
+    ].join('\n')
+  );
 }
 
 function isProcessRunningWindows(imageName) {
@@ -524,7 +626,7 @@ try {
   prepareBundledBun();
 
   // 5b. Prepare hub resources (index.json + extension zips for offline fallback)
-  execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
+  prepareHubResourcesWithFallback(path.resolve(__dirname, '..'));
   // 5b. Prepare aionrs binary (Rust CLI for agent integration)
   prepareAionrs();
 
@@ -655,6 +757,7 @@ try {
     }
   }
 
+  verifyNoLegacyBuildPathDependencies(outDir);
   console.log('✅ Build completed!');
 } catch (error) {
   console.error('❌ Build failed:', error.message);

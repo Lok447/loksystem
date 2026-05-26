@@ -120,7 +120,7 @@ flowchart LR
 
 | 权限         | 值                   | 风险等级  | 说明                                      |
 | ------------ | -------------------- | --------- | ----------------------------------------- |
-| `storage`    | `true`               | safe      | 读写 AionUI 持久化存储                    |
+| `storage`    | `true`               | safe      | 读写 LokSystem 持久化存储                    |
 | `events`     | `true`               | safe      | 跨扩展事件通信                            |
 | `network`    | `false`              | safe      | 无网络访问                                |
 | `network`    | `{ allowedDomains }` | moderate  | 受限域名列表 (支持 `*.github.com` 通配符) |

@@ -16,6 +16,7 @@ type UpdateTaskParams = {
   status?: TeamTask['status'];
   owner?: string;
   description?: string;
+  metadata?: TeamTask['metadata'];
 };
 
 /**
@@ -78,6 +79,46 @@ export class TaskManager {
    */
   async getByOwner(teamId: string, ownerId: string): Promise<TeamTask[]> {
     return this.repo.findTasksByOwner(teamId, ownerId);
+  }
+
+  /**
+   * Reassign open tasks owned by a teammate who failed or was removed.
+   * `in_progress` tasks are reset to `pending` so the new owner can review
+   * and explicitly pick them up again.
+   */
+  async reassignOpenTasks(
+    teamId: string,
+    fromOwnerId: string,
+    toOwnerId?: string,
+    reason: 'member_crashed' | 'member_inactive' | 'manual' = 'manual'
+  ): Promise<TeamTask[]> {
+    if (toOwnerId && toOwnerId === fromOwnerId) {
+      return [];
+    }
+
+    const ownedTasks = await this.repo.findTasksByOwner(teamId, fromOwnerId);
+    const reassignableTasks = ownedTasks.filter((task) => task.status === 'pending' || task.status === 'in_progress');
+
+    if (reassignableTasks.length === 0) {
+      return [];
+    }
+
+    const reassignedAt = Date.now();
+    return Promise.all(
+      reassignableTasks.map((task) =>
+        this.repo.updateTask(task.id, {
+          owner: toOwnerId,
+          status: task.status === 'in_progress' ? 'pending' : task.status,
+          metadata: {
+            ...task.metadata,
+            reassignedAt,
+            reassignedFromOwner: fromOwnerId,
+            reassignedReason: reason,
+          },
+          updatedAt: reassignedAt,
+        })
+      )
+    );
   }
 
   /**

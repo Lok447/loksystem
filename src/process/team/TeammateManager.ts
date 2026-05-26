@@ -5,10 +5,11 @@ import { teamEventBus } from './teamEventBus';
 import { addMessage } from '@process/utils/message';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { TeamAgent, TeammateStatus } from './types';
+import type { TeamAgent, TeamTask, TeammateStatus } from './types';
 import { isTeamCapableBackend } from '@/common/types/teamTypes';
 import { ProcessConfig } from '@process/utils/initStorage';
 import type { Mailbox } from './Mailbox';
+import type { TaskManager } from './TaskManager';
 import { buildRolePrompt } from './prompts/buildRolePrompt';
 import { formatMessages } from './prompts/formatHelpers';
 import { agentRegistry } from '@process/agent/AgentRegistry';
@@ -17,6 +18,7 @@ type TeammateManagerParams = {
   teamId: string;
   agents: TeamAgent[];
   mailbox: Mailbox;
+  taskManager?: TaskManager;
   workerTaskManager: IWorkerTaskManager;
   hasMcpTools?: boolean;
   teamWorkspace?: string;
@@ -32,6 +34,7 @@ export class TeammateManager extends EventEmitter {
   private readonly teamId: string;
   private agents: TeamAgent[];
   private readonly mailbox: Mailbox;
+  private readonly taskManager?: TaskManager;
   private readonly workerTaskManager: IWorkerTaskManager;
   private readonly onAgentRemovedFn?: (teamId: string, agents: TeamAgent[]) => void;
   /** Shared team workspace path (leader's working directory) */
@@ -58,6 +61,7 @@ export class TeammateManager extends EventEmitter {
     this.teamId = params.teamId;
     this.agents = [...params.agents];
     this.mailbox = params.mailbox;
+    this.taskManager = params.taskManager;
     this.workerTaskManager = params.workerTaskManager;
     this.onAgentRemovedFn = params.onAgentRemoved;
     this.teamWorkspace = params.teamWorkspace;
@@ -367,6 +371,9 @@ export class TeammateManager extends EventEmitter {
     const leadAgent = this.agents.find((a) => a.role === 'leader');
     if (!leadAgent) return;
 
+    const reassignedTasks = await this.reassignMemberTasks(agent, leadAgent, 'member_inactive');
+    const reassignmentSummary = this.formatTaskReassignmentSummary(reassignedTasks, leadAgent);
+
     try {
       await this.mailbox.write({
         teamId: this.teamId,
@@ -376,6 +383,7 @@ export class TeammateManager extends EventEmitter {
         content:
           `Teammate ${agent.agentName} (${agent.agentType}) ${reason}. ` +
           `Their session may be stuck or the model may be generating an overlong silent turn. ` +
+          `${reassignmentSummary} ` +
           `Decide whether to retry by sending them a fresh message, replace them with another agent, or continue without them.`,
       });
       await this.wake(leadAgent.slotId);
@@ -503,9 +511,13 @@ export class TeammateManager extends EventEmitter {
       return;
     }
 
+    const reassignedTasks = await this.reassignMemberTasks(agent, leadAgent, 'member_crashed');
+    const reassignmentSummary = this.formatTaskReassignmentSummary(reassignedTasks, leadAgent);
+
     const testament =
       `[System] Member "${agent.agentName}" (${agent.conversationType}) crashed. ` +
       `Error: ${errorMessage}. ` +
+      `${reassignmentSummary} ` +
       `The member slot is preserved and can be recovered if needed.`;
 
     // 1. Write testament to leader's mailbox
@@ -540,6 +552,38 @@ export class TeammateManager extends EventEmitter {
 
     // 5. Wake leader to process the testament
     void this.wake(leadAgent.slotId);
+  }
+
+  private async reassignMemberTasks(
+    agent: TeamAgent,
+    leadAgent: TeamAgent,
+    reason: 'member_crashed' | 'member_inactive'
+  ): Promise<TeamTask[]> {
+    if (!this.taskManager) {
+      return [];
+    }
+
+    try {
+      return await this.taskManager.reassignOpenTasks(this.teamId, agent.slotId, leadAgent.slotId, reason);
+    } catch (error) {
+      console.error(`[TeammateManager] Failed to reassign tasks for ${agent.slotId}:`, error);
+      return [];
+    }
+  }
+
+  private formatTaskReassignmentSummary(tasks: TeamTask[], leadAgent: TeamAgent): string {
+    if (tasks.length === 0) {
+      return 'No open tasks required reassignment.';
+    }
+
+    const preview = tasks
+      .slice(0, 3)
+      .map((task) => `"${task.subject}"`)
+      .join(', ');
+    const remaining = tasks.length - Math.min(tasks.length, 3);
+    const moreText = remaining > 0 ? `, plus ${remaining} more` : '';
+    const taskWord = tasks.length === 1 ? 'task was' : 'tasks were';
+    return `${tasks.length} open ${taskWord} reassigned to ${leadAgent.agentName}: ${preview}${moreText}.`;
   }
 
   /** Remove an agent: kill process, cancel pending wake, clear buffers, remove from in-memory list.

@@ -53,6 +53,13 @@ bash scripts/prepare-release-assets.sh build-artifacts release-assets
 bash scripts/verify-release-assets.sh release-assets LokSystem
 ```
 
+On Windows PowerShell, run the smoke flow through Git Bash so core Unix
+utilities (`rm`, `find`, `cp`) are available:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" -lc "cd /d/tmp/loksystem-fork-sync && ./scripts/create-mock-release-artifacts.sh build-artifacts LokSystem 1.0.0 && ./scripts/prepare-release-assets.sh build-artifacts release-assets && ./scripts/verify-release-assets.sh release-assets LokSystem"
+```
+
 What these scripts check:
 
 - canonical updater metadata exists:
@@ -87,8 +94,8 @@ Check:
 
 ## Related Files
 
-- `C:\tmp\loksystem-fork-sync\electron-builder.yml`
-- `C:\tmp\loksystem-fork-sync\package.json`
-- `C:\tmp\loksystem-fork-sync\.github\workflows\build-and-release.yml`
-- `C:\tmp\loksystem-fork-sync\.github\workflows\release-distribute.yml`
-- `C:\tmp\loksystem-fork-sync\.github\CICD_SETUP.md`
+- `electron-builder.yml`
+- `package.json`
+- `.github/workflows/build-and-release.yml`
+- `.github/workflows/release-distribute.yml`
+- `.github/CICD_SETUP.md`

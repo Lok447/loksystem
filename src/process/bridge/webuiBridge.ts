@@ -23,6 +23,98 @@ let webServerInstance: {
   allowRemote: boolean;
 } | null = null;
 
+type ActiveWebServerInstance = NonNullable<typeof webServerInstance>;
+
+type EnsureWebUiServerOptions = {
+  requestedPort?: number;
+  allowRemote?: boolean;
+  reuseRunningPort?: boolean;
+};
+
+type EnsuredWebUiServer = {
+  instance: ActiveWebServerInstance;
+  status: Awaited<ReturnType<typeof WebuiService.getStatus>>;
+  reused: boolean;
+  restarted: boolean;
+};
+
+function emitRunningStatus(instance: ActiveWebServerInstance): void {
+  const localUrl = `http://localhost:${instance.port}`;
+  const lanIP = WebuiService.getLanIP();
+  const networkUrl = instance.allowRemote && lanIP ? `http://${lanIP}:${instance.port}` : undefined;
+
+  webui.statusChanged.emit({
+    running: true,
+    port: instance.port,
+    localUrl,
+    networkUrl,
+  });
+}
+
+async function stopRunningWebUiServer(reason: string): Promise<void> {
+  if (!webServerInstance) {
+    return;
+  }
+
+  try {
+    const { server, wss } = webServerInstance;
+    wss.clients.forEach((client) => client.close(1000, reason));
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+      setTimeout(resolve, 2000);
+    });
+    cleanupWebAdapter();
+  } catch (error) {
+    console.warn('[WebUI Bridge] Error stopping previous server:', error);
+  } finally {
+    webServerInstance = null;
+  }
+}
+
+async function startWebUiServer(preferredPort: number, remote: boolean): Promise<EnsuredWebUiServer> {
+  const instance = await startWebServerWithInstance(preferredPort, remote);
+  webServerInstance = instance;
+
+  const status = await WebuiService.getStatus(instance);
+  emitRunningStatus(instance);
+
+  return {
+    instance,
+    status,
+    reused: false,
+    restarted: false,
+  };
+}
+
+export async function ensureWebUiServer(options: EnsureWebUiServerOptions = {}): Promise<EnsuredWebUiServer> {
+  const preferredPort = options.requestedPort ?? SERVER_CONFIG.DEFAULT_PORT;
+  const remote = options.allowRemote ?? false;
+  const current = webServerInstance;
+
+  if (current) {
+    const portSatisfied = options.reuseRunningPort ? true : current.port === preferredPort;
+    const remoteSatisfied = options.reuseRunningPort ? (remote ? current.allowRemote : true) : current.allowRemote === remote;
+
+    if (portSatisfied && remoteSatisfied) {
+      return {
+        instance: current,
+        status: await WebuiService.getStatus(current),
+        reused: true,
+        restarted: false,
+      };
+    }
+
+    await stopRunningWebUiServer('Server restarting');
+    const restarted = await startWebUiServer(preferredPort, remote);
+    return {
+      ...restarted,
+      restarted: true,
+    };
+  }
+
+  return startWebUiServer(preferredPort, remote);
+}
+
 /**
  * 设置 WebUI 服务器实例
  * Set WebUI server instance (called from webserver/index.ts)
@@ -55,46 +147,15 @@ export function initWebuiBridge(): void {
   // 启动 WebUI / Start WebUI
   webui.start.provider(async ({ port: requestedPort, allowRemote }) => {
     try {
-      // If server is already running, stop it first (supports restart for config changes)
-      // 如果服务器已在运行，先停止（支持配置变更时的重启）
-      if (webServerInstance) {
-        try {
-          const { server: oldServer, wss: oldWss } = webServerInstance;
-          oldWss.clients.forEach((client) => client.close(1000, 'Server restarting'));
-          await new Promise<void>((resolve) => {
-            oldServer.close(() => resolve());
-            // Force resolve after 2s to avoid hanging
-            setTimeout(resolve, 2000);
-          });
-          cleanupWebAdapter();
-        } catch (err) {
-          console.warn('[WebUI Bridge] Error stopping previous server:', err);
-        }
-        webServerInstance = null;
-      }
-
-      const preferredPort = requestedPort ?? SERVER_CONFIG.DEFAULT_PORT;
-      const remote = allowRemote ?? false;
-
-      // 使用预加载的模块 / Use preloaded module
-      const instance = await startWebServerWithInstance(preferredPort, remote);
-      webServerInstance = instance;
-
-      // Use actual port from instance (may differ from preferred if auto-incremented)
+      const { instance, status } = await ensureWebUiServer({
+        requestedPort,
+        allowRemote,
+      });
       const actualPort = instance.port;
-      const status = await WebuiService.getStatus(webServerInstance);
       const localUrl = `http://localhost:${actualPort}`;
       const lanIP = WebuiService.getLanIP();
-      const networkUrl = remote && lanIP ? `http://${lanIP}:${actualPort}` : undefined;
+      const networkUrl = instance.allowRemote && lanIP ? `http://${lanIP}:${actualPort}` : undefined;
       const initialPassword = status.initialPassword;
-
-      // 发送状态变更事件 / Emit status changed event
-      webui.statusChanged.emit({
-        running: true,
-        port: actualPort,
-        localUrl,
-        networkUrl,
-      });
 
       return {
         success: true,
@@ -115,7 +176,7 @@ export function initWebuiBridge(): void {
     }
   });
 
-  // 停止 WebUI / Stop WebUI
+  // Stop WebUI / 停止 WebUI
   webui.stop.provider(async () => {
     try {
       if (!webServerInstance) {
@@ -125,27 +186,8 @@ export function initWebuiBridge(): void {
         };
       }
 
-      const { server, wss } = webServerInstance;
+      await stopRunningWebUiServer('Server shutting down');
 
-      // 关闭所有 WebSocket 连接 / Close all WebSocket connections
-      wss.clients.forEach((client) => {
-        client.close(1000, 'Server shutting down');
-      });
-
-      // 关闭服务器 / Close server
-      await new Promise<void>((resolve, reject) => {
-        server.close((err) => {
-          if (err) reject(err);
-          else resolve();
-        });
-      });
-
-      // 清理 WebSocket 广播注册 / Cleanup WebSocket broadcaster registration
-      cleanupWebAdapter();
-
-      webServerInstance = null;
-
-      // 发送状态变更事件 / Emit status changed event
       webui.statusChanged.emit({
         running: false,
       });
@@ -160,7 +202,7 @@ export function initWebuiBridge(): void {
     }
   });
 
-  // 修改密码（不需要当前密码）/ Change password (no current password required)
+  // Change password (no current password required) / 修改密码（不需要当前密码）
   webui.changePassword.provider(async ({ newPassword }) => {
     return WebuiService.handleAsync(async () => {
       await WebuiService.changePassword(newPassword);

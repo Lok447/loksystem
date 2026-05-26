@@ -427,4 +427,17 @@ describe('ToolsModalContent image generation status refresh', () => {
       );
     });
   });
+
+  it('shows validation feedback before enabling manual image generation', async () => {
+    render(<ToolsModalContent />);
+
+    const modeSelect = await screen.findByLabelText(/^settings\.modelProvider$/);
+    fireEvent.change(modeSelect, { target: { value: 'manual' } });
+
+    expect(await screen.findByText('settings.imageGenerationManualValidationFailed')).toBeInTheDocument();
+    expect(screen.getByText(/settings\.imageGenerationManualPlatformRequired/)).toBeInTheDocument();
+    expect(screen.getByText(/settings\.imageGenerationManualBaseUrlRequired/)).toBeInTheDocument();
+    expect(screen.getByText(/settings\.imageGenerationManualApiKeyRequired/)).toBeInTheDocument();
+    expect(screen.getByText(/settings\.imageGenerationManualModelRequired/)).toBeInTheDocument();
+  });
 });

@@ -65,7 +65,7 @@ async function main() {
 
   const packaged = resolvePackagedApp(projectRoot);
   if (!packaged) {
-    console.error('[packaged-launch] No unpacked app found under out/. Run `just build-package` first.');
+    console.error('[packaged-launch] No unpacked app found under out/. Run `npm run package` first.');
     process.exit(1);
   }
 

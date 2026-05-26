@@ -464,6 +464,36 @@ describe('Real TaskManager — dependency graph resolution', () => {
     expect(tasks).toHaveLength(2);
     expect(tasks.map((t) => t.subject).toSorted()).toEqual(['Alpha', 'Beta']);
   });
+
+  it('reassignOpenTasks returns unfinished work to the leader queue', async () => {
+    const pendingTask = await taskManager.create({ teamId: 't', subject: 'Pending', owner: 'slot-member' });
+    const inProgressTask = await taskManager.create({ teamId: 't', subject: 'In Progress', owner: 'slot-member' });
+    const completedTask = await taskManager.create({ teamId: 't', subject: 'Done', owner: 'slot-member' });
+
+    await taskManager.update(inProgressTask.id, { status: 'in_progress' });
+    await taskManager.update(completedTask.id, { status: 'completed' });
+
+    const reassigned = await taskManager.reassignOpenTasks('t', 'slot-member', 'slot-lead', 'member_crashed');
+
+    expect(reassigned).toHaveLength(2);
+    expect(reassigned.map((task) => task.subject).toSorted()).toEqual(['In Progress', 'Pending']);
+
+    const latestPending = await repo.findTaskById(pendingTask.id);
+    const latestInProgress = await repo.findTaskById(inProgressTask.id);
+    const latestCompleted = await repo.findTaskById(completedTask.id);
+
+    expect(latestPending?.owner).toBe('slot-lead');
+    expect(latestPending?.status).toBe('pending');
+    expect(latestPending?.metadata).toMatchObject({
+      reassignedFromOwner: 'slot-member',
+      reassignedReason: 'member_crashed',
+    });
+
+    expect(latestInProgress?.owner).toBe('slot-lead');
+    expect(latestInProgress?.status).toBe('pending');
+    expect(latestCompleted?.owner).toBe('slot-member');
+    expect(latestCompleted?.status).toBe('completed');
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -78,6 +78,7 @@ function makeTaskManager(): TaskManager {
     update: vi.fn().mockResolvedValue({ id: 'task-1', status: 'completed' }),
     list: vi.fn().mockResolvedValue([]),
     getByOwner: vi.fn().mockResolvedValue([]),
+    reassignOpenTasks: vi.fn().mockResolvedValue([]),
     checkUnblocks: vi.fn().mockResolvedValue([]),
   } as unknown as TaskManager;
 }
@@ -1587,6 +1588,61 @@ describe('TeammateManager', () => {
       await new Promise((r) => setTimeout(r, 100));
 
       // Leader's wake was triggered — getOrBuildTask called with leader's conversationId
+      expect(workerTaskManager.getOrBuildTask).toHaveBeenCalledWith('conv-lead');
+
+      mgr.dispose();
+    });
+
+    it('[case-7] member crash: open tasks are reassigned to the leader before wake-up', async () => {
+      const leader = makeAgent({
+        slotId: 'slot-lead',
+        conversationId: 'conv-lead',
+        role: 'leader',
+        agentName: 'Leader',
+        status: 'idle',
+      });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        conversationType: 'acp',
+      });
+      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+      const { mgr, taskManager, workerTaskManager } = makeTeammateManager([leader, member]);
+      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+        sendMessage: mockSendMessage,
+      } as never);
+      vi.mocked(taskManager.reassignOpenTasks).mockResolvedValue([
+        {
+          id: 'task-1',
+          teamId: 'team-1',
+          subject: 'Investigate crash',
+          status: 'pending',
+          owner: 'slot-lead',
+          blockedBy: [],
+          blocks: [],
+          metadata: {},
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      ] as never);
+
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-member',
+        msg_id: 'crash-c7',
+        data: { error: 'Process exited unexpectedly', agentCrash: true },
+      });
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(taskManager.reassignOpenTasks).toHaveBeenCalledWith(
+        'team-1',
+        'slot-member',
+        'slot-lead',
+        'member_crashed'
+      );
       expect(workerTaskManager.getOrBuildTask).toHaveBeenCalledWith('conv-lead');
 
       mgr.dispose();

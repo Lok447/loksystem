@@ -89,7 +89,7 @@ flowchart TD
   end
 
   ParseManifest --> Dedup["去重: 同名扩展 first-seen wins"]
-  Dedup --> EngineCheck["filterByEngineCompatibility\nAionUI 版本 + API 版本 (semver)"]
+  Dedup --> EngineCheck["filterByEngineCompatibility\nLokSystem 版本 + API 版本 (semver)"]
   EngineCheck --> DepCheck["validateDependencies\n缺失 / 版本不匹配 / 循环依赖"]
   DepCheck --> TopoSort["sortByDependencyOrder\n拓扑排序"]
   TopoSort --> LoadStates["loadPersistedStates\n从 extension-states.json 恢复"]
@@ -289,6 +289,6 @@ src/process/extensions/
         ├── entryPointResolver.ts     dist-first 入口点回退
         ├── envResolver.ts            ${env:VAR} 模板解析
         ├── dependencyResolver.ts     依赖校验 + 拓扑排序
-        ├── engineValidator.ts        AionUI 版本 + API 版本兼容性
+        ├── engineValidator.ts        LokSystem 版本 + API 版本兼容性
         └── fileResolver.ts           $file: 引用解析
 ```

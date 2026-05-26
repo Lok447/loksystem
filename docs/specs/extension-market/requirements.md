@@ -8,13 +8,13 @@
 
 ### 现状
 
-AionUI 设置页 > Agent > Local Agent 页，APP 启动时自动扫描本地已安装的 CLI backend（Claude Code、Opencode、Kimi 等），将检测到的 agent 展示在列表中供用户使用。
+LokSystem 设置页 > Agent > Local Agent 页，APP 启动时自动扫描本地已安装的 CLI backend（Claude Code、Opencode、Kimi 等），将检测到的 agent 展示在列表中供用户使用。
 
 ### 痛点
 
 1. **路径发现失败**：部分用户将 CLI 安装在非默认路径，AcpDetector 的 `which` 命令扫描不到
 2. **必须先装 CLI**：用户需要自行在终端安装 CLI backend（如 `npm install -g @anthropic-ai/claude-code`），APP 才能发现。对非技术用户门槛高
-3. **不知道有哪些可用**：用户不知道 AionUI 支持哪些 agent backend，缺少发现入口
+3. **不知道有哪些可用**：用户不知道 LokSystem 支持哪些 agent backend，缺少发现入口
 
 ### 目标
 
@@ -72,7 +72,7 @@ stateDiagram-v2
 
 ### 3.1 Hub Index (index.json)
 
-由 CI 从 `iOfficeAI/AionHub` 仓库自动生成，客户端拉取此文件获取可用 extension 列表。
+由 CI 从 `iOfficeAI/LokSystem Hub` 仓库自动生成，客户端拉取此文件获取可用 extension 列表。
 
 ```json
 {
@@ -115,7 +115,7 @@ stateDiagram-v2
   "metadata": {
     "totalExtensions": 2,
     "generatedBy": "Aion Extension Builder v1.0.0",
-    "repository": "https://github.com/iOfficeAI/AionHub/"
+    "repository": "https://github.com/iOfficeAI/LokSystem Hub/"
   }
 }
 ```
@@ -124,7 +124,7 @@ extension 的唯一标识由 `name` 字段定义.
 `displayName` 是 UI 展示名称，
 `description` 是简短描述，
 `dist` 包含安装包的路径和完整性校验信息，
-`engines.loksystem` 定义了兼容的 AionUI 版本范围，
+`engines.loksystem` 定义了兼容的 LokSystem 版本范围，
 `hubs` 定义了 extension 的分类标签（本期筛选包含 "acpAdapters" 的项）。
 
 ### 3.2 安装状态推导
@@ -360,12 +360,12 @@ APP 更新后首次启动
 
 ## 6. 技术架构
 
-### 6.1 GitHub 仓库 (AionHub)
+### 6.1 GitHub 仓库 (LokSystem Hub)
 
-> (拆另外仓库, 比如 `iOfficeAI/AionHub`，专门存放 Hub 相关的 extension 和构建脚本)
+> (拆另外仓库, 比如 `iOfficeAI/LokSystem Hub`，专门存放 Hub 相关的 extension 和构建脚本)
 
 ```
-AionHub/
+LokSystem Hub/
 ├── extensions/
 │   ├── aionext-claude/
 │   │   ├── aion-extension.json
@@ -389,7 +389,7 @@ AionHub/
 ### 6.2 APP 资源目录
 
 ```
-AionUI.app/Contents/Resources/
+LokSystem.app/Contents/Resources/
 └── hub/
     ├── index.json                   ← 构建 APP 时从 loksystem/hub 的 dist/ 复制
     ├── aionext-claude.tgz           ← 内置 extension (bundled: true)

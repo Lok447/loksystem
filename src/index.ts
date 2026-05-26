@@ -14,7 +14,7 @@ Sentry.init({
 });
 
 import './process/utils/configureConsoleLog';
-import { app, BrowserWindow, nativeImage, net, powerMonitor, protocol, screen } from 'electron';
+import { app, BrowserWindow, nativeImage, net, powerMonitor, protocol, screen, shell } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -52,6 +52,7 @@ import {
   resolveWebUIPort,
   restoreDesktopWebUIFromPreferences,
 } from './process/utils/webuiConfig';
+import { createWebUiLaunchRequest, parseWebUiLaunchRequest } from './process/utils/webuiLaunchRequest';
 import {
   createOrUpdateTray,
   destroyTray,
@@ -64,6 +65,47 @@ import {
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
+const hasSwitch = (flag: string) => process.argv.includes(`--${flag}`) || app.commandLine.hasSwitch(flag);
+const getSwitchValue = (flag: string): string | undefined => {
+  const withEqualsPrefix = `--${flag}=`;
+  const equalsArg = process.argv.find((arg) => arg.startsWith(withEqualsPrefix));
+  if (equalsArg) {
+    return equalsArg.slice(withEqualsPrefix.length);
+  }
+
+  const argIndex = process.argv.indexOf(`--${flag}`);
+  if (argIndex !== -1) {
+    const nextArg = process.argv[argIndex + 1];
+    if (nextArg && !nextArg.startsWith('--')) {
+      return nextArg;
+    }
+  }
+
+  const cliValue = app.commandLine.getSwitchValue(flag);
+  return cliValue || undefined;
+};
+const hasCommand = (cmd: string) => process.argv.includes(cmd);
+
+const isWebUIMode = hasSwitch('webui');
+const isRemoteMode = hasSwitch('remote');
+const isResetPasswordMode = hasCommand('--resetpass');
+const isVersionMode = hasCommand('--version') || hasCommand('-v');
+const isDeployLauncherRequest = hasSwitch('deploy-launcher');
+
+const webUiLaunchRequest = (() => {
+  if (!isWebUIMode) {
+    return null;
+  }
+
+  const userConfigInfo = loadUserWebUIConfig();
+  return createWebUiLaunchRequest(true, {
+    preferredPort: resolveWebUIPort(userConfigInfo.config, getSwitchValue),
+    allowRemote: resolveRemoteAccess(userConfigInfo.config, isRemoteMode),
+    openBrowser: hasSwitch('browser') || isDeployLauncherRequest,
+    source: isDeployLauncherRequest ? 'deploy-launcher' : 'cli',
+  });
+})();
+
 // ============ Single Instance Lock ============
 // Acquire lock early so the second instance quits before doing unnecessary work.
 // When a second instance starts (e.g. from protocol URL), it sends its data
@@ -71,19 +113,57 @@ import electronSquirrelStartup from 'electron-squirrel-startup';
 const isE2ETestMode = process.env.LOKSYSTEM_E2E_TEST === '1';
 const skipSingleInstanceLock = isE2ETestMode || process.env.LOKSYSTEM_MULTI_INSTANCE === '1';
 const deepLinkFromArgv = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
-const gotTheLock = skipSingleInstanceLock ? true : app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
+const gotTheLock = skipSingleInstanceLock
+  ? true
+  : app.requestSingleInstanceLock({
+      deepLinkUrl: deepLinkFromArgv,
+      webuiRequest: webUiLaunchRequest,
+    });
+const isForwardingWebUiToPrimary = !gotTheLock && webUiLaunchRequest !== null;
 if (!gotTheLock) {
-  console.warn('[LokSystem] Another instance is already running; current process will exit.');
-  app.quit();
+  if (isForwardingWebUiToPrimary) {
+    console.log('[LokSystem] Existing desktop instance detected, forwarding WebUI startup request...');
+  } else {
+    console.warn('[LokSystem] Another instance is already running; current process will exit.');
+    app.quit();
+  }
 } else {
   app.on('second-instance', (_event, argv, _workingDirectory, additionalData) => {
+    const secondInstanceData = additionalData as {
+      deepLinkUrl?: string;
+      webuiRequest?: unknown;
+    };
+
     // Prefer additionalData (reliable on all platforms), fallback to argv scan
-    const deepLinkUrl =
-      (additionalData as { deepLinkUrl?: string })?.deepLinkUrl ||
-      argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
+    const deepLinkUrl = secondInstanceData.deepLinkUrl || argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
     if (deepLinkUrl) {
       handleDeepLinkUrl(deepLinkUrl);
     }
+
+    const requestedWebUi = parseWebUiLaunchRequest(secondInstanceData.webuiRequest);
+    if (requestedWebUi) {
+      void (async () => {
+        try {
+          const { ensureWebUiServer } = await import('@process/bridge/webuiBridge');
+          const { status, reused, restarted } = await ensureWebUiServer({
+            requestedPort: requestedWebUi.preferredPort,
+            allowRemote: requestedWebUi.allowRemote,
+            reuseRunningPort: true,
+          });
+
+          const action = reused ? 'reused' : restarted ? 'restarted' : 'started';
+          console.log(`[LokSystem] WebUI ${action} in the running desktop instance at ${status.localUrl}`);
+
+          if (requestedWebUi.openBrowser) {
+            await shell.openExternal(status.localUrl);
+          }
+        } catch (error) {
+          console.error('[LokSystem] Failed to handle secondary WebUI startup request:', error);
+        }
+      })();
+      return;
+    }
+
     // Focus existing window or recreate one if needed.
     if (isWebUIMode || isResetPasswordMode) {
       return;
@@ -164,32 +244,6 @@ process.on('uncaughtException', (_error) => {
 process.on('unhandledRejection', (_reason, _promise) => {
   // Sentry captures this automatically
 });
-
-const hasSwitch = (flag: string) => process.argv.includes(`--${flag}`) || app.commandLine.hasSwitch(flag);
-const getSwitchValue = (flag: string): string | undefined => {
-  const withEqualsPrefix = `--${flag}=`;
-  const equalsArg = process.argv.find((arg) => arg.startsWith(withEqualsPrefix));
-  if (equalsArg) {
-    return equalsArg.slice(withEqualsPrefix.length);
-  }
-
-  const argIndex = process.argv.indexOf(`--${flag}`);
-  if (argIndex !== -1) {
-    const nextArg = process.argv[argIndex + 1];
-    if (nextArg && !nextArg.startsWith('--')) {
-      return nextArg;
-    }
-  }
-
-  const cliValue = app.commandLine.getSwitchValue(flag);
-  return cliValue || undefined;
-};
-const hasCommand = (cmd: string) => process.argv.includes(cmd);
-
-const isWebUIMode = hasSwitch('webui');
-const isRemoteMode = hasSwitch('remote');
-const isResetPasswordMode = hasCommand('--resetpass');
-const isVersionMode = hasCommand('--version') || hasCommand('-v');
 
 // Flag to distinguish intentional quit from unexpected exit in WebUI mode
 let isExplicitQuit = false;
@@ -393,6 +447,13 @@ const handleAppReady = async (): Promise<void> => {
   const t0 = performance.now();
   const mark = (label: string) => console.log(`[LokSystem:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
   mark('start');
+
+  if (isForwardingWebUiToPrimary) {
+    console.log('[LokSystem] WebUI request forwarded to the running desktop instance.');
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+    app.exit(0);
+    return;
+  }
 
   if (!app.isPackaged) {
     try {

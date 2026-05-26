@@ -1,4 +1,4 @@
-name: '🔨 Manual Build'
+name: 'Manual Build'
 
 permissions:
   contents: write
@@ -83,5 +83,5 @@ jobs:
       ref: ${{ inputs.branch }}
       skip_code_quality: ${{ inputs.skip_code_quality }}
       append_commit_hash: true
-      upload_installers_only: true
+      upload_installers_only: false
     secrets: inherit

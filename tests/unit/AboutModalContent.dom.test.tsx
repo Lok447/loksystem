@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -16,7 +16,7 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-const mockOpenExternalUrl = vi.fn(() => Promise.resolve());
+const mockWindowOpen = vi.fn(() => ({ closed: false }));
 
 function MockButton({
   children,
@@ -27,7 +27,7 @@ function MockButton({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue || key,
   }),
 }));
 
@@ -40,9 +40,20 @@ vi.mock('@arco-design/web-react', () => {
   const Typography = {
     Title: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
     Text: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+    Message: {
+      error: vi.fn(),
+      success: vi.fn(),
+    },
   };
 
-  return { Button: MockButton, Typography };
+  return {
+    Button: MockButton,
+    Message: {
+      error: vi.fn(),
+      success: vi.fn(),
+    },
+    Typography,
+  };
 });
 
 vi.mock('@/renderer/components/base/LokModal', () => ({
@@ -63,42 +74,49 @@ vi.mock('@/renderer/components/settings/SettingsModal/settingsViewContext', () =
   useSettingsViewMode: () => 'page',
 }));
 
-vi.mock('@/renderer/utils/platform', () => ({
-  openExternalUrl: (...args: unknown[]) => mockOpenExternalUrl(...args),
-}));
-
 import AboutModalContent from '@/renderer/components/settings/SettingsModal/contents/AboutModalContent';
 
 describe('AboutModalContent', () => {
+  beforeEach(() => {
+    mockWindowOpen.mockClear();
+    window.open = mockWindowOpen as unknown as Window['open'];
+  });
+
   it('renders two simple about actions and keeps contact info hidden by default', () => {
     render(<AboutModalContent />);
 
     expect(screen.getByAltText('LokSystem')).toBeInTheDocument();
     expect(screen.getByText('LokSystem')).toBeInTheDocument();
     expect(
-      screen.getByText('LokSystem 全新 AI 原生协同平台，打通人机协作壁垒，依托智能体能力赋能团队高效协作。')
+      screen.getByText(
+        'LokSystem is an AI-native collaboration workspace that connects local agents, team orchestration, WebUI delivery, and office-ready outputs in one place.'
+      )
     ).toBeInTheDocument();
     expect(screen.getAllByText('settings.contactMe')).toHaveLength(2);
     expect(screen.getAllByText('settings.officialWebsite')).toHaveLength(2);
     expect(screen.queryByText('13434766647')).not.toBeInTheDocument();
   });
 
-  it('opens contact modal and triggers the phone and website actions', async () => {
+  it('opens contact modal and triggers the website action', async () => {
     render(<AboutModalContent />);
 
     await act(async () => {
       fireEvent.click(screen.getAllByRole('button', { name: 'settings.contactMe' })[0]);
     });
 
-    expect(screen.getByText('联系我')).toBeInTheDocument();
+    expect(screen.getByText('Contact LokSystem')).toBeInTheDocument();
     expect(screen.getByText('13434766647')).toBeInTheDocument();
-    expect(screen.getByAltText('LokSystem 微信二维码')).toBeInTheDocument();
-    expect(screen.getByText('立即联系')).toBeInTheDocument();
+    expect(screen.getByAltText('LokSystem WeChat QR code')).toBeInTheDocument();
+    expect(screen.getByText('Copy phone number')).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getAllByRole('button', { name: 'settings.officialWebsite' })[0]);
     });
 
-    expect(mockOpenExternalUrl).toHaveBeenCalledWith(new URL('official-site/index.html', window.location.href).href);
+    expect(mockWindowOpen).toHaveBeenCalledWith(
+      new URL('./official-site/index.html', window.location.href.split('#')[0]).href,
+      '_blank',
+      'noopener,noreferrer'
+    );
   });
 });

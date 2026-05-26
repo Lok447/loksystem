@@ -40,8 +40,8 @@ bun start
 
 | Command                   | Description                                             |
 | ------------------------- | ------------------------------------------------------- |
-| `bun run package`         | Build all processes (main, preload, renderer) to `out/` |
-| `bun run make`            | Alias for `bun run package`                             |
+| `bun run package`         | Build and package a distributable for the current host platform/arch |
+| `bun run make`            | Build all processes (main, preload, renderer) to `out/` |
 | `bun run dist`            | Build and package distributable for current platform    |
 | `bun run dist:mac`        | Build distributable for macOS                           |
 | `bun run dist:win`        | Build distributable for Windows                         |

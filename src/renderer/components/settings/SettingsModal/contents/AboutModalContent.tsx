@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Typography } from '@arco-design/web-react';
+import { Button, Message, Typography } from '@arco-design/web-react';
 import { Earth, Mail } from '@icon-park/react';
 import classNames from 'classnames';
 import React from 'react';
@@ -12,18 +12,27 @@ import { useTranslation } from 'react-i18next';
 import LokModal from '@/renderer/components/base/LokModal';
 import lokLogo from '@/renderer/assets/logos/brand/lok.png';
 import wechatQr from '@/renderer/assets/contact/wechat-qr.jpg';
-import { openExternalUrl } from '@/renderer/utils/platform';
 import { useSettingsViewMode } from '../settingsViewContext';
 
 const PHONE_NUMBER = '13434766647';
 
-const getOfficialSiteUrl = () => new URL('official-site/index.html', window.location.href).href;
+const getOfficialSiteUrl = () => {
+  if (typeof window === 'undefined') {
+    return 'official-site/index.html';
+  }
 
-const openLink = async (url: string) => {
-  try {
-    await openExternalUrl(url);
-  } catch (error) {
-    console.error('Failed to open link:', error);
+  const baseHref = window.location.href.split('#')[0];
+  return new URL('./official-site/index.html', baseHref).href;
+};
+
+const openBundledPage = (url: string) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const opened = window.open(url, '_blank', 'noopener,noreferrer');
+  if (!opened) {
+    window.location.assign(url);
   }
 };
 
@@ -46,6 +55,43 @@ const AboutModalContent: React.FC = () => {
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const [contactModalVisible, setContactModalVisible] = React.useState(false);
+  const [qrLoadFailed, setQrLoadFailed] = React.useState(false);
+
+  const handleOpenOfficialSite = React.useCallback(() => {
+    try {
+      openBundledPage(getOfficialSiteUrl());
+    } catch (error) {
+      console.error('Failed to open official site:', error);
+      Message.error(
+        t('settings.aboutOpenOfficialSiteFailed', {
+          defaultValue: 'Unable to open the bundled official site page.',
+        })
+      );
+    }
+  }, [t]);
+
+  const handleCopyPhoneNumber = React.useCallback(async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(PHONE_NUMBER);
+        Message.success(
+          t('settings.aboutCopyPhoneSuccess', {
+            defaultValue: 'Phone number copied to clipboard.',
+          })
+        );
+        return;
+      }
+
+      Message.success(PHONE_NUMBER);
+    } catch (error) {
+      console.error('Failed to copy phone number:', error);
+      Message.error(
+        t('settings.aboutCopyPhoneFailed', {
+          defaultValue: 'Unable to copy the phone number right now.',
+        })
+      );
+    }
+  }, [t]);
 
   return (
     <div className={classNames('h-full w-full overflow-y-auto overflow-x-hidden', isPageMode ? 'px-0' : 'px-24px')}>
@@ -60,7 +106,10 @@ const AboutModalContent: React.FC = () => {
                 LokSystem
               </Typography.Title>
               <Typography.Text className='block max-w-720px text-left text-13px leading-21px text-t-secondary'>
-                LokSystem 全新 AI 原生协同平台，打通人机协作壁垒，依托智能体能力赋能团队高效协作。
+                {t('settings.aboutHeroDescription', {
+                  defaultValue:
+                    'LokSystem is an AI-native collaboration workspace that connects local agents, team orchestration, WebUI delivery, and office-ready outputs in one place.',
+                })}
               </Typography.Text>
             </div>
           </div>
@@ -68,7 +117,9 @@ const AboutModalContent: React.FC = () => {
           <div className='w-full divide-y divide-border-2'>
             <SettingRow
               title={t('settings.contactMe')}
-              description='查看电话号码与微信二维码。'
+              description={t('settings.aboutContactDescription', {
+                defaultValue: 'View the phone number and WeChat QR code for direct support.',
+              })}
               action={
                 <Button
                   type='secondary'
@@ -84,16 +135,16 @@ const AboutModalContent: React.FC = () => {
 
             <SettingRow
               title={t('settings.officialWebsite')}
-              description='打开 LokSystem 官方介绍页面。'
+              description={t('settings.aboutOfficialWebsiteDescription', {
+                defaultValue: 'Open the bundled official site page even when you are offline.',
+              })}
               action={
                 <Button
                   type='secondary'
                   size='large'
                   className='!h-38px w-full md:min-w-128px'
                   icon={<Earth theme='outline' size='18' />}
-                  onClick={() => {
-                    void openLink(getOfficialSiteUrl());
-                  }}
+                  onClick={handleOpenOfficialSite}
                 >
                   {t('settings.officialWebsite')}
                 </Button>
@@ -106,24 +157,47 @@ const AboutModalContent: React.FC = () => {
       <LokModal
         visible={contactModalVisible}
         onCancel={() => setContactModalVisible(false)}
-        title='联系我'
+        title={t('settings.aboutContactTitle', {
+          defaultValue: 'Contact LokSystem',
+        })}
         footer={null}
         style={{ width: '420px' }}
         contentStyle={{ padding: 0 }}
       >
         <div className='px-20px pb-20px pt-8px'>
           <div className='rounded-16px bg-3 px-16px py-14px text-center'>
-            <div className='text-12px font-600 tracking-[0.08em] text-t-secondary'>联系电话</div>
+            <div className='text-12px font-600 tracking-[0.08em] text-t-secondary'>
+              {t('settings.aboutPhoneLabel', {
+                defaultValue: 'Support Phone',
+              })}
+            </div>
             <div className='mt-8px text-24px font-600 leading-32px text-t-primary'>{PHONE_NUMBER}</div>
           </div>
 
           <div className='mt-14px rounded-16px border border-line-3 bg-white p-16px'>
-            <img src={wechatQr} alt='LokSystem 微信二维码' className='mx-auto block w-full max-w-240px rounded-12px object-cover' />
+            {qrLoadFailed ? (
+              <div className='mx-auto flex min-h-240px max-w-240px items-center justify-center rounded-12px bg-3 px-16px text-center text-13px leading-20px text-t-secondary'>
+                {t('settings.aboutQrFallback', {
+                  defaultValue: 'QR image is unavailable in this build. Please use the phone number above for support.',
+                })}
+              </div>
+            ) : (
+              <img
+                src={wechatQr}
+                alt={t('settings.aboutWechatLabel', {
+                  defaultValue: 'LokSystem WeChat QR code',
+                })}
+                className='mx-auto block w-full max-w-240px rounded-12px object-cover'
+                onError={() => setQrLoadFailed(true)}
+              />
+            )}
           </div>
 
           <div className='mt-16px flex justify-center'>
-            <Button type='primary' size='large' icon={<Mail theme='outline' size='18' />}>
-              立即联系
+            <Button type='primary' size='large' icon={<Mail theme='outline' size='18' />} onClick={() => void handleCopyPhoneNumber()}>
+              {t('settings.aboutCopyPhone', {
+                defaultValue: 'Copy phone number',
+              })}
             </Button>
           </div>
         </div>

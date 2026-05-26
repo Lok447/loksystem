@@ -74,13 +74,51 @@ function resolveDefaultAppAsarPath(): string | null {
   return appAsarPath;
 }
 
+type AsarListCommand = {
+  cmd: string;
+  args: string[];
+};
+
+function getAsarListCommands(asarPath: string): AsarListCommand[] {
+  const projectRoot = path.resolve(__dirname, '../..');
+  const localBinPath = path.join(projectRoot, 'node_modules', '.bin', process.platform === 'win32' ? 'asar.cmd' : 'asar');
+  const localCliCandidates = [
+    path.join(projectRoot, 'node_modules', '@electron', 'asar', 'bin', 'asar.js'),
+    path.join(projectRoot, 'node_modules', 'asar', 'bin', 'asar.js'),
+  ];
+  const commands: AsarListCommand[] = [];
+
+  for (const localCliPath of localCliCandidates) {
+    if (fs.existsSync(localCliPath)) {
+      commands.push({ cmd: process.execPath, args: [localCliPath, 'list', asarPath] });
+    }
+  }
+
+  if (process.platform !== 'win32' && fs.existsSync(localBinPath)) {
+    commands.push({ cmd: localBinPath, args: ['list', asarPath] });
+  }
+
+  const fallbackCommands = process.platform === 'win32'
+    ? [
+        { cmd: 'bunx.cmd', args: ['--bun', 'asar', 'list', asarPath] },
+        { cmd: 'bunx', args: ['--bun', 'asar', 'list', asarPath] },
+        { cmd: 'npx.cmd', args: ['--yes', 'asar', 'list', asarPath] },
+        { cmd: 'npx', args: ['--yes', 'asar', 'list', asarPath] },
+      ]
+    : [
+        { cmd: 'bunx', args: ['--bun', 'asar', 'list', asarPath] },
+        { cmd: 'npx', args: ['--yes', 'asar', 'list', asarPath] },
+      ];
+
+  commands.push(...fallbackCommands);
+  return commands;
+}
+
 function getAsarEntries(asarPath: string): Set<string> {
-  const candidates = process.platform === 'win32' ? ['bunx.cmd', 'bunx', 'npx.cmd', 'npx'] : ['bunx', 'npx'];
   let output = '';
 
-  for (const cmd of candidates) {
+  for (const { cmd, args } of getAsarListCommands(asarPath)) {
     try {
-      const args = cmd.startsWith('bunx') ? ['--bun', 'asar', 'list', asarPath] : ['--yes', 'asar', 'list', asarPath];
       output = execFileSync(cmd, args, {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -95,7 +133,7 @@ function getAsarEntries(asarPath: string): Set<string> {
   }
 
   if (!output.trim()) {
-    throw new Error('Failed to list app.asar entries via bunx/npx asar');
+    throw new Error('Failed to list app.asar entries via local asar binary or bunx/npx fallback');
   }
 
   return new Set(
@@ -106,6 +144,7 @@ function getAsarEntries(asarPath: string): Set<string> {
       .map((line) => toPosixPath(line).replace(/^\//, ''))
   );
 }
+
 
 function extractModuleScriptPath(html: string): string {
   const match = html.match(/<script\s+type="module"[^>]*src="([^"]+)"/i);

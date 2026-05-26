@@ -495,7 +495,6 @@ ${collectedResponses.join('\n')}`;
         process.platform === 'win32' ? 'Scripts' : 'bin',
         process.platform === 'win32' ? 'hermes.exe' : 'hermes'
       ),
-      process.platform === 'win32' ? 'D:\\AI\\hermes-agent-main\\.venv\\Scripts\\hermes.exe' : undefined,
     ].filter((candidate): candidate is string => Boolean(candidate));
 
     return candidates.find((candidate) => existsSync(candidate));

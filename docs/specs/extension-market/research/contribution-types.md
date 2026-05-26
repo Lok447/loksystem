@@ -272,7 +272,7 @@ flowchart TD
 | `entryPointResolver` | `utils/entryPointResolver.ts` | dist-first 入口点解析 (src→dist, .ts→.js 回退) |
 | `envResolver`        | `utils/envResolver.ts`        | `${env:VAR}` 模板替换 (支持 strict mode)       |
 | `dependencyResolver` | `utils/dependencyResolver.ts` | 扩展间依赖校验 + 拓扑排序 (semver ^/~/exact)   |
-| `engineValidator`    | `utils/engineValidator.ts`    | AionUI 版本 + API 版本兼容性校验               |
+| `engineValidator`    | `utils/engineValidator.ts`    | LokSystem 版本 + API 版本兼容性校验               |
 | `fileResolver`       | `utils/fileResolver.ts`       | `$file:` 引用展开 (递归, 防循环, 支持 JSONC)   |
 
 ### 跨 Resolver 共性模式

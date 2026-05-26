@@ -5,6 +5,9 @@ import { AcpSession } from '@process/acp/session/AcpSession';
 import type { AcpClient, ClientFactory } from '@process/acp/infra/IAcpClient';
 import type { AgentConfig, SessionCallbacks, SessionStatus } from '@process/acp/types';
 import type { SessionOptions } from '@process/acp/session/AcpSession';
+import os from 'node:os';
+import path from 'node:path';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 
 function createMockCallbacks(): SessionCallbacks {
   return {
@@ -91,5 +94,26 @@ describe('AcpSession prompt flow', () => {
     expect(session.status).toBe('suspended');
     session.sendMessage('after suspend');
     await vi.waitFor(() => expect(['resuming', 'active', 'prompting'].includes(session.status)).toBe(true));
+  });
+
+  it('sendMessage preprocesses uploaded files before prompting', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'loksystem-acp-prompt-'));
+    const attachmentPath = path.join(tmpDir, 'notes.txt');
+    await writeFile(attachmentPath, 'workspace attachment', 'utf8');
+
+    try {
+      const session = await startSession();
+      await session.sendMessage('inspect attachment', [attachmentPath]);
+
+      await vi.waitFor(() => expect(client.prompt).toHaveBeenCalledOnce());
+      const [, promptContent] = (client.prompt as ReturnType<typeof vi.fn>).mock.calls[0];
+
+      expect(promptContent).toEqual([
+        { type: 'text', text: 'inspect attachment' },
+        { type: 'text', text: `[File: ${attachmentPath}]\nworkspace attachment` },
+      ]);
+    } finally {
+      await rm(tmpDir, { recursive: true, force: true });
+    }
   });
 });

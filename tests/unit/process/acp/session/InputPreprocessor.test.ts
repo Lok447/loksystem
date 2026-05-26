@@ -139,4 +139,17 @@ describe('InputPreprocessor', () => {
       uri: toExpectedResourceUri('/workspace/report.txt'),
     });
   });
+
+  it('processAsync deduplicates uploaded files against @references', async () => {
+    const readFile = vi.fn((filePath: string) => `content of ${filePath}`);
+    const pp = new InputPreprocessor(readFile);
+
+    const result = await pp.processAsync('review @/workspace/spec.md', ['/workspace/spec.md']);
+
+    expect(readFile).toHaveBeenCalledTimes(1);
+    expect(result).toEqual([
+      { type: 'text', text: 'review @/workspace/spec.md' },
+      { type: 'text', text: '[File: /workspace/spec.md]\ncontent of /workspace/spec.md' },
+    ]);
+  });
 });

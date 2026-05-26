@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { SpeechToTextConfig } from '@/common/types/speech';
+import type { SpeechToTextConfig, SpeechToTextProvider } from '@/common/types/speech';
 
 export const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'loksystem:speech-to-text-config-changed';
 
@@ -31,6 +31,19 @@ export const DEFAULT_SPEECH_TO_TEXT_CONFIG: SpeechToTextConfig = {
   },
 };
 
+export type SpeechToTextConfigIssueCode =
+  | 'disabled'
+  | 'missing-api-key'
+  | 'missing-model'
+  | 'invalid-base-url';
+
+export type SpeechToTextConfigReadiness = {
+  code: SpeechToTextConfigIssueCode | null;
+  message: string | null;
+  provider: SpeechToTextProvider;
+  ready: boolean;
+};
+
 export const normalizeSpeechToTextConfig = (config?: SpeechToTextConfig): SpeechToTextConfig => ({
   ...DEFAULT_SPEECH_TO_TEXT_CONFIG,
   ...config,
@@ -47,3 +60,74 @@ export const normalizeSpeechToTextConfig = (config?: SpeechToTextConfig): Speech
     ...config?.deepgram,
   },
 });
+
+const buildReadiness = (
+  provider: SpeechToTextProvider,
+  ready: boolean,
+  code: SpeechToTextConfigIssueCode | null,
+  message: string | null
+): SpeechToTextConfigReadiness => ({
+  code,
+  message,
+  provider,
+  ready,
+});
+
+const isValidSpeechToTextBaseUrl = (value?: string): boolean => {
+  const candidate = value?.trim();
+  if (!candidate) return true;
+
+  try {
+    const parsed = new URL(candidate);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+export const validateSpeechToTextConfig = (config?: SpeechToTextConfig): SpeechToTextConfigReadiness => {
+  const normalized = normalizeSpeechToTextConfig(config);
+
+  if (!normalized.enabled) {
+    return buildReadiness(
+      normalized.provider,
+      false,
+      'disabled',
+      'Speech to text is turned off. Enable it in Settings > Tools before trying again.'
+    );
+  }
+
+  if (normalized.provider === 'builtin') {
+    return buildReadiness('builtin', true, null, null);
+  }
+
+  const providerConfig = normalized[normalized.provider];
+  if (!providerConfig?.apiKey?.trim()) {
+    return buildReadiness(
+      normalized.provider,
+      false,
+      'missing-api-key',
+      `${normalized.provider === 'openai' ? 'OpenAI Whisper' : 'Deepgram'} API key is missing. Complete the provider setup in Settings > Tools.`
+    );
+  }
+
+  if (!providerConfig.model?.trim()) {
+    return buildReadiness(
+      normalized.provider,
+      false,
+      'missing-model',
+      `${normalized.provider === 'openai' ? 'OpenAI Whisper' : 'Deepgram'} model is missing. Pick a model in Settings > Tools before starting speech input.`
+    );
+  }
+
+  if (!isValidSpeechToTextBaseUrl(providerConfig.baseUrl)) {
+    return buildReadiness(
+      normalized.provider,
+      false,
+      'invalid-base-url',
+      `${normalized.provider === 'openai' ? 'OpenAI Whisper' : 'Deepgram'} Base URL must be a valid http(s) address.`
+    );
+  }
+
+  return buildReadiness(normalized.provider, true, null, null);
+};

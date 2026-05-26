@@ -87,7 +87,8 @@ jobs:
             --pattern "*.exe" \
             --pattern "*.msi" \
             --pattern "*.deb" \
-            --pattern "*.zip"
+            --pattern "*.zip" \
+            --pattern "latest*.yml"
           echo "Downloaded files:"
           ls -la dist
 

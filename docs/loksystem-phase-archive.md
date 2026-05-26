@@ -106,7 +106,7 @@
 
 ### 改造目标
 
-- 完成产品品牌从 `AionUi` 到 `LokSystem`、从 `Aion CLI` 到 `Lok CLI` 的界面与文案替换。
+- 完成产品品牌从 `???` 到 `LokSystem`、从 `?? CLI` 到 `Lok CLI` 的界面与文案替换。
 - 删除用户明确要求移除的国外 CLI、市场安装、反馈、问题报告、远程连接、CSS 设置、桌面宠物和国外 WebUI Channel 入口。
 - 保留 Lok CLI/Hermes 主线、国内 CLI、OpenCode/OpenClaw 等可切换能力。
 - 保留“发现外部技能”能力模块，只隐藏 `Gemini CLI`、`Claude Code` 等国外来源按钮，避免影响本地技能发现链路。
@@ -114,7 +114,7 @@
 ### 主聊天页面改造
 
 - 全局硬编码品牌文案已替换为 `LokSystem` / `Lok CLI`。
-- 删除 Header 中的 `AionUi Skills Market` 入口。
+- 删除 Header 中的 `??? Skills Market` 入口。
 - 删除 Header 中的“远程连接”入口。
 - 删除 Footer 中“想吐槽或提建议？”、“喜欢我们？点个星吧”等按钮。
 - 删除问题报告/反馈弹窗入口及相关调用，避免界面残留。
@@ -125,13 +125,13 @@
 - 删除 CSS 设置功能界面入口，保留底层 UnoCSS/主题能力配置。
 - 删除桌面宠物设置页、渲染入口、preload 文件和主进程宠物管理模块。
 - 删除 Agent 设置页“从市场安装”模块，并删除 `AgentHubModal.tsx`。
-- 设置 - Agents / 能力扩展列表中过滤 Gemini、Claude、Anthropic、Aion CLI 等国外 CLI 展示入口。
+- 设置 - Agents / 能力扩展列表中过滤 Gemini、Claude、Anthropic、?? CLI 等国外 CLI 展示入口。
 - 模型平台列表按需求保留 OpenRouter、DeepSeek、MiniMax、Novita、Dashscope、SiliconFlow、Zhipu、Moonshot (China)、Ark、Qianfan、Hunyuan，并保留 OpenAI 兼容层。
 - 关于页面已重新排版，仅保留“联系我”和“官网”两个必要入口。
 
 ### 能力扩展与外部技能
 
-- 新增 MCP/Agent 展示过滤逻辑，避免 Gemini CLI、Claude Code、Anthropic、Aion CLI 在能力扩展、MCP 状态、添加 MCP 弹窗中出现。
+- 新增 MCP/Agent 展示过滤逻辑，避免 Gemini CLI、Claude Code、Anthropic、?? CLI 在能力扩展、MCP 状态、添加 MCP 弹窗中出现。
 - 根据复核要求回退“发现外部技能”能力模块删除动作，继续保留外部技能扫描与发现能力。
 - 外部技能最终策略调整为：后端继续扫描 `~/.gemini/skills`、`~/.claude/skills` 等目录，前端隐藏 `Gemini CLI`、`Claude Code` 来源按钮。
 - 新增外部技能来源过滤工具，供设置页和助手添加技能弹窗复用，保证界面不展示国外 CLI 按钮但不破坏技能发现能力。
@@ -145,7 +145,7 @@
 
 ### 定时任务、助手与团队
 
-- 定时任务页面描述从 “AionUi 帮你创建” 调整为 “LokSystem 帮你创建”。
+- 定时任务页面描述从 “??? 帮你创建” 调整为 “LokSystem 帮你创建”。
 - 创建助手、编辑助手、复制助手的默认主代理回退值统一为 `hermes`。
 - 预设助手启动链路改为通过内置后端配置解析 Hermes/Lok CLI，避免使用旧的 `gemini` 默认值。
 - 团队协作和助手能力继续复用 ACP 抽象层，Hermes/Lok CLI 可作为 Leader 或成员代理参与协作。
@@ -187,7 +187,7 @@
 ### 改造目标
 
 - 深化 LokSystem 与 Hermes/Lok CLI 的 workspace 集成，确保 Hermes 通过 ACP 文件能力访问的是 LokSystem 当前工作空间。
-- 统一 WebUI 与桌面端的 LokSystem 品牌表达，清理 WebUI 启动与登录流程中的 AionUI 残留。
+- 统一 WebUI 与桌面端的 LokSystem 品牌表达，清理 WebUI 启动与登录流程中的 ??? 残留。
 - 为后续桌面端、WebUI、助手、团队任务共享同一工作空间打基础。
 
 ### 已完成改造
@@ -200,7 +200,7 @@
   - Hermes/Lok CLI 启动时显式注入 `LOKSYSTEM_WORKSPACE`、`HERMES_WORKSPACE`、`HERMES_PROJECT_ROOT`、`PWD` 等工作空间环境变量。
   - 保留用户/配置环境变量，并以当前 conversation workspace 作为 Hermes 项目根。
 - `src/process/webserver/index.ts`
-  - WebUI 控制台启动文案从 AionUI 改为 LokSystem。
+  - WebUI 控制台启动文案从 ??? 改为 LokSystem。
 - `src/process/webserver/routes/authRoutes.ts`
   - QR 登录页标题与视觉风格改为 LokSystem WebUI。
 

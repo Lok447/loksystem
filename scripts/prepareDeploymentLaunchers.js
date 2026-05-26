@@ -88,6 +88,7 @@ if (-not (Test-Path -LiteralPath $exePath)) {
 
 $launchArgs = New-Object System.Collections.Generic.List[string]
 $launchArgs.Add('--webui') | Out-Null
+$launchArgs.Add('--deploy-launcher') | Out-Null
 if ($script:UseRemote) {
   $launchArgs.Add('--remote') | Out-Null
 }
@@ -204,7 +205,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-LAUNCH_ARGS=(--webui)
+LAUNCH_ARGS=(--webui --deploy-launcher)
 if [[ "$USE_REMOTE" -eq 1 ]]; then
   LAUNCH_ARGS+=(--remote)
 fi

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { LOKSYSTEM_FILES_MARKER } from '@/common/config/constants';
 
 // Track calls to prepareFirstMessageWithSkillsIndex
 const { mockPrepareFirstMessage, mockAgentSendMessage } = vi.hoisted(() => ({
@@ -168,7 +169,16 @@ function createManager(
   return manager;
 }
 
-async function sendFirstMessage(manager: InstanceType<typeof AcpAgentManager>, content = 'Hello') {
+async function sendFirstMessage(
+  manager: InstanceType<typeof AcpAgentManager>,
+  payload:
+    | string
+    | {
+    content?: string;
+    files?: string[];
+    msg_id?: string;
+      } = {}
+) {
   // Stub initAgent to set up a mock agent without actual process bootstrapping
   const mockAgent = {
     sendMessage: mockAgentSendMessage,
@@ -182,7 +192,13 @@ async function sendFirstMessage(manager: InstanceType<typeof AcpAgentManager>, c
   // Override initAgent to just return the already-bootstrapped agent
   vi.spyOn(manager, 'initAgent').mockResolvedValue(mockAgent as never);
 
-  return manager.sendMessage({ content, msg_id: 'msg-1' });
+  const normalizedPayload = typeof payload === 'string' ? { content: payload } : payload;
+
+  return manager.sendMessage({
+    content: normalizedPayload.content ?? 'Hello',
+    msg_id: normalizedPayload.msg_id ?? 'msg-1',
+    files: normalizedPayload.files,
+  });
 }
 
 describe('AcpAgentManager — first-message skill injection', () => {
@@ -259,5 +275,30 @@ describe('AcpAgentManager — first-message skill injection', () => {
     expect(sentContent).toContain('Team Mode');
     expect(sentContent).toContain('[User Request]');
     expect(sentContent).toContain('Test message');
+  });
+
+  it('strips workspace file marker before fallback prompt injection and keeps uploaded files', async () => {
+    const manager = createManager({
+      backend: 'auggie',
+      customWorkspace: true,
+      presetContext: 'Some rules',
+      enabledSkills: ['pdf'],
+    });
+
+    await sendFirstMessage(manager, {
+      content: `Please inspect this file.${LOKSYSTEM_FILES_MARKER}\nworkspace payload should stay local`,
+      files: ['/tmp/workspace/spec.md'],
+    });
+
+    expect(mockPrepareFirstMessage).toHaveBeenCalledWith('Please inspect this file.', {
+      presetContext: 'Some rules',
+      enabledSkills: ['pdf'],
+      excludeBuiltinSkills: undefined,
+      enableTeamGuide: false,
+      backend: 'auggie',
+      presetAssistantId: undefined,
+    });
+    expect(mockAgentSendMessage.mock.calls[0][0].files).toEqual(['/tmp/workspace/spec.md']);
+    expect(mockAgentSendMessage.mock.calls[0][0].content).not.toContain(LOKSYSTEM_FILES_MARKER);
   });
 });

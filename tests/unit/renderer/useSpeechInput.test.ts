@@ -253,7 +253,7 @@ describe('useSpeechInput', () => {
       expect(result.current.status).toBe('error');
     });
     expect(result.current.errorCode).toBe('recording-unsupported');
-    expect(result.current.errorMessage).toBeNull();
+    expect(result.current.errorMessage).toContain('Live recording is unavailable');
   });
 
   it('records audio and transcribes it when live recording is available', async () => {
@@ -322,5 +322,54 @@ describe('useSpeechInput', () => {
     });
     expect(result.current.errorCode).toBe('permission-denied');
     expect(result.current.errorMessage).toBeNull();
+  });
+
+  it('surfaces missing provider setup before starting external transcription', async () => {
+    mockConfigGet.mockResolvedValueOnce({
+      enabled: true,
+      provider: 'openai',
+      openai: {
+        apiKey: '',
+        model: 'whisper-1',
+      },
+    });
+
+    const { result } = renderHook(() =>
+      useSpeechInput({
+        locale: 'en-US',
+        onTranscript: vi.fn(),
+      })
+    );
+
+    await act(async () => {
+      await result.current.startRecording();
+    });
+
+    expect(result.current.status).toBe('error');
+    expect(result.current.errorCode).toBe('not-configured');
+    expect(result.current.errorMessage).toContain('API key is missing');
+  });
+
+  it('adds recovery guidance when built-in speech recognition is unavailable', async () => {
+    mockConfigGet.mockResolvedValueOnce({
+      enabled: true,
+      provider: 'builtin',
+      builtin: { locale: '' },
+    });
+
+    const { result } = renderHook(() =>
+      useSpeechInput({
+        locale: 'en-US',
+        onTranscript: vi.fn(),
+      })
+    );
+
+    await act(async () => {
+      await result.current.startRecording();
+    });
+
+    expect(result.current.status).toBe('error');
+    expect(result.current.errorCode).toBe('recognition-unsupported');
+    expect(result.current.errorMessage).toContain('upload an audio file');
   });
 });

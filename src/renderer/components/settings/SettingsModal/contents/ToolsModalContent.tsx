@@ -43,6 +43,58 @@ import { useSettingsViewMode } from '../settingsViewContext';
 type MessageInstance = ReturnType<typeof Message.useMessage>[0];
 
 const isBuiltinImageGenServer = (server: IMcpServer) => server.builtin === true && server.id === BUILTIN_IMAGE_GEN_ID;
+
+type ManualImageGenerationValidationCode =
+  | 'platform-required'
+  | 'base-url-required'
+  | 'base-url-invalid'
+  | 'api-key-required'
+  | 'model-required';
+
+const getManualImageGenerationValidationCodes = (
+  model?: Partial<IConfigStorageRefer['tools.imageGenerationModel']>
+): ManualImageGenerationValidationCode[] => {
+  const platform = model?.platform?.trim() || '';
+  const baseUrl = model?.baseUrl?.trim() || '';
+  const apiKey = model?.apiKey?.trim() || '';
+  const useModel = model?.useModel?.trim() || '';
+  const errors: ManualImageGenerationValidationCode[] = [];
+
+  if (!platform) errors.push('platform-required');
+  if (!baseUrl) {
+    errors.push('base-url-required');
+  } else {
+    try {
+      const parsed = new URL(baseUrl);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        errors.push('base-url-invalid');
+      }
+    } catch {
+      errors.push('base-url-invalid');
+    }
+  }
+  if (!apiKey) errors.push('api-key-required');
+  if (!useModel) errors.push('model-required');
+
+  return errors;
+};
+
+const getManualImageGenerationValidationMessageKey = (code: ManualImageGenerationValidationCode) => {
+  switch (code) {
+    case 'platform-required':
+      return 'settings.imageGenerationManualPlatformRequired';
+    case 'base-url-required':
+      return 'settings.imageGenerationManualBaseUrlRequired';
+    case 'base-url-invalid':
+      return 'settings.imageGenerationManualBaseUrlInvalid';
+    case 'api-key-required':
+      return 'settings.imageGenerationManualApiKeyRequired';
+    case 'model-required':
+      return 'settings.imageGenerationManualModelRequired';
+    default:
+      return 'settings.imageGenerationManualValidationFailed';
+  }
+};
 const SpeechToTextSettingsSection: React.FC<{
   config: SpeechToTextConfig;
   onChange: (updater: (current: SpeechToTextConfig) => SpeechToTextConfig) => void;
@@ -529,6 +581,19 @@ const ToolsModalContent: React.FC = () => {
       });
   }, [data]);
 
+  const manualImageGenerationValidationCodes = useMemo(
+    () => (imageGenerationConfigMode === 'manual' ? getManualImageGenerationValidationCodes(imageGenerationModel) : []),
+    [imageGenerationConfigMode, imageGenerationModel]
+  );
+  const manualImageGenerationValidationMessages = useMemo(
+    () => manualImageGenerationValidationCodes.map((code) => t(getManualImageGenerationValidationMessageKey(code))),
+    [manualImageGenerationValidationCodes, t]
+  );
+  const isImageGenerationConfigReady =
+    imageGenerationConfigMode === 'manual'
+      ? manualImageGenerationValidationCodes.length === 0
+      : Boolean(imageGenerationModel?.useModel);
+
   useEffect(() => {
     const loadConfigs = async () => {
       try {
@@ -692,6 +757,10 @@ const ToolsModalContent: React.FC = () => {
   const handleImageGenerationToggle = useCallback(
     async (checked: boolean) => {
       if (!builtinImageGenServer) return;
+      if (checked && imageGenerationConfigMode === 'manual' && manualImageGenerationValidationCodes.length > 0) {
+        mcpMessage.error(t('settings.imageGenerationManualValidationFailed'));
+        return;
+      }
 
       const updatedServer: IMcpServer = {
         ...builtinImageGenServer,
@@ -740,6 +809,10 @@ const ToolsModalContent: React.FC = () => {
       removeMcpFromAgents,
       saveMcpServers,
       syncMcpToAgents,
+      imageGenerationConfigMode,
+      manualImageGenerationValidationCodes.length,
+      mcpMessage,
+      t,
     ]
   );
 
@@ -786,7 +859,11 @@ const ToolsModalContent: React.FC = () => {
                   />
                 )}
                 <Switch
-                  disabled={isUpdatingImageGeneration || !builtinImageGenServer || !imageGenerationModel?.useModel}
+                  disabled={
+                    isUpdatingImageGeneration ||
+                    !builtinImageGenServer ||
+                    (!builtinImageGenServer.enabled && !isImageGenerationConfigReady)
+                  }
                   checked={Boolean(builtinImageGenServer?.enabled)}
                   onChange={handleImageGenerationToggle}
                 />
@@ -924,6 +1001,16 @@ const ToolsModalContent: React.FC = () => {
                       placeholder='gpt-image-1'
                     />
                   </Form.Item>
+                  {manualImageGenerationValidationMessages.length > 0 ? (
+                    <div className='rounded-12px bg-[rgb(var(--danger-1))] px-12px py-10px text-13px leading-20px text-[rgb(var(--danger-6))]' role='alert'>
+                      <div className='font-600'>{t('settings.imageGenerationManualValidationFailed')}</div>
+                      <div className='mt-4px flex flex-col gap-2px'>
+                        {manualImageGenerationValidationMessages.map((message) => (
+                          <span key={message}>- {message}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </>
               ) : null}
             </Form>

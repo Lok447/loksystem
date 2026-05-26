@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Comunidad:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-9.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Comunidad:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-9.png" target="_blank">微信 (中文群)</a> | <a href="https://github.com/iOfficeAI/LokSystem" target="_blank">GitHub</a>
 </p>
 
 ---
@@ -507,15 +507,15 @@ R: Todos los datos se almacenan localmente en una base de datos SQLite. No se su
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=vWxE6VO9TKo" target="_blank">
-    <img src="https://img.youtube.com/vi/vWxE6VO9TKo/maxresdefault.jpg" alt="Hermes + Aion UI is Insane (FREE)!" width="400">
+    <img src="https://img.youtube.com/vi/vWxE6VO9TKo/maxresdefault.jpg" alt="Hermes + LokSystem in Action (FREE)!" width="400">
   </a>
   &nbsp;&nbsp;
   <a href="https://www.youtube.com/watch?v=RgSLdOhICZw" target="_blank">
-    <img src="https://img.youtube.com/vi/RgSLdOhICZw/maxresdefault.jpg" alt="OpenClaw + Aion UI is Insane (FREE!)" width="400">
+    <img src="https://img.youtube.com/vi/RgSLdOhICZw/maxresdefault.jpg" alt="OpenClaw + LokSystem in Action (FREE!)" width="400">
   </a>
 </p>
 <p align="center">
-  <em>Julian Goldie SEO — Hermes + Aion UI is Insane (FREE!) · 27K views</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>Julian Goldie SEO — OpenClaw + Aion UI is Insane (FREE!) · 11K views</em>
+  <em>Julian Goldie SEO — Hermes + LokSystem in Action (FREE!) · 27K views</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>Julian Goldie SEO — OpenClaw + LokSystem in Action (FREE!) · 11K views</em>
 </p>
 
 <p align="center">

@@ -305,7 +305,7 @@ function checkBundleSize(): BundleSizeReport | undefined {
   const assetsDir = path.join(rendererDir, 'assets');
 
   if (!fs.existsSync(rendererDir)) {
-    console.log('  out/renderer/ not found — run `bun run package` first to check bundle size.\n');
+    console.log('  out/renderer/ not found — run `bun run make` first to check bundle size.\n');
     return undefined;
   }
 

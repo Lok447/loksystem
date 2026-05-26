@@ -45,7 +45,7 @@
 | **离线**     | npm cache + lock file      | VSIX 文件直装              | bottle cache (120天)      | 已装插件离线可用           | 已装扩展离线可用      | 离线验证 (缓存 TUF root) |
 | **镜像**     | npmmirror / verdaccio      | Open VSX (自托管)          | HOMEBREW_BOTTLE_DOMAIN    | 无 (依赖 GitHub)           | 无                    | —                        |
 
-> \* **bun 与 npm 的 registry 层完全兼容**：bun 使用相同的 npm registry API (`registry.npmjs.org`)、相同的 .tgz 包格式、支持 `.npmrc` 配置和 `BUN_CONFIG_REGISTRY` 镜像切换。AionUI 已内置 bun 运行时，extension 的 `onInstall` 钩子通过 `bun add` 安装 CLI backend。与 npm 的关键差异见 [Q6 补充：bun 运行时注意事项](#bun-运行时注意事项)。
+> \* **bun 与 npm 的 registry 层完全兼容**：bun 使用相同的 npm registry API (`registry.npmjs.org`)、相同的 .tgz 包格式、支持 `.npmrc` 配置和 `BUN_CONFIG_REGISTRY` 镜像切换。LokSystem 已内置 bun 运行时，extension 的 `onInstall` 钩子通过 `bun add` 安装 CLI backend。与 npm 的关键差异见 [Q6 补充：bun 运行时注意事项](#bun-运行时注意事项)。
 
 ### 关键发现
 
@@ -86,7 +86,7 @@ index.json 的 schema 如何设计？如何支持多 Hub (Agent Hub, Skill Hub, 
       "name": "ext-claude-code",
       "displayName": "Claude Code",
       "version": "1.2.0",
-      "description": "Anthropic Claude Code CLI agent for AionUI",
+      "description": "Anthropic Claude Code CLI agent for LokSystem",
       "author": "loksystem",
       "icon": "icon.png", // 相对路径, 客户端拼接
 
@@ -208,7 +208,7 @@ loksystem/hub/  (GitHub 仓库)
 
 **为什么不用 npm**:
 
-- AionUI 的 extension 不是 JS 包, 发布到 npm 语义不对
+- LokSystem 的 extension 不是 JS 包, 发布到 npm 语义不对
 - 增加了 npm 账号管理、发布流程等额外复杂度
 - 自己仓库内管理更直接
 
@@ -408,7 +408,7 @@ async function verifyExtension(tgzBuffer: Buffer, bundleJson: string): Promise<b
 - **CI 原生**: GitHub Actions OIDC 自动提供身份令牌
 - **身份绑定**: 签名绑定到具体 repo + workflow + commit, 比"谁持有密钥"更强
 - **可审计**: 所有签名事件记录在 Rekor 透明日志
-- **JS 库成熟**: `sigstore` npm 包支持 Node.js ≥18 (AionUI 的 Electron 满足)
+- **JS 库成熟**: `sigstore` npm 包支持 Node.js ≥18 (LokSystem 的 Electron 满足)
 - **离线验证**: bundle 文件自包含, 缓存 TUF root 后可离线验证
 
 #### Phase 3 (远期): 社区开发者签名
@@ -537,12 +537,12 @@ ext-claude-code-1.2.0.tgz
 
 #### bun 运行时注意事项
 
-AionUI 内置了 bun 运行时，extension 的 `onInstall` 钩子通过 `bun add` 安装 CLI backend（如 `bun add -g @anthropic-ai/claude-code`）。bun 与 npm 共用 registry API，但有以下实际差异需要在实现中处理：
+LokSystem 内置了 bun 运行时，extension 的 `onInstall` 钩子通过 `bun add` 安装 CLI backend（如 `bun add -g @anthropic-ai/claude-code`）。bun 与 npm 共用 registry API，但有以下实际差异需要在实现中处理：
 
 | 差异                       | 影响                                                                                                                           | 应对                                                                                                                 |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | **lifecycle 脚本默认阻止** | `bun add` 默认不运行依赖的 `postinstall` 等脚本（安全考虑）。部分 CLI 包依赖 postinstall 做二进制下载（如 `esbuild`、`sharp`） | extension 的 `package.json` 中声明 `trustedDependencies` 白名单；或在 `onInstall` 钩子中显式 `bun add --trust <pkg>` |
-| **全局安装路径**           | `bun add -g` 装到 `~/.bun/install/global/`，bin 链接到 `~/.bun/bin/`，不在系统默认 PATH                                        | APP 启动时将内置 bun 的 globalBinDir 加入 PATH 环境变量；或用 `--globalBinDir` 指向 AionUI 管理的目录                |
+| **全局安装路径**           | `bun add -g` 装到 `~/.bun/install/global/`，bin 链接到 `~/.bun/bin/`，不在系统默认 PATH                                        | APP 启动时将内置 bun 的 globalBinDir 加入 PATH 环境变量；或用 `--globalBinDir` 指向 LokSystem 管理的目录                |
 | **缓存机制**               | bun 用 hardlink/COW 而非复制，缓存在 `~/.bun/install/cache/`，跨项目共享                                                       | 无需特殊处理，利好磁盘占用                                                                                           |
 | **无显式 --offline**       | bun 没有 `npm --offline` 等价选项                                                                                              | 不影响：缓存命中时自动不走网络；离线场景由 APP 内置 extension 兜底                                                   |
 | **registry 镜像**          | 支持 `BUN_CONFIG_REGISTRY` 环境变量、`.npmrc`、`bunfig.toml` 配置                                                              | APP 设置页提供 registry 切换选项（默认 npm 官方，可选 npmmirror 等）；`onInstall` 执行时继承 APP 配置的 registry     |
@@ -596,7 +596,7 @@ flowchart TD
     GitHubRaw["GitHub Raw\n(备选)"]
   end
 
-  subgraph App["AionUI APP"]
+  subgraph App["LokSystem APP"]
     direction TB
     Bundled["内置资源\ndist/ 快照\n(打包进 APP)"]
     IndexMerge["Index 合并器\n内置 + 远程"]
