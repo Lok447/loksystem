@@ -1,5 +1,5 @@
 // src/renderer/pages/team/hooks/useTeamList.ts
-import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import type { TTeam } from '@/common/types/teamTypes';
 import { useCallback, useEffect } from 'react';
@@ -11,20 +11,21 @@ export function useTeamList() {
 
   const { data: teams = [], mutate } = useSWR<TTeam[]>(
     `teams/${userId}`,
-    () => ipcBridge.team.list.invoke({ userId }),
+    () => getRendererCoreClient().teams.list(userId),
     { revalidateOnFocus: false }
   );
 
   // Refresh list when backend creates/removes a team (e.g. via MCP)
   useEffect(() => {
-    return ipcBridge.team.listChanged.on(() => {
+    return getRendererCoreClient().events.subscribe((event) => {
+      if (event.type !== 'team.list.changed') return;
       void mutate();
     });
   }, [mutate]);
 
   const removeTeam = useCallback(
     async (id: string) => {
-      await ipcBridge.team.remove.invoke({ id });
+      await getRendererCoreClient().teams.remove(id);
       localStorage.removeItem(`team-active-slot-${id}`);
       await mutate();
     },

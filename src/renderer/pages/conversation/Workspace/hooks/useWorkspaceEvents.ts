@@ -6,6 +6,8 @@
 
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useRef } from 'react';
 import type { ContextMenuState, WorkspaceEventPrefix } from '../types';
@@ -125,17 +127,23 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
         throttledRefresh();
       }
     };
-    const handleAcpResponse = (data: { type: string }) => {
-      if (data.type === 'acp_tool_call') {
+    const unsubscribeConversation = ipcBridge.conversation.responseStream.on(handleConversationResponse);
+    const unsubscribeCore = getRendererCoreClient().events.subscribe((event) => {
+      if (event.scope !== 'acp' || event.type !== 'acp.stream.message') {
+        return;
+      }
+      const data = event.data as { conversationId?: string; message?: IResponseMessage };
+      if (data.conversationId !== conversation_id) {
+        return;
+      }
+      if (data.message?.type === 'acp_tool_call') {
         throttledRefresh();
       }
-    };
-    const unsubscribeConversation = ipcBridge.conversation.responseStream.on(handleConversationResponse);
-    const unsubscribeAcp = ipcBridge.acpConversation.responseStream.on(handleAcpResponse);
+    });
 
     return () => {
       unsubscribeConversation();
-      unsubscribeAcp();
+      unsubscribeCore();
     };
   }, [conversation_id, eventPrefix, throttledRefresh]);
 
@@ -194,11 +202,24 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
    * Listen to search workspace response
    */
   useEffect(() => {
-    return ipcBridge.conversation.responseSearchWorkSpace.provider((data) => {
-      if (data.match) setFiles([data.match]);
-      return Promise.resolve();
+    return getRendererCoreClient().events.subscribe((event) => {
+      if (event.scope !== 'workspace' || event.type !== 'workspace.search.progress') {
+        return;
+      }
+      const data = event.data as {
+        conversationId?: string;
+        result?: {
+          match?: IDirOrFile;
+        };
+      };
+      if (data.conversationId !== conversation_id) {
+        return;
+      }
+      if (data.result?.match) {
+        setFiles([data.result.match]);
+      }
     });
-  }, [setFiles]);
+  }, [conversation_id, setFiles]);
 
   /**
    * 监听右键菜单外部点击 - 关闭菜单

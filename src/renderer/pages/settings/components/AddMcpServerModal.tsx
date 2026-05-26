@@ -1,5 +1,5 @@
 import type { IMcpServer } from '@/common/config/storage';
-import { acpConversation } from '@/common/adapter/ipcBridge';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { filterVisibleMcpAgents } from '@/renderer/hooks/mcp/mcpAgentFilter';
 import React, { useEffect, useState } from 'react';
 import JsonImportModal from './JsonImportModal';
@@ -30,7 +30,7 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({
       // 初始化时检测可用的agents
       const loadAgents = async () => {
         try {
-          const response = await acpConversation.getAvailableAgents.invoke();
+          const response = await getRendererCoreClient().acp.getAvailableAgents();
 
           if (response.success && response.data) {
             const agents = filterVisibleMcpAgents(response.data).map((agent) => ({

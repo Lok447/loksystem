@@ -1214,6 +1214,38 @@ const migration_v26: IMigration = {
 };
 
 /**
+ * Migration v26 -> v27: Add core task runtime records table.
+ * Persists the normalized M3 task runtime state outside WorkerTaskManager memory.
+ */
+const migration_v27: IMigration = {
+  version: 27,
+  name: 'Add core task runtime records table',
+  up: (db) => {
+    db.exec(`CREATE TABLE IF NOT EXISTS core_task_runtime_records (
+      conversation_id TEXT PRIMARY KEY,
+      task_type TEXT,
+      state TEXT NOT NULL,
+      workspace TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      last_activity_at INTEGER,
+      last_event TEXT,
+      last_reason TEXT,
+      metadata TEXT NOT NULL DEFAULT '{}'
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_core_task_runtime_state ON core_task_runtime_records(state, updated_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_core_task_runtime_updated ON core_task_runtime_records(updated_at DESC)');
+    console.log('[Migration v27] Added core_task_runtime_records table');
+  },
+  down: (db) => {
+    db.exec('DROP INDEX IF EXISTS idx_core_task_runtime_updated');
+    db.exec('DROP INDEX IF EXISTS idx_core_task_runtime_state');
+    db.exec('DROP TABLE IF EXISTS core_task_runtime_records');
+    console.log('[Migration v27] Rolled back: Removed core_task_runtime_records table');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1222,7 +1254,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
   migration_v19, migration_v20, migration_v21, migration_v22, migration_v23, migration_v24,
-  migration_v25, migration_v26,
+  migration_v25, migration_v26, migration_v27,
 ];
 
 /**

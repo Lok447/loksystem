@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { resolveWebRuntimeServerPath } from '@/common/utils/webRuntimeOrigin';
 import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 import { isElectronDesktop } from '@/renderer/utils/platform';
@@ -282,7 +283,11 @@ class FileServiceClass {
             // Electron: use IPC to create upload file (respects saveToWorkspace setting)
             const arrayBuffer = await file.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
-            const uploadPath = await ipcBridge.fs.createUploadFile.invoke({ fileName: file.name, conversationId });
+            const result = await getRendererCoreClient().uploads.createFile({ fileName: file.name, conversationId });
+            if (!result.success || !result.data?.path) {
+              throw new Error(result.msg || 'Failed to create upload file');
+            }
+            const uploadPath = result.data.path;
             if (uploadPath) {
               await ipcBridge.fs.writeFile.invoke({ path: uploadPath, data: uint8Array });
               filePath = uploadPath;

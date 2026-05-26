@@ -2,6 +2,12 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+const coreClientMock = vi.hoisted(() => ({
+  getSessionSnapshot: vi.fn(),
+  setConfigOption: vi.fn(),
+  subscribe: vi.fn(() => () => {}),
+}));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
@@ -12,12 +18,23 @@ vi.mock('@/common', () => ({
   ipcBridge: {
     acpConversation: {
       getConfigOptions: { invoke: vi.fn() },
-      setConfigOption: { invoke: vi.fn() },
       responseStream: {
         on: vi.fn(() => () => {}),
       },
     },
   },
+}));
+
+vi.mock('@/common/coreClient', () => ({
+  getRendererCoreClient: () => ({
+    acp: {
+      getSessionSnapshot: coreClientMock.getSessionSnapshot,
+      setConfigOption: coreClientMock.setConfigOption,
+    },
+    events: {
+      subscribe: coreClientMock.subscribe,
+    },
+  }),
 }));
 
 vi.mock('@arco-design/web-react', () => ({

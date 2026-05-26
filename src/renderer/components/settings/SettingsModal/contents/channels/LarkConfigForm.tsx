@@ -6,6 +6,7 @@
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { ConfigStorage } from '@/common/config/storage';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
@@ -127,7 +128,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     const loadAgentsAndSelection = async () => {
       try {
         const [agentsResp, saved] = await Promise.all([
-          acpConversation.getAvailableAgents.invoke(),
+          getRendererCoreClient().acp.getAvailableAgents(),
           ConfigStorage.get('assistant.lark.agent'),
         ]);
 

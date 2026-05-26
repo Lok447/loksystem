@@ -21,6 +21,8 @@ const mockAgent = vi.hoisted(() => ({
   currentSessionKey: 'key-1',
 }));
 
+const mockMirrorConversationStreamMessage = vi.hoisted(() => vi.fn());
+
 vi.mock('../../src/process/agent/openclaw', () => ({
   OpenClawAgent: class {
     constructor() {
@@ -31,6 +33,10 @@ vi.mock('../../src/process/agent/openclaw', () => ({
 
 vi.mock('../../src/process/channels/agent/ChannelEventBus', () => ({
   channelEventBus: { emitAgentMessage: vi.fn() },
+}));
+
+vi.mock('../../src/process/core/sessions', () => ({
+  mirrorConversationStreamMessage: mockMirrorConversationStreamMessage,
 }));
 
 vi.mock('../../src/common', () => ({
@@ -144,5 +150,20 @@ describe('OpenClawAgentManager bootstrap', () => {
 
     // sendMessage awaits bootstrap, so it should throw the same error
     await expect(mgr.sendMessage({ content: 'hello', msg_id: 'msg-1' })).rejects.toThrow('binary not found');
+  });
+
+  it('mirrors OpenClaw error stream messages into core conversation events', async () => {
+    mockAgent.start.mockRejectedValueOnce(new Error('gateway unavailable'));
+
+    const mgr = createManager();
+
+    await expect(mgr.bootstrap).rejects.toThrow('gateway unavailable');
+    expect(mockMirrorConversationStreamMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'error',
+        conversation_id: 'conv-1',
+      }),
+      'openclaw'
+    );
   });
 });

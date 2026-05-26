@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import type { TChatConversation } from '@/common/config/storage';
 import type { DetectedAgentKind } from '@/common/types/detectedAgent';
 import { getSendBoxDraftHook } from '@renderer/hooks/chat/useSendBoxDraft';
@@ -69,7 +70,7 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversationId }) => {
 
   // Reuse the same SWR key as AgentChatSlot so this hits cache instead of a new fetch.
   const { data: conversation } = useSWR(conversationId ? ['team-conversation', conversationId] : null, () =>
-    ipcBridge.conversation.get.invoke({ id: conversationId })
+    getRendererCoreClient().conversations.get(conversationId)
   );
   const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
 

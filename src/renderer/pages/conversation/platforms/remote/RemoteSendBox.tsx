@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { uuid } from '@/common/utils';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/sendbox';
@@ -25,6 +26,7 @@ import {
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { subscribeCoreConversationResponseStream } from '@/renderer/pages/conversation/platforms/coreConversationStream';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
@@ -141,7 +143,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
     hasContentInTurnRef.current = false;
     setHasHydratedRunningState(false);
 
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+    void getRendererCoreClient().conversations.get(conversation_id).then((res) => {
       if (!res) {
         setAiProcessing(false);
         aiProcessingRef.current = false;
@@ -172,7 +174,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
   );
 
   useEffect(() => {
-    return ipcBridge.conversation.responseStream.on((message) => {
+    return subscribeCoreConversationResponseStream((message) => {
       if (conversation_id !== message.conversation_id) return;
 
       switch (message.type) {
@@ -222,7 +224,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
   }, [conversation_id, addOrUpdateMessage]);
 
   useEffect(() => {
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then(async (res) => {
+    void getRendererCoreClient().conversations.get(conversation_id).then(async (res) => {
       if (res?.extra?.workspace) setWorkspacePath(res.extra.workspace);
       const extra = res?.extra as { remoteAgentId?: string } | undefined;
       if (extra?.remoteAgentId) {
@@ -262,7 +264,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
         aiProcessingRef.current = true;
 
         void checkAndUpdateTitle(conversation_id, input);
-        await ipcBridge.conversation.sendMessage.invoke({
+        await getRendererCoreClient().conversations.sendMessage({
           input: initialDisplayMessage,
           msg_id,
           conversation_id,
@@ -326,7 +328,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
 
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        await ipcBridge.conversation.sendMessage.invoke({
+        await getRendererCoreClient().conversations.sendMessage({
           input: displayMessage,
           msg_id,
           conversation_id,
@@ -416,7 +418,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
 
   const handleStop = async (): Promise<void> => {
     try {
-      await ipcBridge.conversation.stop.invoke({ conversation_id });
+      await getRendererCoreClient().conversations.stop(conversation_id);
     } finally {
       setAiProcessing(false);
       aiProcessingRef.current = false;

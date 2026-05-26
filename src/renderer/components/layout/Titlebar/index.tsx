@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import WindowControls from '../WindowControls';
 import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspaceEvents';
@@ -181,8 +182,8 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       const teamId = teamMatch?.[1];
       if (teamId) {
         let cancelled = false;
-        void ipcBridge.team.get
-          .invoke({ id: teamId })
+        void getRendererCoreClient()
+          .teams.get(teamId)
           .then((team) => {
             if (cancelled) return;
             setMobileCenterTitle(team?.name || appTitle);
@@ -206,8 +207,8 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     }
 
     let cancelled = false;
-    void ipcBridge.conversation.get
-      .invoke({ id: conversationId })
+    void getRendererCoreClient()
+      .conversations.get(conversationId)
       .then((conversation) => {
         if (cancelled) return;
         setMobileCenterTitle(conversation?.name || appTitle);

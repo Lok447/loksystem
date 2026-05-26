@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { mutate } from 'swr';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
-import { acpConversation } from '@/common/adapter/ipcBridge';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { DETECTED_AGENTS_SWR_KEY } from '@/renderer/utils/model/agentTypes';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
@@ -46,7 +46,7 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
 
   const refreshAgentDetection = useCallback(async () => {
     try {
-      await acpConversation.refreshCustomAgents.invoke();
+      await getRendererCoreClient().acp.refreshCustomAgents();
       await mutate(DETECTED_AGENTS_SWR_KEY);
     } catch {
       // ignore

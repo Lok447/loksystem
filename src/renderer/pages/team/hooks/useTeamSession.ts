@@ -1,5 +1,5 @@
 // src/renderer/pages/team/hooks/useTeamSession.ts
-import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
@@ -20,7 +20,7 @@ type AgentStatusInfo = {
 
 export function useTeamSession(team: TTeam) {
   const { mutate: mutateTeam } = useSWR(team.id ? `team/${team.id}` : null, () =>
-    ipcBridge.team.get.invoke({ id: team.id })
+    getRendererCoreClient().teams.get(team.id)
   );
 
   const [statusMap, setStatusMap] = useState<Map<string, AgentStatusInfo>>(() => {
@@ -28,50 +28,46 @@ export function useTeamSession(team: TTeam) {
   });
 
   useEffect(() => {
-    void ipcBridge.team.ensureSession.invoke({ teamId: team.id });
+    void getRendererCoreClient().teams.ensureSession(team.id);
 
-    const unsubStatus = ipcBridge.team.agentStatusChanged.on((event: ITeamAgentStatusEvent) => {
-      if (event.teamId !== team.id) return;
-      setStatusMap((prev) => {
-        const next = new Map(prev);
-        next.set(event.slotId, { slotId: event.slotId, status: event.status, lastMessage: event.lastMessage });
-        return next;
-      });
+    return getRendererCoreClient().events.subscribe((event) => {
+      if (event.scope !== 'team') return;
+      switch (event.type) {
+        case 'team.agent.status.changed': {
+          const data = event.data as ITeamAgentStatusEvent;
+          if (data.teamId !== team.id) return;
+          const { slotId, status, lastMessage } = data;
+          setStatusMap((prev) => {
+            const next = new Map(prev);
+            next.set(slotId, { slotId, status, lastMessage });
+            return next;
+          });
+          return;
+        }
+        case 'team.agent.spawned':
+        case 'team.agent.removed':
+        case 'team.agent.renamed':
+          if ((event.data as ITeamAgentSpawnedEvent | ITeamAgentRemovedEvent | ITeamAgentRenamedEvent).teamId !== team.id) {
+            return;
+          }
+          void mutateTeam();
+          return;
+        default:
+          return;
+      }
     });
-
-    const unsubSpawned = ipcBridge.team.agentSpawned.on((event: ITeamAgentSpawnedEvent) => {
-      if (event.teamId !== team.id) return;
-      void mutateTeam();
-    });
-
-    const unsubRemoved = ipcBridge.team.agentRemoved.on((event: ITeamAgentRemovedEvent) => {
-      if (event.teamId !== team.id) return;
-      void mutateTeam();
-    });
-
-    const unsubRenamed = ipcBridge.team.agentRenamed.on((event: ITeamAgentRenamedEvent) => {
-      if (event.teamId !== team.id) return;
-      void mutateTeam();
-    });
-
-    return () => {
-      unsubStatus();
-      unsubSpawned();
-      unsubRemoved();
-      unsubRenamed();
-    };
   }, [team.id, mutateTeam]);
 
   const sendMessage = useCallback(
     async (content: string) => {
-      await ipcBridge.team.sendMessage.invoke({ teamId: team.id, content });
+      await getRendererCoreClient().teams.sendMessage({ teamId: team.id, content });
     },
     [team.id]
   );
 
   const addAgent = useCallback(
     async (agent: Omit<TeamAgent, 'slotId'>) => {
-      await ipcBridge.team.addAgent.invoke({ teamId: team.id, agent });
+      await getRendererCoreClient().teams.addAgent({ teamId: team.id, agent });
       await mutateTeam();
     },
     [team.id, mutateTeam]
@@ -79,7 +75,7 @@ export function useTeamSession(team: TTeam) {
 
   const renameAgent = useCallback(
     async (slotId: string, newName: string) => {
-      await ipcBridge.team.renameAgent.invoke({ teamId: team.id, slotId, newName });
+      await getRendererCoreClient().teams.renameAgent({ teamId: team.id, slotId, newName });
       await mutateTeam();
     },
     [team.id, mutateTeam]
@@ -87,7 +83,7 @@ export function useTeamSession(team: TTeam) {
 
   const removeAgent = useCallback(
     async (slotId: string) => {
-      await ipcBridge.team.removeAgent.invoke({ teamId: team.id, slotId });
+      await getRendererCoreClient().teams.removeAgent(team.id, slotId);
       await mutateTeam();
     },
     [team.id, mutateTeam]

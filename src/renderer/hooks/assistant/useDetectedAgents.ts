@@ -1,4 +1,4 @@
-import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 import { useCallback, useMemo } from 'react';
@@ -36,7 +36,7 @@ export const useDetectedAgents = () => {
 
   const refreshAgentDetection = useCallback(async () => {
     try {
-      await ipcBridge.acpConversation.refreshCustomAgents.invoke();
+      await getRendererCoreClient().acp.refreshCustomAgents();
       await mutate(DETECTED_AGENTS_SWR_KEY);
     } catch {
       // ignore

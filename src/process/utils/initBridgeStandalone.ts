@@ -40,6 +40,9 @@ import { initSystemSettingsBridge } from '@process/bridge/systemSettingsBridge';
 import { initTaskBridge } from '@process/bridge/taskBridge';
 import { initSpeechToTextBridge } from '@process/bridge/speechToTextBridge';
 import { initHubBridge } from '@process/bridge/hubBridge';
+import { CoreBackendServices } from '@process/core';
+import { createInProcessCoreClient, registerCoreClient } from '@process/adapters/coreClient';
+import { initCoreElectronClientAdapter } from '@process/adapters/electron';
 
 logger.config({ print: true });
 
@@ -47,6 +50,11 @@ export async function initBridgeStandalone(): Promise<void> {
   const repo = new SqliteConversationRepository();
   const conversationService = new ConversationServiceImpl(repo);
   const channelRepo = new SqliteChannelRepository();
+  const coreServices = new CoreBackendServices({
+    conversationService,
+    workerTaskManager,
+  });
+  initCoreElectronClientAdapter(registerCoreClient(createInProcessCoreClient(coreServices)));
 
   // Skipped (Electron-only): dialogBridge, applicationBridge (partial �?see applicationBridgeCore),
   // windowControlsBridge, updateBridge, webuiBridge
@@ -55,9 +63,9 @@ export async function initBridgeStandalone(): Promise<void> {
   initShellBridgeStandalone();
   initFileWatchBridge();
   initFsBridge();
-  initConversationBridge(conversationService, workerTaskManager);
+  initConversationBridge(conversationService, workerTaskManager, undefined, coreServices);
   initBedrockBridge();
-  initAcpConversationBridge(workerTaskManager);
+  initAcpConversationBridge(workerTaskManager, coreServices);
   initModelBridge();
   initPreviewHistoryBridge();
   initDocumentBridge();

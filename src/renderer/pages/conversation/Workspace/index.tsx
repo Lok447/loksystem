@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import { getRendererCoreClient } from '@/common/coreClient';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
@@ -515,8 +516,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                 }}
                 loadMore={(treeNode) => {
                   const path = treeNode.props.dataRef.fullPath;
-                  return ipcBridge.conversation.getWorkspace
-                    .invoke({ conversation_id, workspace, path })
+                  return getRendererCoreClient()
+                    .workspaces.getTree({
+                      conversationId: conversation_id,
+                      workspace,
+                      targetPath: path,
+                    })
                     .then((res) => {
                       if (res[0]?.children) {
                         treeNode.props.dataRef.children = res[0].children;

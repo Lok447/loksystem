@@ -13,6 +13,7 @@ import https from 'node:https';
 import http from 'node:http';
 import JSZip from 'jszip';
 import { ipcBridge } from '@/common';
+import { CoreUploadService } from '@process/core/uploads';
 import {
   getSystemDir,
   getAssistantsDir,
@@ -495,6 +496,8 @@ export function initFsBridge(): void {
   // 根据"上传文件保存到工作区"设置决定文件保存位置
   ipcBridge.fs.createUploadFile.provider(async ({ fileName, conversationId }) => {
     try {
+      return (await CoreUploadService.createUploadFile({ fileName, conversationId })).path;
+
       // 检查用户偏好：保存到工作区还是缓存目录
       // Check user preference: save to workspace or cache directory
       const saveToWorkspace = await ProcessConfig.get('upload.saveToWorkspace').catch(() => false);

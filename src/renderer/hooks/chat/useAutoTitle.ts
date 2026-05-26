@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
 import { deriveAutoTitleFromMessages } from '@/renderer/utils/chat/autoTitle';
 import { emitter } from '@/renderer/utils/emitter';
@@ -13,7 +14,7 @@ export const useAutoTitle = () => {
     async (conversationId: string, fallbackContent?: string) => {
       const defaultTitle = t('conversation.welcome.newConversation');
       try {
-        const conversation = await ipcBridge.conversation.get.invoke({ id: conversationId });
+        const conversation = await getRendererCoreClient().conversations.get(conversationId);
         if (!conversation || conversation.name !== defaultTitle) {
           return;
         }

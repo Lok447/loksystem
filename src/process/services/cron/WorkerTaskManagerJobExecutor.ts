@@ -23,6 +23,8 @@ import type { CronBusyGuard } from './CronBusyGuard';
 import type { CronJob } from './CronStore';
 import type { ICronJobExecutor } from './ICronJobExecutor';
 import { addMessage } from '@process/utils/message';
+import { mirrorAcpStreamMessage } from '@process/core/acp';
+import { mirrorConversationStreamMessage } from '@process/core/sessions';
 import { getCronSkillDir, hasCronSkillFile } from './cronSkillFile';
 import { AcpSkillManager } from '@process/task/AcpSkillManager';
 import { skillSuggestWatcher } from './SkillSuggestWatcher';
@@ -740,7 +742,9 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
     ipcBridge.conversation.responseStream.emit(message);
     ipcBridge.acpConversation.responseStream.emit(message);
+    mirrorAcpStreamMessage(message, 'cron');
     ipcBridge.openclawConversation.responseStream.emit(message);
+    mirrorConversationStreamMessage(message, 'cron');
     console.log(`[CronExecutor] Emitted initial skill_suggest for job ${jobId}, conversation ${conversationId}`);
   }
 
@@ -778,7 +782,9 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     };
     ipcBridge.conversation.responseStream.emit(ipcMessage);
     ipcBridge.acpConversation.responseStream.emit(ipcMessage);
+    mirrorAcpStreamMessage(ipcMessage, 'cron');
     ipcBridge.openclawConversation.responseStream.emit(ipcMessage);
+    mirrorConversationStreamMessage(ipcMessage, 'cron');
   }
 
   onceIdle(conversationId: string, callback: () => Promise<void>): void {

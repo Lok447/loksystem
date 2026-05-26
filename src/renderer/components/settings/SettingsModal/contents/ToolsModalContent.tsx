@@ -17,6 +17,7 @@ import {
 } from '@/common/config/speechToText';
 import type { SpeechToTextConfig, SpeechToTextProvider } from '@/common/types/speech';
 import { acpConversation } from '@/common/adapter/ipcBridge';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch, Input } from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -375,7 +376,7 @@ const ModalMcpManagementSection: React.FC<{
   useEffect(() => {
     const loadAgents = async () => {
       try {
-        const response = await acpConversation.getAvailableAgents.invoke();
+        const response = await getRendererCoreClient().acp.getAvailableAgents();
         if (response.success && response.data) {
           setDetectedAgents(
             filterVisibleMcpAgents(response.data).map((agent) => ({

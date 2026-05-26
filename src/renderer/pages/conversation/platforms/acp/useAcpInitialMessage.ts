@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { uuid } from '@/common/utils';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
@@ -54,7 +55,7 @@ export const useAcpInitialMessage = ({
 
         // Send the message
         void checkAndUpdateTitle(conversationId, input);
-        const result = await ipcBridge.acpConversation.sendMessage.invoke({
+        const result = await getRendererCoreClient().conversations.sendMessage({
           input: displayMessage,
           msg_id,
           conversation_id: conversationId,

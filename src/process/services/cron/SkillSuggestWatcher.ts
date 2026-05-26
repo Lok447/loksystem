@@ -10,6 +10,8 @@ import path from 'path';
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { uuid } from '@/common/utils';
+import { mirrorAcpStreamMessage } from '@process/core/acp';
+import { mirrorConversationStreamMessage } from '@process/core/sessions';
 import { hasCronSkillFile } from './cronSkillFile';
 
 const SKILL_SUGGEST_FILENAME = 'SKILL_SUGGEST.md';
@@ -153,7 +155,9 @@ class SkillSuggestWatcher {
 
       ipcBridge.conversation.responseStream.emit(message);
       ipcBridge.acpConversation.responseStream.emit(message);
+      mirrorAcpStreamMessage(message, 'skill_suggest');
       ipcBridge.openclawConversation.responseStream.emit(message);
+      mirrorConversationStreamMessage(message, 'skill_suggest');
       console.log(`[SkillSuggestWatcher] Emitted skill_suggest for job ${jobId}, conversation ${conversationId}`);
 
       return true;

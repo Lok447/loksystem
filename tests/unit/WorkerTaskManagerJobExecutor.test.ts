@@ -8,6 +8,8 @@ vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: { get: vi.fn(async () => false) },
 }));
 vi.mock('@process/utils/message', () => ({ addMessage: vi.fn() }));
+vi.mock('@process/core/acp', () => ({ mirrorAcpStreamMessage: vi.fn() }));
+vi.mock('@process/core/sessions', () => ({ mirrorConversationStreamMessage: vi.fn() }));
 vi.mock('@/common', () => ({
   ipcBridge: {
     conversation: { responseStream: { emit: vi.fn() } },

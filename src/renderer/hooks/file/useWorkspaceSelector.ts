@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { Message } from '@arco-design/web-react';
 import { emitter } from '@/renderer/utils/emitter';
 import { useTranslation } from 'react-i18next';
@@ -32,9 +33,7 @@ export const useWorkspaceSelector = (conversationId: string, eventPrefix: Worksp
       }
 
       // 获取最新的会话数据 / Fetch latest conversation data
-      const conversation = (await ipcBridge.conversation.get.invoke({
-        id: conversationId,
-      })) as TChatConversation | null;
+      const conversation = (await getRendererCoreClient().conversations.get(conversationId)) as TChatConversation | null;
       if (!conversation) {
         Message.error(t('common.saveFailed'));
         return;

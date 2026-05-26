@@ -14,7 +14,14 @@ import type OpenClawAgentManager from '@process/task/OpenClawAgentManager';
 import { getBuiltinSkillsCopyDir, getSkillsDir } from '@process/utils/initStorage';
 import { prepareFirstMessage } from '@process/task/agentUtils';
 import { coreEventBus } from '@process/core/shared/CoreEventBus';
-import type { CoreRuntimeConfigDto, CoreServiceResponse } from '@process/core/shared/CoreContracts';
+import { CoreTaskRuntimeRecordRepository } from './CoreTaskRuntimeRecordRepository';
+import type {
+  CoreTaskRuntimeOverviewDto,
+  CoreTaskRuntimeRecordDto,
+  CoreRuntimeConfigDto,
+  CoreServiceResponse,
+  CoreTaskRuntimeStateDto,
+} from '@process/core/shared/CoreContracts';
 
 export type CoreTaskSnapshot = {
   id: string;
@@ -32,7 +39,14 @@ export class CoreTaskRuntimeService {
   }
 
   public async getOrBuildTask(id: string, options?: BuildConversationOptions): Promise<IAgentManager> {
-    return this.workerTaskManager.getOrBuildTask(id, options);
+    const task = await this.workerTaskManager.getOrBuildTask(id, options);
+    this.emitRuntimeUpdate({
+      action: 'built',
+      conversationId: id,
+      status: task.status,
+      runtime: this.toRuntimeState(id, task),
+    });
+    return task;
   }
 
   public getTaskSnapshot(id: string): CoreTaskSnapshot | null {
@@ -52,27 +66,85 @@ export class CoreTaskRuntimeService {
     return this.workerTaskManager.listTasks();
   }
 
+  public getRuntimeState(id: string): CoreTaskRuntimeStateDto | null {
+    return this.toRuntimeState(id, this.workerTaskManager.getTask(id));
+  }
+
+  public listRuntimeStates(): CoreTaskRuntimeStateDto[] {
+    return this.workerTaskManager
+      .listTasks()
+      .map(({ id }) => this.getRuntimeState(id))
+      .filter((state): state is CoreTaskRuntimeStateDto => state !== null);
+  }
+
+  public getRuntimeRecord(conversationId: string): Promise<CoreTaskRuntimeRecordDto | null> {
+    return CoreTaskRuntimeRecordRepository.get(conversationId);
+  }
+
+  public listRuntimeRecords(): Promise<CoreTaskRuntimeRecordDto[]> {
+    return CoreTaskRuntimeRecordRepository.list();
+  }
+
+  public async getRuntimeOverview(conversationId: string): Promise<CoreTaskRuntimeOverviewDto> {
+    const [record] = await Promise.all([this.getRuntimeRecord(conversationId)]);
+    return {
+      conversationId,
+      runtime: this.getRuntimeState(conversationId),
+      record,
+    };
+  }
+
+  public async listRuntimeOverviews(): Promise<CoreTaskRuntimeOverviewDto[]> {
+    const runtimeStates = this.listRuntimeStates();
+    const records = await this.listRuntimeRecords();
+    const ids = new Set<string>([
+      ...runtimeStates.map((state) => state.id),
+      ...records.map((record) => record.conversationId),
+    ]);
+    const runtimeById = new Map(runtimeStates.map((state) => [state.id, state]));
+    const recordById = new Map(records.map((record) => [record.conversationId, record]));
+
+    return [...ids].map((conversationId) => ({
+      conversationId,
+      runtime: runtimeById.get(conversationId) ?? null,
+      record: recordById.get(conversationId) ?? null,
+    }));
+  }
+
   public killTask(id: string, reason?: AgentKillReason): void {
+    const runtime = this.getRuntimeState(id);
     this.workerTaskManager.kill(id, reason);
-    coreEventBus.emit('task', 'task.runtime.updated', {
+    this.emitRuntimeUpdate({
       action: 'killed',
       conversationId: id,
       reason,
+      status: runtime?.status,
+      runtime,
     });
   }
 
   public async clear(): Promise<void> {
+    const previousStates = this.listRuntimeStates();
     await this.workerTaskManager.clear();
+    for (const state of previousStates) {
+      this.emitRuntimeUpdate({
+        action: 'cleared',
+        conversationId: state.id,
+        status: state.status,
+        runtime: state,
+      });
+    }
   }
 
   public async stopTask(conversationId: string): Promise<{ success: boolean; msg?: string }> {
     const task = this.workerTaskManager.getTask(conversationId);
     if (!task) return { success: true, msg: 'conversation not found' };
     await task.stop();
-    coreEventBus.emit('task', 'task.runtime.updated', {
+    this.emitRuntimeUpdate({
       action: 'stopped',
       conversationId,
       status: task.status,
+      runtime: this.toRuntimeState(conversationId, task),
     });
     return { success: true };
   }
@@ -116,7 +188,22 @@ export class CoreTaskRuntimeService {
     if (task.type === 'acp') {
       await (task as unknown as AcpAgentManager).initAgent();
     }
+    this.emitRuntimeUpdate({
+      action: 'warmed',
+      conversationId,
+      status: task.status,
+      runtime: this.toRuntimeState(conversationId, task),
+    });
     return task;
+  }
+
+  public warmupConversationBestEffort(conversationId: string): void {
+    void this.warmupConversation(conversationId).catch((error) => {
+      console.warn('[CoreTaskRuntimeService] warmup failed:', {
+        conversationId,
+        error,
+      });
+    });
   }
 
   public async resetConversation(id?: string): Promise<void> {
@@ -154,10 +241,12 @@ export class CoreTaskRuntimeService {
 
       if ('setConfig' in task && typeof (task as { setConfig?: (value: typeof config) => void }).setConfig === 'function') {
         (task as { setConfig: (value: typeof config) => void }).setConfig(config);
-        coreEventBus.emit('task', 'task.runtime.updated', {
+        this.emitRuntimeUpdate({
           action: 'config_updated',
           conversationId,
           config,
+          status: task.status,
+          runtime: this.toRuntimeState(conversationId, task),
         });
         return { success: true };
       }
@@ -244,11 +333,12 @@ When skill instructions reference relative paths like "skills/{name}/scripts/...
         agentContent,
       });
 
-      coreEventBus.emit('task', 'task.runtime.updated', {
+      this.emitRuntimeUpdate({
         action: 'message_sent',
         conversationId: conversation_id,
         fileCount: workspaceFiles.length,
         status: task.status,
+        runtime: this.toRuntimeState(conversation_id, task),
       });
 
       return { success: true };
@@ -264,11 +354,13 @@ When skill instructions reference relative paths like "skills/{name}/scripts/...
     const task = this.workerTaskManager.getTask(conversationId);
     if (!task) return { success: false, msg: 'conversation not found' };
     task.confirm(msgId, callId, data);
-    coreEventBus.emit('task', 'task.runtime.updated', {
+    this.emitRuntimeUpdate({
       action: 'confirmation_submitted',
       conversationId,
       msgId,
       callId,
+      status: task.status,
+      runtime: this.toRuntimeState(conversationId, task),
     });
     return { success: true };
   }
@@ -292,5 +384,57 @@ When skill instructions reference relative paths like "skills/{name}/scripts/...
     }
 
     return false;
+  }
+
+  private toRuntimeState(id: string, task: IAgentManager | undefined): CoreTaskRuntimeStateDto | null {
+    if (!task) {
+      return null;
+    }
+
+    return {
+      id,
+      type: task.type,
+      status: task.status,
+      workspace: task.workspace,
+      lastActivityAt: task.lastActivityAt,
+      isActive: task.status === 'pending' || task.status === 'running',
+    };
+  }
+
+  private emitRuntimeUpdate(data: {
+    action:
+      | 'built'
+      | 'warmed'
+      | 'killed'
+      | 'cleared'
+      | 'stopped'
+      | 'message_sent'
+      | 'confirmation_submitted'
+      | 'config_updated';
+    conversationId: string;
+    reason?: string;
+    status?: string;
+    fileCount?: number;
+    msgId?: string;
+    callId?: string;
+    config?: CoreRuntimeConfigDto;
+    runtime?: CoreTaskRuntimeStateDto | null;
+  }): void {
+    coreEventBus.emit('task', 'task.runtime.updated', data);
+    void CoreTaskRuntimeRecordRepository.recordRuntimeEvent({
+      conversationId: data.conversationId,
+      event: data.action,
+      runtime: data.runtime,
+      reason: data.reason,
+      metadata: {
+        ...(typeof data.status === 'string' ? { status: data.status } : {}),
+        ...(typeof data.fileCount === 'number' ? { fileCount: data.fileCount } : {}),
+        ...(typeof data.msgId === 'string' ? { msgId: data.msgId } : {}),
+        ...(typeof data.callId === 'string' ? { callId: data.callId } : {}),
+        ...(data.config ? { config: data.config } : {}),
+      },
+    }).catch((error) => {
+      console.warn('[CoreTaskRuntimeService] Failed to persist runtime record:', error);
+    });
   }
 }

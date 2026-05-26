@@ -6,6 +6,7 @@
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { ConfigStorage } from '@/common/config/storage';
 import { resolveWebRuntimeServerPath } from '@/common/utils/webRuntimeOrigin';
 import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
@@ -212,7 +213,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     const load = async () => {
       try {
         const [agentsResp, saved] = await Promise.all([
-          acpConversation.getAvailableAgents.invoke(),
+          getRendererCoreClient().acp.getAvailableAgents(),
           ConfigStorage.get('assistant.weixin.agent'),
         ]);
         if (agentsResp.success && agentsResp.data) {

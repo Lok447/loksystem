@@ -10,11 +10,9 @@ import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { TeamSessionService } from '@process/team/TeamSessionService';
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
-import { CoreSessionInteractionService, CoreSessionRuntimeService, CoreSessionService } from '@process/core/sessions';
-import { CoreTaskRuntimeService } from '@process/core/tasks';
 import { removeFromMessageCache } from '@process/utils/message';
-import { CoreWorkspaceService } from '@process/core/workspaces';
 import { coreEventBus } from '@process/core/shared';
+import { CoreBackendServices } from '@process/core';
 import { refreshTrayMenu } from '@process/utils/tray';
 
 const refreshTrayMenuSafely = async (): Promise<void> => {
@@ -28,13 +26,15 @@ const refreshTrayMenuSafely = async (): Promise<void> => {
 export function initConversationBridge(
   conversationService: IConversationService,
   workerTaskManager: IWorkerTaskManager,
-  teamSessionService?: TeamSessionService
+  teamSessionService?: TeamSessionService,
+  coreServices?: CoreBackendServices
 ): void {
-  const taskRuntimeService = new CoreTaskRuntimeService(workerTaskManager);
-  const sessionService = new CoreSessionService(conversationService, taskRuntimeService);
-  const sessionInteractionService = new CoreSessionInteractionService(conversationService);
-  const sessionRuntimeService = new CoreSessionRuntimeService(taskRuntimeService);
-  const workspaceService = new CoreWorkspaceService(conversationService);
+  const services = coreServices ?? new CoreBackendServices({ conversationService, workerTaskManager });
+  const taskRuntimeService = services.taskRuntime;
+  const sessionService = services.sessions;
+  const sessionInteractionService = services.sessionInteractions;
+  const sessionRuntimeService = services.sessionRuntime;
+  const workspaceService = services.workspaces;
 
   const emitConversationListChanged = (
     conversation: Pick<TChatConversation, 'id' | 'source'>,
@@ -145,7 +145,7 @@ export function initConversationBridge(
   });
 
   ipcBridge.conversation.warmup.provider(async ({ conversation_id }) => {
-    await taskRuntimeService.warmupConversation(conversation_id);
+    taskRuntimeService.warmupConversationBestEffort(conversation_id);
   });
 
   ipcBridge.conversation.reset.provider(async ({ id }) => {

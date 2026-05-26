@@ -9,7 +9,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const ipcMock = vi.hoisted(() => ({
-  getModelInfo: vi.fn(),
+  getSessionSnapshot: vi.fn(),
   setModel: vi.fn(),
   onResponseStream: vi.fn(() => () => {}),
   getModelConfig: vi.fn().mockResolvedValue([]),
@@ -17,10 +17,22 @@ const ipcMock = vi.hoisted(() => ({
 
 let responseHandler: ((message: any) => void) | null = null;
 
+function emitAcpStreamMessage(message: any) {
+  responseHandler?.({
+    type: 'acp.stream.message',
+    scope: 'acp',
+    timestamp: Date.now(),
+    data: {
+      conversationId: message.conversation_id,
+      messageType: message.type,
+      message,
+    },
+  });
+}
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     acpConversation: {
-      getModelInfo: { invoke: ipcMock.getModelInfo },
       setModel: { invoke: ipcMock.setModel },
       responseStream: { on: ipcMock.onResponseStream },
     },
@@ -28,6 +40,18 @@ vi.mock('@/common', () => ({
       getModelConfig: { invoke: ipcMock.getModelConfig },
     },
   },
+}));
+
+vi.mock('@/common/coreClient', () => ({
+  getRendererCoreClient: () => ({
+    acp: {
+      getSessionSnapshot: ipcMock.getSessionSnapshot,
+      setModel: ipcMock.setModel,
+    },
+    events: {
+      subscribe: ipcMock.onResponseStream,
+    },
+  }),
 }));
 
 vi.mock('@/common/config/storage', () => ({
@@ -64,17 +88,18 @@ describe('AcpModelSelector', () => {
   });
 
   it('shows the model source in the compact button label', async () => {
-    ipcMock.getModelInfo.mockResolvedValue({
-      success: true,
-      data: {
-        modelInfo: {
-          currentModelId: 'claude-opus-4-6',
-          currentModelLabel: 'Claude Opus 4.6',
-          availableModels: [{ id: 'claude-opus-4-6', label: 'Claude Opus 4.6' }],
-          canSwitch: false,
-          source: 'models',
-          sourceDetail: 'cc-switch',
-        },
+    ipcMock.getSessionSnapshot.mockResolvedValue({
+      conversationId: 'conv-1',
+      exists: true,
+      runtime: null,
+      mode: { mode: 'default', initialized: true },
+      modelInfo: {
+        currentModelId: 'claude-opus-4-6',
+        currentModelLabel: 'Claude Opus 4.6',
+        availableModels: [{ id: 'claude-opus-4-6', label: 'Claude Opus 4.6' }],
+        canSwitch: false,
+        source: 'models',
+        sourceDetail: 'cc-switch',
       },
     });
 
@@ -86,14 +111,17 @@ describe('AcpModelSelector', () => {
   });
 
   it('shows codex stream as the model source when stream events arrive', async () => {
-    ipcMock.getModelInfo.mockResolvedValue({
-      success: true,
-      data: { modelInfo: null },
+    ipcMock.getSessionSnapshot.mockResolvedValue({
+      conversationId: 'conv-1',
+      exists: true,
+      runtime: null,
+      mode: { mode: 'default', initialized: true },
+      modelInfo: null,
     });
 
     render(<AcpModelSelector conversationId='conv-1' backend='codex' />);
 
-    responseHandler?.({
+    emitAcpStreamMessage({
       conversation_id: 'conv-1',
       type: 'codex_model_info',
       data: { model: 'gpt-5.4/high' },
@@ -105,37 +133,39 @@ describe('AcpModelSelector', () => {
   });
 
   it('refreshes Claude model info when the window regains focus', async () => {
-    ipcMock.getModelInfo
+    ipcMock.getSessionSnapshot
       .mockResolvedValueOnce({
-        success: true,
-        data: {
-          modelInfo: {
-            currentModelId: 'claude-opus-4-6',
-            currentModelLabel: 'Claude Opus 4.6',
-            availableModels: [
-              { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
-              { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
-            ],
-            canSwitch: true,
-            source: 'models',
-            sourceDetail: 'cc-switch',
-          },
+        conversationId: 'conv-1',
+        exists: true,
+        runtime: null,
+        mode: { mode: 'default', initialized: true },
+        modelInfo: {
+          currentModelId: 'claude-opus-4-6',
+          currentModelLabel: 'Claude Opus 4.6',
+          availableModels: [
+            { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
+            { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
+          ],
+          canSwitch: true,
+          source: 'models',
+          sourceDetail: 'cc-switch',
         },
       })
       .mockResolvedValueOnce({
-        success: true,
-        data: {
-          modelInfo: {
-            currentModelId: 'claude-sonnet-4-5',
-            currentModelLabel: 'Claude Sonnet 4.5',
-            availableModels: [
-              { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
-              { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
-            ],
-            canSwitch: true,
-            source: 'models',
-            sourceDetail: 'cc-switch',
-          },
+        conversationId: 'conv-1',
+        exists: true,
+        runtime: null,
+        mode: { mode: 'default', initialized: true },
+        modelInfo: {
+          currentModelId: 'claude-sonnet-4-5',
+          currentModelLabel: 'Claude Sonnet 4.5',
+          availableModels: [
+            { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
+            { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
+          ],
+          canSwitch: true,
+          source: 'models',
+          sourceDetail: 'cc-switch',
         },
       });
 
@@ -155,20 +185,21 @@ describe('AcpModelSelector', () => {
   });
 
   it('updates the visible model label immediately after selecting a different model', async () => {
-    ipcMock.getModelInfo.mockResolvedValue({
-      success: true,
-      data: {
-        modelInfo: {
-          currentModelId: 'claude-opus-4-6',
-          currentModelLabel: 'Claude Opus 4.6',
-          availableModels: [
-            { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
-            { id: 'glm-5.1x', label: 'GLM 5.1x' },
-          ],
-          canSwitch: true,
-          source: 'models',
-          sourceDetail: 'cc-switch',
-        },
+    ipcMock.getSessionSnapshot.mockResolvedValue({
+      conversationId: 'conv-1',
+      exists: true,
+      runtime: null,
+      mode: { mode: 'default', initialized: true },
+      modelInfo: {
+        currentModelId: 'claude-opus-4-6',
+        currentModelLabel: 'Claude Opus 4.6',
+        availableModels: [
+          { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
+          { id: 'glm-5.1x', label: 'GLM 5.1x' },
+        ],
+        canSwitch: true,
+        source: 'models',
+        sourceDetail: 'cc-switch',
       },
     });
     ipcMock.setModel.mockResolvedValue({

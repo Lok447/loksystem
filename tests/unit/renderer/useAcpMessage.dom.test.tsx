@@ -1,10 +1,16 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAcpMessage } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 
 const mockAddOrUpdateMessage = vi.fn();
 const mockConversationGetInvoke = vi.fn();
-const mockResponseStreamOn = vi.fn(() => () => {});
+let capturedCoreEventHandler: ((event: Record<string, unknown>) => void) | null = null;
+const mockCoreEventStreamOn = vi.fn((handler: (event: Record<string, unknown>) => void) => {
+  capturedCoreEventHandler = handler;
+  return () => {
+    capturedCoreEventHandler = null;
+  };
+});
 
 vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
   useAddOrUpdateMessage: () => mockAddOrUpdateMessage,
@@ -12,14 +18,21 @@ vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
 
 vi.mock('@/common', () => ({
   ipcBridge: {
+    core: {
+      conversations: {
+        get: {
+          invoke: (...args: unknown[]) => mockConversationGetInvoke(...args),
+        },
+      },
+      events: {
+        stream: {
+          on: (...args: unknown[]) => mockCoreEventStreamOn(...args as [(event: Record<string, unknown>) => void]),
+        },
+      },
+    },
     conversation: {
       get: {
         invoke: (...args: unknown[]) => mockConversationGetInvoke(...args),
-      },
-    },
-    acpConversation: {
-      responseStream: {
-        on: (...args: unknown[]) => mockResponseStreamOn(...args),
       },
     },
   },
@@ -28,6 +41,7 @@ vi.mock('@/common', () => ({
 describe('useAcpMessage — conversation hydration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    capturedCoreEventHandler = null;
     mockConversationGetInvoke.mockResolvedValue({
       status: 'idle',
       type: 'acp',
@@ -112,5 +126,40 @@ describe('useAcpMessage — conversation hydration', () => {
 
     await waitFor(() => expect(result.current.aiProcessing).toBe(false));
     expect(result.current.hasThinkingMessage).toBe(false);
+  });
+
+  it('consumes ACP stream messages from core events', async () => {
+    const { result } = renderHook(() => useAcpMessage('conv-stream'));
+
+    await waitFor(() => {
+      expect(mockCoreEventStreamOn).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(result.current.hasHydratedRunningState).toBe(true);
+    });
+
+    act(() => {
+      capturedCoreEventHandler?.({
+        type: 'acp.stream.message',
+        scope: 'acp',
+        timestamp: Date.now(),
+        data: {
+          message: {
+            type: 'content',
+            conversation_id: 'conv-stream',
+            msg_id: 'msg-1',
+            data: 'hello',
+          },
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(mockAddOrUpdateMessage).toHaveBeenCalled();
+    });
+    expect(result.current.aiProcessing).toBe(false);
+    await waitFor(() => {
+      expect(result.current.running).toBe(true);
+    });
   });
 });

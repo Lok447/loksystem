@@ -19,6 +19,7 @@ import { registerAuthRoutes } from './routes/authRoutes';
 import { registerApiRoutes } from './routes/apiRoutes';
 import { registerStaticRoutes, shouldProxyRendererToViteDevServer, VITE_DEV_PORT } from './routes/staticRoutes';
 import { generateQRLoginUrlDirect } from '@process/bridge/webuiQR';
+import { getRegisteredCoreClient } from '@process/adapters/coreClient';
 
 // Express Request 类型扩展定义在 src/webserver/types/express.d.ts
 // Express Request type extension is defined in src/webserver/types/express.d.ts
@@ -309,7 +310,9 @@ export async function startWebServerWithInstance(port: number, allowRemote = fal
 
   // 注册路由 / Register routes
   registerAuthRoutes(app);
-  registerApiRoutes(app);
+  registerApiRoutes(app, {
+    coreClient: getRegisteredCoreClient() ?? undefined,
+  });
   registerStaticRoutes(app);
 
   // 配置错误处理（必须最后）/ Setup error handler (must be last)

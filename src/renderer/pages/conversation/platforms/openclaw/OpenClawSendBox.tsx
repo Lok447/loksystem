@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { uuid } from '@/common/utils';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/sendbox';
@@ -27,6 +28,7 @@ import {
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { subscribeCoreConversationResponseStream } from '@/renderer/pages/conversation/platforms/coreConversationStream';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
@@ -226,7 +228,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     // Check actual conversation status from backend before resetting aiProcessing
     // to avoid flicker when switching to a running conversation
     // 先获取后端状态再重置 aiProcessing，避免切换到运行中的会话时闪烁
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+    void getRendererCoreClient().conversations.get(conversation_id).then((res) => {
       if (cancelled) {
         return;
       }
@@ -280,7 +282,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   );
 
   useEffect(() => {
-    return ipcBridge.openclawConversation.responseStream.on((message) => {
+    return subscribeCoreConversationResponseStream((message) => {
       if (conversation_id !== message.conversation_id) {
         return;
       }
@@ -347,7 +349,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   }, [conversation_id, addOrUpdateMessage]);
 
   useEffect(() => {
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+    void getRendererCoreClient().conversations.get(conversation_id).then((res) => {
       if (!res?.extra?.workspace) return;
       setWorkspacePath(res.extra.workspace);
     });
@@ -373,8 +375,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       aiProcessingRef.current = true;
       starOfficeInstallInFlightRef.current = true;
       void checkAndUpdateTitle(conversation_id, text);
-      ipcBridge.openclawConversation.sendMessage
-        .invoke({ input: text, msg_id, conversation_id, injectSkills: ['star-office-helper'] })
+      getRendererCoreClient()
+        .conversations.sendMessage({ input: text, msg_id, conversation_id, injectSkills: ['star-office-helper'] })
         .then((result) => {
           assertBridgeSuccess(result, 'Failed to send Star Office install command');
           emitter.emit('chat.history.refresh');
@@ -435,7 +437,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       aiProcessingRef.current = true;
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        const result = await ipcBridge.openclawConversation.sendMessage.invoke({
+        const result = await getRendererCoreClient().conversations.sendMessage({
           input: displayMessage,
           msg_id,
           conversation_id,
@@ -562,7 +564,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         addOrUpdateMessage(userMessage, true);
 
         void checkAndUpdateTitle(conversation_id, input);
-        const result = await ipcBridge.openclawConversation.sendMessage.invoke({
+        const result = await getRendererCoreClient().conversations.sendMessage({
           input: initialDisplayMessage,
           msg_id,
           conversation_id,
@@ -593,7 +595,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   const handleStop = async (): Promise<void> => {
     try {
-      await ipcBridge.conversation.stop.invoke({ conversation_id });
+      await getRendererCoreClient().conversations.stop(conversation_id);
     } finally {
       setAiProcessing(false);
       aiProcessingRef.current = false;

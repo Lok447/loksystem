@@ -27,13 +27,18 @@ vi.mock('@/common', () => ({
     database: {
       getConversationMessages: { invoke: (...args: unknown[]) => mockGetMessages(...args) },
     },
-    conversation: {
-      getWorkspace: { invoke: (...args: unknown[]) => mockGetWorkspace(...args) },
-    },
     dialog: {
       showOpen: { invoke: (...args: unknown[]) => mockShowOpen(...args) },
     },
   },
+}));
+
+vi.mock('@/common/coreClient', () => ({
+  getRendererCoreClient: () => ({
+    workspaces: {
+      getTree: (...args: unknown[]) => mockGetWorkspace(...args),
+    },
+  }),
 }));
 
 vi.mock('@/renderer/utils/platform', () => ({

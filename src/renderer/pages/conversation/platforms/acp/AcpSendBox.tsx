@@ -1,5 +1,6 @@
 import { ipcBridge } from '@/common';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
+import { getRendererCoreClient } from '@/common/coreClient';
 import type { AcpBackend } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
 import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
@@ -47,15 +48,6 @@ const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
-
-const assertTeamBridgeSuccess = (
-  result: void | { __bridgeError?: boolean; message?: string },
-  fallbackMessage: string
-): void => {
-  if (result && typeof result === 'object' && '__bridgeError' in result && result.__bridgeError) {
-    throw new Error(result.message || fallbackMessage);
-  }
-};
 
 const useSendBoxDraft = (conversation_id: string) => {
   const { data, mutate } = useAcpSendBoxDraft(conversation_id);
@@ -185,19 +177,19 @@ const AcpSendBox: React.FC<{
         void checkAndUpdateTitle(conversation_id, input);
         if (teamId) {
           if (agentSlotId) {
-            const result = await ipcBridge.team.sendMessageToAgent.invoke({
+            const result = await getRendererCoreClient().teams.sendMessageToAgent({
               teamId,
               slotId: agentSlotId,
               content: displayMessage,
               files,
             });
-            assertTeamBridgeSuccess(result, 'Failed to send message to agent');
+            assertBridgeSuccess(result, 'Failed to send message to agent');
           } else {
-            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: displayMessage, files });
-            assertTeamBridgeSuccess(result, 'Failed to send message to team');
+            const result = await getRendererCoreClient().teams.sendMessage({ teamId, content: displayMessage, files });
+            assertBridgeSuccess(result, 'Failed to send message to team');
           }
         } else {
-          const result = await ipcBridge.acpConversation.sendMessage.invoke({
+          const result = await getRendererCoreClient().conversations.sendMessage({
             input: displayMessage,
             msg_id,
             conversation_id,
@@ -319,7 +311,7 @@ Please check your local CLI tool authentication status`,
   const handleStop = async (): Promise<void> => {
     // Use finally to ensure UI state is reset even if backend stop fails
     try {
-      await ipcBridge.conversation.stop.invoke({ conversation_id });
+      await getRendererCoreClient().conversations.stop(conversation_id);
     } finally {
       resetState();
       resetActiveExecution('stop');

@@ -9,6 +9,9 @@ import type { IChannelRepository } from '@process/services/database/IChannelRepo
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import { CoreBackendServices } from '@process/core';
+import { createInProcessCoreClient, registerCoreClient } from '@process/adapters/coreClient';
+import { initCoreElectronClientAdapter } from '@process/adapters/electron';
 import { initAcpConversationBridge } from './acpConversationBridge';
 import { initApplicationBridge } from './applicationBridge';
 import { initBedrockBridge } from './bedrockBridge';
@@ -55,14 +58,21 @@ export interface BridgeDependencies {
  * 初始化所有IPC桥接模块
  */
 export function initAllBridges(deps: BridgeDependencies): void {
+  const coreServices = new CoreBackendServices({
+    conversationService: deps.conversationService,
+    workerTaskManager: deps.workerTaskManager,
+    teamSessionService: deps.teamSessionService,
+  });
+  initCoreElectronClientAdapter(registerCoreClient(createInProcessCoreClient(coreServices)));
+
   initDialogBridge();
   initShellBridge();
   initFsBridge();
   initFileWatchBridge();
-  initConversationBridge(deps.conversationService, deps.workerTaskManager, deps.teamSessionService);
+  initConversationBridge(deps.conversationService, deps.workerTaskManager, deps.teamSessionService, coreServices);
   initApplicationBridge(deps.workerTaskManager);
   initBedrockBridge();
-  initAcpConversationBridge(deps.workerTaskManager);
+  initAcpConversationBridge(deps.workerTaskManager, coreServices);
   initModelBridge();
   initMcpBridge();
   initPreviewHistoryBridge();

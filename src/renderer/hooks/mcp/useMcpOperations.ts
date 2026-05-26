@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
+import { mcpService } from '@/common/adapter/ipcBridge';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { ConfigStorage } from '@/common/config/storage';
 import type { IMcpServer } from '@/common/config/storage';
 import { globalMessageQueue } from './messageQueue';
@@ -102,7 +103,7 @@ export const useMcpOperations = (
   // 从agents中删除MCP配置
   const removeMcpFromAgents = useCallback(
     async (serverName: string, successMessage?: string, transportType?: string) => {
-      const agentsResponse = await acpConversation.getAvailableAgents.invoke();
+      const agentsResponse = await getRendererCoreClient().acp.getAvailableAgents();
       if (agentsResponse.success && agentsResponse.data) {
         const visibleAgents = filterVisibleMcpAgents(agentsResponse.data);
         // Filter agents by transport type support if transport type is known
@@ -128,7 +129,7 @@ export const useMcpOperations = (
   // 向agents同步MCP配置
   const syncMcpToAgents = useCallback(
     async (server: IMcpServer, skipRecheck = false) => {
-      const agentsResponse = await acpConversation.getAvailableAgents.invoke();
+      const agentsResponse = await getRendererCoreClient().acp.getAvailableAgents();
       if (agentsResponse.success && agentsResponse.data) {
         const visibleAgents = filterVisibleMcpAgents(agentsResponse.data);
         // Filter agents by transport type support to show accurate count

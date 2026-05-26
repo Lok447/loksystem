@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
@@ -111,7 +111,7 @@ const AionrsSendBox: React.FC<{
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
   useEffect(() => {
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+    void getRendererCoreClient().conversations.get(conversation_id).then((res) => {
       if (!res?.extra?.workspace) return;
       setWorkspacePath(res.extra.workspace);
     });
@@ -185,25 +185,19 @@ const AionrsSendBox: React.FC<{
         void checkAndUpdateTitle(conversation_id, input);
         if (teamId) {
           if (agentSlotId) {
-            const result = await ipcBridge.team.sendMessageToAgent.invoke({
+            const result = await getRendererCoreClient().teams.sendMessageToAgent({
               teamId,
               slotId: agentSlotId,
               content: displayMessage,
               files,
             });
-            const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
-            if (maybeError.__bridgeError) {
-              throw new Error(maybeError.message || 'Failed to send message to agent');
-            }
+            assertBridgeSuccess(result, 'Failed to send message to agent');
           } else {
-            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: displayMessage, files });
-            const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
-            if (maybeError.__bridgeError) {
-              throw new Error(maybeError.message || 'Failed to send message to team');
-            }
+            const result = await getRendererCoreClient().teams.sendMessage({ teamId, content: displayMessage, files });
+            assertBridgeSuccess(result, 'Failed to send message to team');
           }
         } else {
-          const result = await ipcBridge.conversation.sendMessage.invoke({
+          const result = await getRendererCoreClient().conversations.sendMessage({
             input: displayMessage,
             msg_id,
             conversation_id,
@@ -339,7 +333,7 @@ const AionrsSendBox: React.FC<{
   // Stop conversation handler
   const handleStop = async (): Promise<void> => {
     try {
-      await ipcBridge.conversation.stop.invoke({ conversation_id });
+      await getRendererCoreClient().conversations.stop(conversation_id);
     } finally {
       resetState();
       resetActiveExecution('stop');

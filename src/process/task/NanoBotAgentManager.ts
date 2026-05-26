@@ -16,6 +16,7 @@ import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher'
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 import { teamEventBus } from '@process/team/teamEventBus';
+import { mirrorConversationStreamMessage } from '@process/core/sessions';
 
 export interface NanoBotAgentManagerData {
   conversation_id: string;
@@ -75,7 +76,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
     }
 
     // Emit to frontend via unified conversation stream
-    ipcBridge.conversation.responseStream.emit(msg);
+    this.emitConversationResponseStream(msg);
     // Only emit terminal events to team bus for agent lifecycle management
     if (msg.type === 'finish' || msg.type === 'error') {
       teamEventBus.emit('responseStream', msg);
@@ -92,7 +93,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
     }
 
     // Emit signal events to frontend
-    ipcBridge.conversation.responseStream.emit(msg);
+    this.emitConversationResponseStream(msg);
     // Only emit terminal events to team bus for agent lifecycle management
     if (msg.type === 'finish' || msg.type === 'error') {
       teamEventBus.emit('responseStream', msg);
@@ -152,8 +153,13 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
       addMessage(this.conversation_id, tMessage);
     }
 
-    ipcBridge.conversation.responseStream.emit(message);
+    this.emitConversationResponseStream(message);
     teamEventBus.emit('responseStream', message);
+  }
+
+  private emitConversationResponseStream(message: IResponseMessage): void {
+    ipcBridge.conversation.responseStream.emit(message);
+    mirrorConversationStreamMessage(message, 'nanobot');
   }
 
   /**

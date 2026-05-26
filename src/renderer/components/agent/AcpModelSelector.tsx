@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { ConfigStorage } from '@/common/config/storage';
 import type { IProvider } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
@@ -97,10 +98,10 @@ const AcpModelSelector: React.FC<{
 
   const reloadModelInfo = useCallback(
     async (options?: { preserveInitialModel?: boolean }) => {
-      const result = await ipcBridge.acpConversation.getModelInfo.invoke({ conversationId });
+      const snapshot = await getRendererCoreClient().acp.getSessionSnapshot(conversationId);
 
-      if (result.success && result.data?.modelInfo) {
-        const info = result.data.modelInfo;
+      if (snapshot.modelInfo) {
+        const info = snapshot.modelInfo;
         if (backend === 'codex') {
           console.log('[AcpModelSelector][codex] Initial model info:', info);
         }
@@ -213,8 +214,12 @@ const AcpModelSelector: React.FC<{
         }
       }
     };
-    return ipcBridge.acpConversation.responseStream.on(handler);
-  }, [conversationId, initialModelId, updateModelInfo]);
+    return getRendererCoreClient().events.subscribe((event) => {
+      if (event.type !== 'acp.stream.message') return;
+      const message = (event.data as { message: IResponseMessage }).message;
+      handler(message);
+    });
+  }, [backend, conversationId, initialModelId, updateModelInfo]);
 
   const handleSelectModel = useCallback(
     (modelId: string) => {
@@ -228,11 +233,12 @@ const AcpModelSelector: React.FC<{
           currentModelLabel: selectedModel?.label || modelId,
         };
       });
-      ipcBridge.acpConversation.setModel
-        .invoke({ conversationId, modelId })
+      getRendererCoreClient()
+        .acp.setModel(conversationId, modelId)
         .then((result) => {
-          if (result.success && result.data?.modelInfo) {
-            updateModelInfo(result.data.modelInfo);
+          const response = result as { success?: boolean; data?: { modelInfo?: AcpModelInfo | null } };
+          if (response.success && response.data?.modelInfo) {
+            updateModelInfo(response.data.modelInfo);
           }
         })
         .catch((error) => {

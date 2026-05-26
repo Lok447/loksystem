@@ -13,6 +13,13 @@ let uuidCounter = 0;
 
 vi.mock('@/common', () => ({
   ipcBridge: {
+    core: {
+      conversations: {
+        sendMessage: {
+          invoke: (...args: unknown[]) => mockAcpSendInvoke(...args),
+        },
+      },
+    },
     acpConversation: {
       sendMessage: {
         invoke: (...args: unknown[]) => mockAcpSendInvoke(...args),

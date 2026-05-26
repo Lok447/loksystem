@@ -1,4 +1,4 @@
-import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import React, { createContext, useCallback, useContext, useMemo } from 'react';
 
 type TeamPermissionContextValue = {
@@ -26,7 +26,7 @@ export const TeamPermissionProvider: React.FC<{
   const propagateMode = useCallback(
     (mode: string) => {
       // Persist sessionMode on the team record so newly spawned agents inherit it
-      void ipcBridge.team.setSessionMode.invoke({ teamId, sessionMode: mode }).catch(() => {
+      void getRendererCoreClient().teams.setSessionMode({ teamId, sessionMode: mode }).catch(() => {
         // Best-effort: if this fails, agents still get mode via per-conversation setMode below
       });
     },

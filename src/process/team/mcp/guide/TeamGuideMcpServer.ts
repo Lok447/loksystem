@@ -18,6 +18,7 @@ import * as net from 'node:net';
 import * as path from 'node:path';
 import { ipcBridge } from '@/common';
 import type { TeamSessionService } from '@process/team/TeamSessionService';
+import { mirrorTeamListChanged } from '@process/core/team';
 import type { StdioMcpConfig } from '../team/TeamMcpServer';
 import { isTeamCapableBackend } from '@/common/types/teamTypes';
 import { ProcessConfig } from '@process/utils/initStorage';
@@ -228,7 +229,9 @@ export class TeamGuideMcpServer {
     }
 
     // Notify frontend to refresh team list
-    ipcBridge.team.listChanged.emit({ teamId: team.id, action: 'created' });
+    const listEvent = { teamId: team.id, action: 'created' as const };
+    ipcBridge.team.listChanged.emit(listEvent);
+    mirrorTeamListChanged(listEvent);
 
     // Navigate to team page immediately after creation.
     ipcBridge.deepLink.received.emit({ action: 'navigate', params: { route } });

@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import type { TChatConversation } from '@/common/config/storage';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Message } from '@arco-design/web-react';
@@ -162,10 +163,10 @@ export const useExport = ({
 
     try {
       const trees = await withTimeout(
-        ipcBridge.conversation.getWorkspace.invoke({
-          conversation_id: conversation.id,
+        getRendererCoreClient().workspaces.getTree({
+          conversationId: conversation.id,
           workspace,
-          path: workspace,
+          targetPath: workspace,
         }),
         EXPORT_IO_TIMEOUT_MS,
         `getWorkspace:${conversation.id}`

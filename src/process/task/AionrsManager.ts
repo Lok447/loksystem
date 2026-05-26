@@ -27,6 +27,7 @@ import { extractAndStripThinkTags } from './ThinkTagDetector';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
+import { mirrorConversationStreamMessage } from '@process/core/sessions';
 
 // Aionrs-specific approval key — reuses same pattern as GeminiApprovalStore
 type AionrsApprovalKey = IApprovalKey & {
@@ -319,6 +320,15 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     });
   }
 
+  private emitConversationResponseStream(message: IResponseMessage): void {
+    const normalizedMessage = {
+      ...message,
+      conversation_id: this.conversation_id,
+    };
+    ipcBridge.conversation.responseStream.emit(normalizedMessage);
+    mirrorConversationStreamMessage(normalizedMessage, 'aionrs');
+  }
+
   private emitThinkingMessage(content: string, status: 'thinking' | 'done' = 'thinking'): void {
     if (!this.thinkingMsgId) {
       this.thinkingMsgId = uuid();
@@ -332,7 +342,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
     const duration = status === 'done' && this.thinkingStartTime ? Date.now() - this.thinkingStartTime : undefined;
 
-    ipcBridge.conversation.responseStream.emit({
+    this.emitConversationResponseStream({
       type: 'thinking',
       conversation_id: this.conversation_id,
       msg_id: this.thinkingMsgId,
@@ -467,7 +477,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       msg_id: activeMsgId,
       data: `Agent process exited unexpectedly (code ${code})`,
     };
-    ipcBridge.conversation.responseStream.emit(errorMessage);
+    this.emitConversationResponseStream(errorMessage);
     this.emitToEventBuses(errorMessage);
 
     const finishMessage: IResponseMessage = {
@@ -476,7 +486,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       msg_id: uuid(),
       data: null,
     };
-    ipcBridge.conversation.responseStream.emit(finishMessage);
+    this.emitConversationResponseStream(finishMessage);
     this.emitToEventBuses(finishMessage);
   }
 
@@ -525,7 +535,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         mainLog('[AionrsManager]', `config_changed received (${elapsed})`, data.data);
         this._configSentAt = null;
         this._capabilities = data.data as AionrsCapabilities;
-        ipcBridge.conversation.responseStream.emit({
+        this.emitConversationResponseStream({
           type: 'config_changed',
           conversation_id: this.conversation_id,
           msg_id: '',
@@ -568,7 +578,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
           this.clearThinkingState();
         }
 
-        ipcBridge.conversation.responseStream.emit({
+        this.emitConversationResponseStream({
           type: 'request_trace',
           conversation_id: this.conversation_id,
           msg_id: uuid(),
@@ -665,7 +675,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       }
 
       const emitStart = Date.now();
-      ipcBridge.conversation.responseStream.emit(processedData);
+      this.emitConversationResponseStream(processedData as IResponseMessage);
       this.emitToEventBuses(processedData as IResponseMessage);
       const emitDuration = Date.now() - emitStart;
 
@@ -721,7 +731,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       const collectedResponses: string[] = [];
       await processCronInMessage(this.conversation_id, 'aionrs', cronMessage, (sysMsg) => {
         collectedResponses.push(sysMsg);
-        ipcBridge.conversation.responseStream.emit({
+        this.emitConversationResponseStream({
           type: 'system',
           conversation_id: this.conversation_id,
           msg_id: uuid(),

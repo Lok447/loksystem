@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { Tag, Typography } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
@@ -21,7 +21,7 @@ const AionrsSettings: React.FC = () => {
   const [agentInfo, setAgentInfo] = useState<AionrsAgentInfo | null>(null);
 
   useEffect(() => {
-    void ipcBridge.acpConversation.getAvailableAgents.invoke().then((result) => {
+    void getRendererCoreClient().acp.getAvailableAgents().then((result) => {
       if (result.success) {
         const agent = result.data.find((a) => a.backend === 'aionrs');
         setAgentInfo(agent ? { available: true, path: agent.cliPath } : { available: false });

@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { uuid } from '@/common/utils';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { emitter } from '@/renderer/utils/emitter';
@@ -96,10 +97,10 @@ export function useWorkspaceMigration({
 
       try {
         // Get all files from the workspace
-        const workspaceFiles = await ipcBridge.conversation.getWorkspace.invoke({
-          conversation_id,
+        const workspaceFiles = await getRendererCoreClient().workspaces.getTree({
+          conversationId: conversation_id,
           workspace,
-          path: workspace,
+          targetPath: workspace,
         });
 
         // Recursively collect all file paths
@@ -119,7 +120,10 @@ export function useWorkspaceMigration({
 
         if (teamId) {
           // Team mode: update workspace in-place for team + all agent conversations
-          await ipcBridge.team.updateWorkspace.invoke({ teamId, workspace: targetWorkspace });
+          const result = await getRendererCoreClient().teams.updateWorkspace({ teamId, workspace: targetWorkspace });
+          if (!result.success) {
+            throw new Error(result.msg || 'Failed to update team workspace');
+          }
 
           // Close modal and reset state
           setShowMigrationModal(false);

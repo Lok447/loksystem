@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpBackendConfig } from '../types';
 import { DETECTED_AGENTS_SWR_KEY } from '@/renderer/utils/model/agentTypes';
@@ -76,7 +77,7 @@ export const useCustomAgentsLoader = ({
 
   const refreshCustomAgents = useCallback(async () => {
     try {
-      await ipcBridge.acpConversation.refreshCustomAgents.invoke();
+      await getRendererCoreClient().acp.refreshCustomAgents();
       await mutate(DETECTED_AGENTS_SWR_KEY);
     } catch (error) {
       console.error('Failed to refresh custom agents:', error);

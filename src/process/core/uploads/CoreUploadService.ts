@@ -82,4 +82,52 @@ export class CoreUploadService {
 
     return storedFile;
   }
+
+  public static async createUploadFile(params: {
+    fileName: string;
+    conversationId?: string;
+  }): Promise<StoredUploadFile> {
+    const fileName = CoreUploadValidator.requireFileName(params.fileName);
+    const conversationId = params.conversationId ?? '';
+    const saveToWorkspace = await CoreUploadRepository.shouldSaveToWorkspace();
+    const workspace = conversationId && saveToWorkspace ? await this.resolveUploadWorkspace(conversationId) : undefined;
+    const uploadDir = CoreUploadPolicy.selectUploadDir({
+      cacheDir: CoreUploadRepository.getCacheDir(),
+      conversationId,
+      requestedWorkspace: '',
+      saveToWorkspace,
+      workspace,
+    });
+
+    await fsPromises.mkdir(uploadDir, { recursive: true });
+
+    const safeFileName = this.sanitizeFileName(fileName);
+    const initialTargetPath = path.join(uploadDir, safeFileName);
+    let targetExists = true;
+
+    try {
+      await fsPromises.access(initialTargetPath);
+    } catch {
+      targetExists = false;
+    }
+
+    const targetPath = CoreUploadPolicy.buildDuplicateSafePath(uploadDir, safeFileName, targetExists);
+    CoreUploadPolicy.assertPathInsideUploadDir(targetPath, uploadDir);
+    await fsPromises.writeFile(targetPath, Buffer.alloc(0));
+
+    const createdFile = {
+      path: targetPath,
+      name: path.basename(targetPath),
+      size: 0,
+      type: 'application/octet-stream',
+    };
+
+    coreEventBus.emit('upload', 'upload.file.stored', {
+      conversationId: conversationId || null,
+      workspace: conversationId ? uploadDir : null,
+      file: createdFile,
+    });
+
+    return createdFile;
+  }
 }

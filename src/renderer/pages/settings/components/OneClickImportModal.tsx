@@ -1,5 +1,6 @@
 import type { IMcpServer, IMcpTool } from '@/common/config/storage';
-import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
+import { mcpService } from '@/common/adapter/ipcBridge';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { Button, Select, Spin } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -33,7 +34,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
       // 初始化时检测可用的agents
       const loadAgents = async () => {
         try {
-          const response = await acpConversation.getAvailableAgents.invoke();
+          const response = await getRendererCoreClient().acp.getAvailableAgents();
           if (response.success && response.data) {
             const agents = response.data.map((agent) => ({ backend: agent.backend, name: agent.name }));
             setDetectedAgents(agents);
@@ -75,7 +76,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
     setLoadingImport(true);
     try {
       // 获取所有可用的agents
-      const agentsResponse = await acpConversation.getAvailableAgents.invoke();
+      const agentsResponse = await getRendererCoreClient().acp.getAvailableAgents();
       if (!agentsResponse.success || !agentsResponse.data) {
         throw new Error('Failed to get available agents');
       }

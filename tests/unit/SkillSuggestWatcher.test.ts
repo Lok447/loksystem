@@ -25,6 +25,12 @@ vi.mock('@/process/services/cron/cronSkillFile', () => ({
   hasCronSkillFile: mockHasCronSkillFile,
   validateSkillContent: mockValidateSkillContent,
 }));
+vi.mock('@/process/core/acp', () => ({
+  mirrorAcpStreamMessage: vi.fn(),
+}));
+vi.mock('@/process/core/sessions', () => ({
+  mirrorConversationStreamMessage: vi.fn(),
+}));
 
 import { skillSuggestWatcher } from '@/process/services/cron/SkillSuggestWatcher';
 

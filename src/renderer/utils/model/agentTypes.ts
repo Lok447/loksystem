@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getRendererCoreClient } from '@/common/coreClient';
 import { ipcBridge } from '@/common';
 
 /** SWR key for detected execution engines (from AgentRegistry). */
@@ -31,12 +32,19 @@ export type AvailableAgent = {
 /** Shared fetcher for DETECTED_AGENTS_SWR_KEY — single source of truth. */
 export async function fetchDetectedAgents(): Promise<AvailableAgent[]> {
   try {
-    const resp = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+    const resp = await getRendererCoreClient().acp.getAvailableAgents();
     if (resp.success && resp.data) {
       return resp.data as AvailableAgent[];
     }
   } catch {
-    // fallback to empty
+    try {
+      const legacyResp = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+      if (legacyResp.success && legacyResp.data) {
+        return legacyResp.data as AvailableAgent[];
+      }
+    } catch {
+      // fallback to empty
+    }
   }
   return [];
 }

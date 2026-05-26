@@ -11,6 +11,7 @@ import * as crypto from 'node:crypto';
 import * as net from 'node:net';
 import * as path from 'node:path';
 import { ipcBridge } from '@/common';
+import { mirrorTeamMcpStatus } from '@process/core/team';
 import type { Mailbox } from '../../Mailbox.ts';
 import type { TaskManager } from '../../TaskManager.ts';
 import type { TeamAgent } from '../../types.ts';
@@ -84,12 +85,16 @@ export class TeamMcpServer {
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);
       console.error(`[TeamMcpServer] Team ${this.params.teamId} TCP server failed to start:`, error);
-      ipcBridge.team.mcpStatus.emit({ teamId: this.params.teamId, phase: 'tcp_error', error });
+      const event = { teamId: this.params.teamId, phase: 'tcp_error' as const, error };
+      ipcBridge.team.mcpStatus.emit(event);
+      mirrorTeamMcpStatus(event);
       throw err;
     }
 
     console.log(`[TeamMcpServer] Team ${this.params.teamId} TCP server started on port ${this._port}`);
-    ipcBridge.team.mcpStatus.emit({ teamId: this.params.teamId, phase: 'tcp_ready', port: this._port });
+    const event = { teamId: this.params.teamId, phase: 'tcp_ready' as const, port: this._port };
+    ipcBridge.team.mcpStatus.emit(event);
+    mirrorTeamMcpStatus(event);
     return this.getStdioConfig();
   }
 

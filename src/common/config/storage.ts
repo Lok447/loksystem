@@ -200,6 +200,8 @@ export interface IConfigStorageRefer {
   'ambient.enabled'?: boolean;
   // Ambient Mode: persisted bubble window position (displayId used for multi-monitor recovery)
   'ambient.bubblePosition'?: { x: number; y: number; displayId: number };
+  /** M3 placeholder: latest core task runtime records before moving to a DB table. */
+  'core.taskRuntime.records'?: Record<string, unknown>;
 }
 
 export interface IEnvStorageRefer {

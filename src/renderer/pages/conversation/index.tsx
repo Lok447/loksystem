@@ -1,4 +1,5 @@
 import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { Spin } from '@arco-design/web-react';
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -32,7 +33,7 @@ const ChatConversationIndex: React.FC = () => {
   }, [id, closePreview]);
 
   const { data, isLoading, mutate } = useSWR(`conversation/${id}`, () => {
-    return ipcBridge.conversation.get.invoke({ id });
+    return getRendererCoreClient().conversations.get(id!);
   });
 
   useEffect(() => {

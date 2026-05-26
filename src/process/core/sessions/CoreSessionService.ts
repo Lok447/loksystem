@@ -6,6 +6,7 @@
 
 import type { TChatConversation } from '@/common/config/storage';
 import type { CreateConversationParams, IConversationService, MigrateConversationParams } from '@process/services/IConversationService';
+import type { CoreSessionRuntimeStateDto } from '@process/core/shared/CoreContracts';
 import { ProcessChat } from '@process/utils/initStorage';
 import { computeOpenClawIdentityHash } from '@process/utils/openclawUtils';
 import { AcpSkillManager } from '@process/task/AcpSkillManager';
@@ -192,6 +193,7 @@ export class CoreSessionService {
 
   public async createWithMigration(params: MigrateConversationParams): Promise<TChatConversation> {
     const conversation = await this.conversationService.createWithMigration(params);
+    this.taskRuntimeService.warmupConversationBestEffort(conversation.id);
     coreEventBus.emit('session', 'session.created', {
       conversationId: conversation.id,
       source: conversation.source || 'loksystem',
@@ -231,6 +233,55 @@ export class CoreSessionService {
       console.error('[CoreSessionService] Failed to get conversation:', error);
       return undefined;
     }
+  }
+
+  public async getSessionRuntimeState(id: string): Promise<CoreSessionRuntimeStateDto> {
+    const conversation = await this.getConversationWithRuntimeStatus(id);
+    const overview = await this.taskRuntimeService.getRuntimeOverview(id);
+    const runtime = overview.runtime;
+
+    if (!conversation) {
+      return {
+        conversationId: id,
+        exists: false,
+        status: runtime?.status || 'finished',
+        runtime,
+        record: overview.record,
+      };
+    }
+
+    return {
+      conversationId: conversation.id,
+      exists: true,
+      type: conversation.type,
+      source: conversation.source || 'loksystem',
+      workspace: conversation.extra?.workspace,
+      status: runtime?.status || conversation.status || 'finished',
+      runtime,
+      record: overview.record,
+      persistedAt: conversation.modifyTime,
+    };
+  }
+
+  public async listSessionRuntimeStates(): Promise<CoreSessionRuntimeStateDto[]> {
+    const conversations = await this.conversationService.listAllConversations();
+    const overviews = await this.taskRuntimeService.listRuntimeOverviews();
+    const overviewById = new Map(overviews.map((overview) => [overview.conversationId, overview]));
+    return conversations.map((conversation) => {
+      const overview = overviewById.get(conversation.id);
+      const runtime = overview?.runtime ?? null;
+      return {
+        conversationId: conversation.id,
+        exists: true,
+        type: conversation.type,
+        source: conversation.source || 'loksystem',
+        workspace: conversation.extra?.workspace,
+        status: runtime?.status || conversation.status || 'finished',
+        runtime,
+        record: overview?.record ?? null,
+        persistedAt: conversation.modifyTime,
+      };
+    });
   }
 
   public async getSlashCommands(conversationId: string) {

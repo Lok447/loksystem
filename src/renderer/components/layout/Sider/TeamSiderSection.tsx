@@ -17,7 +17,7 @@ import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useTeamList } from '@renderer/pages/team/hooks/useTeamList';
 import { useSiderTeamBadges } from '@renderer/pages/team/hooks/useSiderTeamBadges';
 import TeamCreateModal from '@renderer/pages/team/components/TeamCreateModal';
-import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import SiderItem from './SiderItem';
 import type { SiderMenuItem } from './SiderItem';
 
@@ -71,7 +71,10 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
     if (!renameId || !renameName.trim()) return;
     setRenameLoading(true);
     try {
-      await ipcBridge.team.renameTeam.invoke({ id: renameId, name: renameName.trim() });
+      const result = await getRendererCoreClient().teams.renameTeam({ id: renameId, name: renameName.trim() });
+      if (!result.success) {
+        throw new Error(result.msg || 'Failed to rename team');
+      }
       await refreshTeams();
       await globalMutate(`team/${renameId}`);
       Message.success(t('team.sider.renameSuccess'));

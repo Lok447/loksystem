@@ -15,6 +15,7 @@ import { Button, Message, Progress } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Loading, Down, Up } from '@icon-park/react';
 import classNames from 'classnames';
 import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { AgentBackend } from '@/common/types/acpTypes';
 import type { AgentCheckResult } from '@/renderer/hooks/agent/useAgentReadinessCheck';
@@ -91,7 +92,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
 
       try {
         // Get current conversation info
-        const conversation = await ipcBridge.conversation.get.invoke({ id: conversationId });
+        const conversation = await getRendererCoreClient().conversations.get(conversationId);
         if (!conversation) {
           Message.error(t('conversation.chat.switchAgentFailed', { defaultValue: 'Failed to switch agent' }));
           switchingRef.current = false;

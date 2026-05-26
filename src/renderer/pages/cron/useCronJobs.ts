@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import { emitter } from '@/renderer/utils/emitter';
@@ -487,7 +488,7 @@ export function useCronJobConversations(jobId: string | undefined) {
 
     setLoading(true);
     try {
-      const result = await ipcBridge.conversation.listByCronJob.invoke({ cronJobId: jobId });
+      const result = await getRendererCoreClient().conversations.listByCronJob(jobId);
       setConversations(result || []);
     } catch (err) {
       console.error('[useCronJobConversations] Failed to fetch:', err);

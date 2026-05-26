@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import { getRendererCoreClient } from '@/common/coreClient';
 import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { Button, Dropdown, Menu } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
@@ -50,12 +50,12 @@ const AcpConfigSelector: React.FC<{
   useEffect(() => {
     if (!backend || !conversationId) return;
     let cancelled = false;
-    ipcBridge.acpConversation.getConfigOptions
-      .invoke({ conversationId })
-      .then((result) => {
+    getRendererCoreClient()
+      .acp.getSessionSnapshot(conversationId)
+      .then((snapshot) => {
         if (cancelled) return;
-        if (result.success && result.data?.configOptions?.length > 0) {
-          setConfigOptions(result.data.configOptions);
+        if (snapshot.configOptions && snapshot.configOptions.length > 0) {
+          setConfigOptions(snapshot.configOptions);
         }
       })
       .catch(() => {});
@@ -71,17 +71,21 @@ const AcpConfigSelector: React.FC<{
     const handler = (message: IResponseMessage) => {
       if (message.conversation_id !== conversationId) return;
       if (message.type === 'acp_model_info') {
-        ipcBridge.acpConversation.getConfigOptions
-          .invoke({ conversationId })
-          .then((result) => {
-            if (result.success && result.data?.configOptions?.length > 0) {
-              setConfigOptions(result.data.configOptions);
+        getRendererCoreClient()
+          .acp.getSessionSnapshot(conversationId)
+          .then((snapshot) => {
+            if (snapshot.configOptions && snapshot.configOptions.length > 0) {
+              setConfigOptions(snapshot.configOptions);
             }
           })
           .catch(() => {});
       }
     };
-    return ipcBridge.acpConversation.responseStream.on(handler);
+    return getRendererCoreClient().events.subscribe((event) => {
+      if (event.type !== 'acp.stream.message') return;
+      const message = (event.data as { message: IResponseMessage }).message;
+      handler(message);
+    });
   }, [conversationId, backend]);
 
   // Sync when initialConfigOptions prop changes (e.g. agent switch on Guid page)
@@ -104,22 +108,26 @@ const AcpConfigSelector: React.FC<{
         return;
       }
 
-      // Conversation mode: send to ACP backend
-      ipcBridge.acpConversation.setConfigOption
-        .invoke({ conversationId, configId, value })
+      // Conversation mode: send to ACP backend through core client
+      getRendererCoreClient()
+        .acp.setConfigOption(conversationId, configId, value)
         .then((result) => {
-          if (result.success && result.data?.configOptions?.length > 0) {
-            setConfigOptions(result.data.configOptions);
+          const response = result as {
+            success?: boolean;
+            data?: { configOptions?: AcpSessionConfigOption[] };
+          };
+          if (response.success && response.data?.configOptions?.length > 0) {
+            setConfigOptions(response.data.configOptions);
           }
         })
         .catch((error) => {
           console.error('[AcpConfigSelector] Failed to set config option:', error);
           // Revert on error by re-fetching
-          ipcBridge.acpConversation.getConfigOptions
-            .invoke({ conversationId })
-            .then((result) => {
-              if (result.success && result.data?.configOptions) {
-                setConfigOptions(result.data.configOptions);
+          getRendererCoreClient()
+            .acp.getSessionSnapshot(conversationId)
+            .then((snapshot) => {
+              if (snapshot.configOptions) {
+                setConfigOptions(snapshot.configOptions);
               }
             })
             .catch(() => {});

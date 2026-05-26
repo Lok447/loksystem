@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
@@ -41,7 +42,7 @@ const hasLoadedSkill = (conversation: TChatConversation | undefined, skillName: 
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () =>
-    ipcBridge.conversation.getAssociateConversation.invoke({ conversation_id })
+    getRendererCoreClient().conversations.getAssociate(conversation_id)
   );
   const navigate = useNavigate();
   const list = useMemo(() => {
@@ -103,7 +104,9 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
           try {
             const id = uuid();
             // Fetch latest conversation from DB to ensure sessionMode is current
-            const latest = await ipcBridge.conversation.get.invoke({ id: conversation.id }).catch((): null => null);
+            const latest = await getRendererCoreClient()
+              .conversations.get(conversation.id)
+              .catch((): null => null);
             const source = latest || conversation;
             await ipcBridge.conversation.createWithConversation.invoke({
               conversation: {

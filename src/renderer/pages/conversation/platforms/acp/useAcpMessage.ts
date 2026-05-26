@@ -4,11 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TokenUsageData } from '@/common/config/storage';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { subscribeCoreAcpResponseStream } from '@/renderer/pages/conversation/platforms/coreConversationStream';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -307,7 +308,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   );
 
   useEffect(() => {
-    return ipcBridge.acpConversation.responseStream.on(handleResponseMessage);
+    return subscribeCoreAcpResponseStream(handleResponseMessage);
   }, [handleResponseMessage]);
 
   // Reset state when conversation changes and restore actual running status
@@ -333,7 +334,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     setAiProcessing(false);
     aiProcessingRef.current = false;
 
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+    void getRendererCoreClient().conversations.get(conversation_id).then((res) => {
       if (cancelled) {
         return;
       }

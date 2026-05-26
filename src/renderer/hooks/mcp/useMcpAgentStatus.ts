@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ConfigStorage } from '@/common/config/storage';
-import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
+import { mcpService } from '@/common/adapter/ipcBridge';
+import { getRendererCoreClient } from '@/common/coreClient';
 import type { IMcpServer } from '@/common/config/storage';
 import { filterVisibleMcpAgentNames, filterVisibleMcpAgents } from './mcpAgentFilter';
 
@@ -110,7 +111,7 @@ export const useMcpAgentStatus = () => {
 
       try {
         // 先获取agents信息，然后基于结果获取MCP配置（无法真正并行，因为第二个依赖第一个的结果）
-        const agentsResponse = await acpConversation.getAvailableAgents.invoke();
+        const agentsResponse = await getRendererCoreClient().acp.getAvailableAgents();
 
         if (!agentsResponse.success || !agentsResponse.data) {
           // 如果没有检测到agent，只在初次加载时清空状态
@@ -171,7 +172,7 @@ export const useMcpAgentStatus = () => {
 
     try {
       // 获取可用的agents
-      const agentsResponse = await acpConversation.getAvailableAgents.invoke();
+      const agentsResponse = await getRendererCoreClient().acp.getAvailableAgents();
       if (!agentsResponse.success || !agentsResponse.data) {
         return;
       }

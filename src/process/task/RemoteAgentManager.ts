@@ -18,6 +18,7 @@ import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher'
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 import { teamEventBus } from '@process/team/teamEventBus';
+import { mirrorConversationStreamMessage } from '@process/core/sessions';
 
 export interface RemoteAgentManagerData {
   conversation_id: string;
@@ -90,7 +91,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
       }
     }
 
-    ipcBridge.conversation.responseStream.emit(msg);
+    this.emitConversationResponseStream(msg);
     // Only emit terminal events to team bus for agent lifecycle management
     if (msg.type === 'finish' || msg.type === 'error') {
       teamEventBus.emit('responseStream', msg);
@@ -133,7 +134,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
       skillSuggestWatcher.onFinish(this.conversation_id);
     }
 
-    ipcBridge.conversation.responseStream.emit(msg);
+    this.emitConversationResponseStream(msg);
     // Only emit terminal events to team bus for agent lifecycle management
     if (msg.type === 'finish' || msg.type === 'error') {
       teamEventBus.emit('responseStream', msg);
@@ -238,8 +239,13 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
       addMessage(this.conversation_id, tMessage);
     }
 
-    ipcBridge.conversation.responseStream.emit(message);
+    this.emitConversationResponseStream(message);
     teamEventBus.emit('responseStream', message);
+  }
+
+  private emitConversationResponseStream(message: IResponseMessage): void {
+    ipcBridge.conversation.responseStream.emit(message);
+    mirrorConversationStreamMessage(message, 'remote');
   }
 
   async ensureYoloMode(): Promise<boolean> {

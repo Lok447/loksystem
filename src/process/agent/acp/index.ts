@@ -10,6 +10,7 @@ import { extractAtPaths, parseAllAtCommands, reconstructQuery } from '@/common/c
 import type { TMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { ipcBridge } from '@/common';
+import { mirrorTeamMcpStatus } from '@process/core/team';
 import { NavigationInterceptor } from '@/common/chat/navigation';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { uuid } from '@/common/utils';
@@ -1525,7 +1526,9 @@ export class AcpAgent {
 
     const emitMcpStatus = teamId
       ? (phase: import('@/common/types/teamTypes').TeamMcpPhase, extra?: { serverCount?: number; error?: string }) => {
-          ipcBridge.team.mcpStatus.emit({ teamId: teamId!, slotId, phase, ...extra });
+          const event = { teamId: teamId!, slotId, phase, ...extra };
+          ipcBridge.team.mcpStatus.emit(event);
+          mirrorTeamMcpStatus(event);
         }
       : null;
 
@@ -1649,7 +1652,9 @@ export class AcpAgent {
           ? mcpName.slice('loksystem-team-'.length)
           : undefined;
       if (tId) {
-        ipcBridge.team.mcpStatus.emit({ teamId: tId, slotId: this.id, phase: 'load_failed', error: errMsg });
+        const event = { teamId: tId, slotId: this.id, phase: 'load_failed' as const, error: errMsg };
+        ipcBridge.team.mcpStatus.emit(event);
+        mirrorTeamMcpStatus(event);
       }
       return [];
     }

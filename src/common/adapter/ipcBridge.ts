@@ -22,6 +22,28 @@ import type {
 } from '../update/updateTypes';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import type { SpeechToTextRequest, SpeechToTextResult } from '../types/speech';
+import type {
+  CoreAcpAgentDescriptorDto,
+  CoreAcpHealthDto,
+  CoreAcpSessionSnapshotDto,
+  CoreConversationSendMessageDto,
+  CoreServiceResponse,
+  CoreSessionRuntimeStateDto,
+  CoreTaskRuntimeOverviewDto,
+  CoreTeamAddAgentDto,
+  CoreTeamAgentDto,
+  CoreTeamCreateDto,
+  CoreTeamDto,
+  CoreTeamRenameAgentDto,
+  CoreTeamRenameDto,
+  CoreTeamSendMessageDto,
+  CoreTeamSendMessageToAgentDto,
+  CoreTeamSetSessionModeDto,
+  CoreTeamUpdateWorkspaceDto,
+  CoreUploadCreateFileDto,
+  CoreUploadCreatedFileDto,
+} from '../../process/core/shared/CoreContracts';
+import type { CoreEventEnvelope } from '../../process/core/shared/CoreEvent';
 
 export const shell = {
   openFile: bridge.buildProvider<void, string>('open-file'), // 使用系统默认程序打开文件
@@ -98,6 +120,97 @@ export const conversation = {
     check: bridge.buildProvider<boolean, { conversation_id: string; action: string; commandType?: string }>(
       'approval.check'
     ),
+  },
+};
+
+export const core = {
+  sessions: {
+    getRuntimeState: bridge.buildProvider<CoreSessionRuntimeStateDto, { conversationId: string }>(
+      'core.sessions.get-runtime-state'
+    ),
+    listRuntimeStates: bridge.buildProvider<CoreSessionRuntimeStateDto[], void>(
+      'core.sessions.list-runtime-states'
+    ),
+  },
+  conversations: {
+    get: bridge.buildProvider<TChatConversation | undefined, { id: string }>('core.conversations.get'),
+    getAssociate: bridge.buildProvider<TChatConversation[], { conversationId: string }>(
+      'core.conversations.get-associate'
+    ),
+    listByCronJob: bridge.buildProvider<TChatConversation[], { cronJobId: string }>(
+      'core.conversations.list-by-cron-job'
+    ),
+    getSlashCommands: bridge.buildProvider<
+      CoreServiceResponse<{ commands: SlashCommandItem[] }>,
+      { conversationId: string }
+    >('core.conversations.get-slash-commands'),
+    sendMessage: bridge.buildProvider<CoreServiceResponse, CoreConversationSendMessageDto>(
+      'core.conversations.send-message'
+    ),
+    stop: bridge.buildProvider<CoreServiceResponse, { conversationId: string }>('core.conversations.stop'),
+  },
+  tasks: {
+    getRuntimeOverview: bridge.buildProvider<CoreTaskRuntimeOverviewDto, { conversationId: string }>(
+      'core.tasks.get-runtime-overview'
+    ),
+    listRuntimeOverviews: bridge.buildProvider<CoreTaskRuntimeOverviewDto[], void>(
+      'core.tasks.list-runtime-overviews'
+    ),
+  },
+  acp: {
+    getAvailableAgents: bridge.buildProvider<CoreServiceResponse<CoreAcpAgentDescriptorDto[]>, void>(
+      'core.acp.get-available-agents'
+    ),
+    refreshCustomAgents: bridge.buildProvider<void, void>('core.acp.refresh-custom-agents'),
+    checkAgentHealth: bridge.buildProvider<CoreServiceResponse<CoreAcpHealthDto>, { backend: string }>(
+      'core.acp.check-agent-health'
+    ),
+    getSessionSnapshot: bridge.buildProvider<CoreAcpSessionSnapshotDto, { conversationId: string }>(
+      'core.acp.get-session-snapshot'
+    ),
+    setModel: bridge.buildProvider<unknown, { conversationId: string; modelId: string }>('core.acp.set-model'),
+    setMode: bridge.buildProvider<unknown, { conversationId: string; mode: string }>('core.acp.set-mode'),
+    setConfigOption: bridge.buildProvider<unknown, { conversationId: string; configId: string; value: string }>(
+      'core.acp.set-config-option'
+    ),
+  },
+  workspaces: {
+    getTree: bridge.buildProvider<
+      IDirOrFile[],
+      { conversationId: string; workspace: string; targetPath: string; search?: string }
+    >('core.workspaces.get-tree'),
+  },
+  teams: {
+    create: bridge.buildProvider<CoreServiceResponse<CoreTeamDto>, CoreTeamCreateDto>('core.teams.create'),
+    list: bridge.buildProvider<CoreTeamDto[], { userId: string }>('core.teams.list'),
+    get: bridge.buildProvider<CoreTeamDto | null, { id: string }>('core.teams.get'),
+    remove: bridge.buildProvider<CoreServiceResponse, { id: string }>('core.teams.remove'),
+    addAgent: bridge.buildProvider<CoreServiceResponse<CoreTeamAgentDto>, CoreTeamAddAgentDto>('core.teams.add-agent'),
+    removeAgent: bridge.buildProvider<CoreServiceResponse, { teamId: string; slotId: string }>(
+      'core.teams.remove-agent'
+    ),
+    renameAgent: bridge.buildProvider<CoreServiceResponse, CoreTeamRenameAgentDto>('core.teams.rename-agent'),
+    renameTeam: bridge.buildProvider<CoreServiceResponse, CoreTeamRenameDto>('core.teams.rename'),
+    setSessionMode: bridge.buildProvider<CoreServiceResponse, CoreTeamSetSessionModeDto>(
+      'core.teams.set-session-mode'
+    ),
+    updateWorkspace: bridge.buildProvider<CoreServiceResponse, CoreTeamUpdateWorkspaceDto>(
+      'core.teams.update-workspace'
+    ),
+    sendMessage: bridge.buildProvider<CoreServiceResponse, CoreTeamSendMessageDto>('core.teams.send-message'),
+    sendMessageToAgent: bridge.buildProvider<CoreServiceResponse, CoreTeamSendMessageToAgentDto>(
+      'core.teams.send-message-to-agent'
+    ),
+    stop: bridge.buildProvider<CoreServiceResponse, { teamId: string }>('core.teams.stop'),
+    ensureSession: bridge.buildProvider<CoreServiceResponse, { teamId: string }>('core.teams.ensure-session'),
+  },
+  uploads: {
+    createFile: bridge.buildProvider<CoreServiceResponse<CoreUploadCreatedFileDto>, CoreUploadCreateFileDto>(
+      'core.uploads.create-file'
+    ),
+  },
+  events: {
+    stream: bridge.buildEmitter<CoreEventEnvelope>('core.events.stream'),
   },
 };
 
@@ -1302,4 +1415,3 @@ export const team = {
   listChanged: bridge.buildEmitter<import('@/common/types/teamTypes').ITeamListChangedEvent>('team.list-changed'),
   mcpStatus: bridge.buildEmitter<import('@/common/types/teamTypes').ITeamMcpStatusEvent>('team.mcp.status'),
 };
-

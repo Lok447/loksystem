@@ -19,6 +19,7 @@ import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher'
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 import { teamEventBus } from '@process/team/teamEventBus';
+import { mirrorConversationStreamMessage } from '@process/core/sessions';
 
 export interface OpenClawAgentManagerData {
   conversation_id: string;
@@ -113,10 +114,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
       }
     }
 
-    // Emit to frontend
-    ipcBridge.openclawConversation.responseStream.emit(msg);
-    // Also emit to the unified conversation stream so the generic chat UI can render OpenClaw replies.
-    ipcBridge.conversation.responseStream.emit(msg);
+    this.emitOpenClawResponseStream(msg);
     // Only emit terminal events to team bus for agent lifecycle management
     if (msg.type === 'finish' || msg.type === 'error') {
       teamEventBus.emit('responseStream', msg);
@@ -164,9 +162,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
       skillSuggestWatcher.onFinish(this.conversation_id);
     }
 
-    // Emit signal events to frontend
-    ipcBridge.openclawConversation.responseStream.emit(msg);
-    ipcBridge.conversation.responseStream.emit(msg);
+    this.emitOpenClawResponseStream(msg);
     // Only emit terminal events to team bus for agent lifecycle management
     if (msg.type === 'finish' || msg.type === 'error') {
       teamEventBus.emit('responseStream', msg);
@@ -274,8 +270,13 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
       addMessage(this.conversation_id, tMessage);
     }
 
+    this.emitOpenClawResponseStream(message);
+  }
+
+  private emitOpenClawResponseStream(message: IResponseMessage): void {
     ipcBridge.openclawConversation.responseStream.emit(message);
     ipcBridge.conversation.responseStream.emit(message);
+    mirrorConversationStreamMessage(message, 'openclaw');
   }
 
   /**

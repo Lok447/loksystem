@@ -10,7 +10,8 @@ import fsPromises from 'fs/promises';
 import http from 'node:http';
 import path from 'path';
 import multer from 'multer';
-import { sendCoreHttpErrorResponse } from '@process/adapters/http';
+import { registerCoreHttpClientAdapter, sendCoreHttpErrorResponse } from '@process/adapters/http';
+import type { CoreClientContract } from '@process/adapters/coreClient';
 import { CoreUploadService } from '@process/core/uploads';
 import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { ExtensionRegistry } from '@process/extensions';
@@ -217,7 +218,11 @@ function registerExtensionWebuiRoutes(app: Express, validateApiAccess: RequestHa
  * 注册 API 路由
  * Register API routes
  */
-export function registerApiRoutes(app: Express): void {
+export type RegisterApiRoutesOptions = {
+  coreClient?: CoreClientContract;
+};
+
+export function registerApiRoutes(app: Express, options: RegisterApiRoutesOptions = {}): void {
   const validateApiAccess = TokenMiddleware.validateToken({
     responseType: 'json',
   });
@@ -227,6 +232,11 @@ export function registerApiRoutes(app: Express): void {
    * /api/directory/*
    */
   app.use('/api/directory', apiRateLimiter, validateApiAccess, directoryApi);
+
+  if (options.coreClient) {
+    app.use('/api/core', apiRateLimiter, validateApiAccess);
+    registerCoreHttpClientAdapter(app, { client: options.coreClient });
+  }
 
   /**
    * 上传文件 - Upload file

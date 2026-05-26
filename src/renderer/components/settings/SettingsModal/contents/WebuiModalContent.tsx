@@ -13,7 +13,6 @@ import ChannelDingTalkLogo from '@/renderer/assets/channel-logos/dingtalk.svg';
 import ChannelLarkLogo from '@/renderer/assets/channel-logos/lark.svg';
 import ChannelWecomLogo from '@/renderer/assets/channel-logos/wecom.svg';
 import ChannelWeixinLogo from '@/renderer/assets/channel-logos/weixin.svg';
-import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Button, Form, Input, Message, Switch, Tabs, Tooltip } from '@arco-design/web-react';
 import { CheckOne, Communication, Copy, Earth, EditTwo, Refresh } from '@icon-park/react';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
@@ -69,8 +68,6 @@ const WebuiModalContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'webui' | 'channels'>('webui');
 
   // 检测是否在 Electron 桌面环境 / Check if running in Electron desktop environment
-  const isDesktop = isElectronDesktop();
-
   const [status, setStatus] = useState<IWebUIStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
@@ -625,21 +622,6 @@ const WebuiModalContent: React.FC = () => {
   const displayUsername = status?.adminUsername || 'admin';
 
   // 浏览器端只显示 Channels 配置，不显示 WebUI 服务配置 / In browser mode, only show Channels config, not WebUI service config
-  if (!isDesktop) {
-    return (
-      <div className='flex flex-col h-full w-full'>
-        <LokScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
-          <div className='space-y-16px'>
-            <h2 className='text-20px font-500 text-t-primary m-0'>Channels</h2>
-            <Suspense fallback={<div className='text-13px text-t-secondary'>{t('common.loading')}</div>}>
-              <ChannelModalContentLazy />
-            </Suspense>
-          </div>
-        </LokScrollArea>
-      </div>
-    );
-  }
-
   const webuiPanel = (
     <LokScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
       <div className='space-y-12px px-[12px] md:px-[28px]'>

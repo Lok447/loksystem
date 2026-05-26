@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import LokModal from '@/renderer/components/base/LokModal';
@@ -20,7 +20,7 @@ const LocalAgents: React.FC = () => {
 
   // Detected agents (include built-in backends and extension-contributed agents, exclude user custom and remote)
   const { data: detectedAgents } = useSWR('acp.agents.available.settings', async () => {
-    const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+    const result = await getRendererCoreClient().acp.getAvailableAgents();
     if (result.success && result.data) {
       return result.data.filter((agent) => agent.backend !== 'remote' && agent.backend !== 'custom' && !agent.isPreset);
     }

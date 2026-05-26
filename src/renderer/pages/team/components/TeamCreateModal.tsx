@@ -3,7 +3,7 @@ import { Button, Form, Input, Message } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Close } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
-import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpInitializeResult } from '@/common/types/acpTypes';
 import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
@@ -106,7 +106,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         customAgentId: dispatchAgent?.customAgentId,
       });
 
-      const team = await ipcBridge.team.create.invoke({
+      const result = await getRendererCoreClient().teams.create({
         userId,
         name,
         workspace,
@@ -114,14 +114,12 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         agents,
       });
 
-      // The platform bridge swallows provider errors and returns a sentinel object
-      const result = team as unknown as { __bridgeError?: boolean; message?: string };
-      if (result.__bridgeError) {
-        Message.error(result.message ?? t('team.create.error', { defaultValue: 'Failed to create team' }));
+      if (!result.success || !result.data) {
+        Message.error(result.msg ?? t('team.create.error', { defaultValue: 'Failed to create team' }));
         return;
       }
 
-      onCreated(team);
+      onCreated(result.data);
       handleClose();
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);

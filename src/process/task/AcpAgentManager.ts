@@ -44,6 +44,7 @@ import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
+import { mirrorAcpStreamMessage } from '@process/core/acp';
 import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -352,7 +353,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           msg_id: uuid(),
           data: sysMsg,
         };
-        ipcBridge.acpConversation.responseStream.emit(systemMessage);
+        this.emitAcpResponseStream(systemMessage);
       });
       if (collectedResponses.length > 0 && this.agent) {
         const feedbackMessage = `[System Response]
@@ -368,7 +369,7 @@ ${collectedResponses.join('\n')}`;
       ...(message as IResponseMessage),
       conversation_id: this.conversation_id,
     };
-    ipcBridge.acpConversation.responseStream.emit(finishMessage);
+    this.emitAcpResponseStream(finishMessage);
     teamEventBus.emit('responseStream', finishMessage);
     channelEventBus.emitAgentMessage(this.conversation_id, finishMessage);
 
@@ -471,6 +472,11 @@ ${collectedResponses.join('\n')}`;
       return this.resolveCustomAgentCliConfig(data);
     }
     return this.resolveBuiltinBackendConfig(data);
+  }
+
+  private emitAcpResponseStream(message: IResponseMessage): void {
+    ipcBridge.acpConversation.responseStream.emit(message);
+    mirrorAcpStreamMessage(message, 'acp');
   }
 
   private buildHermesWorkspaceEnv(workspace?: string, baseEnv?: Record<string, string>): Record<string, string> {
@@ -659,7 +665,7 @@ ${collectedResponses.join('\n')}`;
     // During bootstrap, agent_status events are suppressed, so the
     // frontend acpStatus never updates and useSlashCommands never
     // re-fetches. This dedicated event bypasses the bootstrap filter.
-    ipcBridge.acpConversation.responseStream.emit({
+    this.emitAcpResponseStream({
       type: 'slash_commands_updated',
       conversation_id: this.conversation_id,
       msg_id: '',
@@ -701,7 +707,7 @@ ${collectedResponses.join('\n')}`;
     // Emit request trace on each model generation start
     if (message.type === 'start') {
       const modelInfo = this.agent?.getModelInfo();
-      ipcBridge.acpConversation.responseStream.emit({
+      this.emitAcpResponseStream({
         type: 'request_trace',
         conversation_id: this.conversation_id,
         msg_id: uuid(),
@@ -799,7 +805,7 @@ ${collectedResponses.join('\n')}`;
     }
 
     const emitStart = Date.now();
-    ipcBridge.acpConversation.responseStream.emit(processedMessage);
+    this.emitAcpResponseStream(processedMessage);
     // Only emit terminal events to team bus for agent lifecycle management
     if (processedMessage.type === 'finish' || processedMessage.type === 'error') {
       teamEventBus.emit('responseStream', {
@@ -879,7 +885,7 @@ ${collectedResponses.join('\n')}`;
       return;
     }
 
-    ipcBridge.acpConversation.responseStream.emit(v);
+    this.emitAcpResponseStream(v);
 
     channelEventBus.emitAgentMessage(this.conversation_id, {
       ...v,
@@ -913,7 +919,7 @@ ${collectedResponses.join('\n')}`;
           const errMsg = error instanceof Error ? error.message : String(error);
           mainWarn('[AcpAgentManager]', `Failed to re-apply model ${this.persistedModelId}`, error);
           if (errMsg.includes('model_not_found') || errMsg.includes('无可用渠道')) {
-            ipcBridge.acpConversation.responseStream.emit({
+            this.emitAcpResponseStream({
               type: 'error',
               conversation_id: this.conversation_id,
               msg_id: `model_error_${Date.now()}`,
@@ -1047,7 +1053,7 @@ ${collectedResponses.join('\n')}`;
             : userMessage.content.content,
           ...(data.hidden && { hidden: true }),
         };
-        ipcBridge.acpConversation.responseStream.emit(userResponseMessage);
+        this.emitAcpResponseStream(userResponseMessage);
       }
 
       await this.initAgent(this.options);
@@ -1147,7 +1153,7 @@ ${collectedResponses.join('\n')}`;
       }
 
       // Emit to frontend for UI display only
-      ipcBridge.acpConversation.responseStream.emit(message);
+      this.emitAcpResponseStream(message);
 
       // Emit finish signal so the frontend resets loading state
       // (mirrors AcpAgent.handleDisconnect pattern)
@@ -1157,7 +1163,7 @@ ${collectedResponses.join('\n')}`;
         msg_id: uuid(),
         data: null,
       };
-      ipcBridge.acpConversation.responseStream.emit(finishMessage);
+      this.emitAcpResponseStream(finishMessage);
 
       return new Promise((_, reject) => {
         nextTickToLocalFinish(() => {
@@ -1241,7 +1247,7 @@ ${collectedResponses.join('\n')}`;
 
     const duration = status === 'done' && this.thinkingStartTime ? Date.now() - this.thinkingStartTime : undefined;
 
-    ipcBridge.acpConversation.responseStream.emit({
+    this.emitAcpResponseStream({
       type: 'thinking',
       conversation_id: this.conversation_id,
       msg_id: this.thinkingMsgId,

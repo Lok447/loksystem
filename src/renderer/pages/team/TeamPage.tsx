@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import useSWR, { useSWRConfig } from 'swr';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import type { TeamAgent, TTeam } from '@/common/types/teamTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
@@ -59,7 +60,7 @@ const AgentChatSlot: React.FC<{
   onRemove?: () => void;
 }> = ({ agent, teamId, isLeader, isFullscreen = false, onToggleFullscreen, onRemove }) => {
   const { data: conversation } = useSWR(agent.conversationId ? ['team-conversation', agent.conversationId] : null, () =>
-    ipcBridge.conversation.get.invoke({ id: agent.conversationId })
+    getRendererCoreClient().conversations.get(agent.conversationId)
   );
 
   const isAionrs = conversation?.type === 'aionrs';
@@ -167,7 +168,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   const doRemoveAgent = useCallback(
     async (slotId: string) => {
       try {
-        await ipcBridge.team.removeAgent.invoke({ teamId: team.id, slotId });
+        await getRendererCoreClient().teams.removeAgent(team.id, slotId);
         Message.success(t('common.deleteSuccess'));
         // Only switch tab when removing the currently active tab
         if (slotId === activeSlotId && leadAgent?.slotId) switchTab(leadAgent.slotId);
@@ -202,7 +203,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   // Fetch leader agent's conversation for the workspace sider
   const { data: dispatchConversation } = useSWR(
     leadAgent?.conversationId ? ['team-conversation', leadAgent.conversationId] : null,
-    () => ipcBridge.conversation.get.invoke({ id: leadAgent!.conversationId })
+    () => getRendererCoreClient().conversations.get(leadAgent!.conversationId)
   );
 
   // Use team workspace if specified, otherwise fall back to leader agent's conversation workspace (temp workspace)
@@ -482,7 +483,8 @@ const TeamPage: React.FC<Props> = ({ team }) => {
   const handleRenameTeam = useCallback(
     async (newName: string): Promise<boolean> => {
       try {
-        await ipcBridge.team.renameTeam.invoke({ id: team.id, name: newName });
+        const result = await getRendererCoreClient().teams.renameTeam({ id: team.id, name: newName });
+        if (!result.success) return false;
         await mutateTeam();
         await globalMutate(`teams/${user?.id ?? 'system_default_user'}`);
         return true;

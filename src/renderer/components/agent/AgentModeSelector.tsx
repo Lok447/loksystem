@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
@@ -174,15 +174,15 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     if (!conversationId || !canSwitchMode) return;
     let cancelled = false;
 
-    ipcBridge.acpConversation.getMode
-      .invoke({ conversationId })
-      .then((result) => {
-        if (!cancelled && result.success && result.data) {
+    getRendererCoreClient()
+      .acp.getSessionSnapshot(conversationId)
+      .then((snapshot) => {
+        if (!cancelled) {
           // Only sync from backend when manager is initialized;
           // before first message, getMode returns { mode: 'default', initialized: false }
           // which would overwrite the correct initialMode (e.g. opencode has no 'default').
-          if (result.data.initialized !== false) {
-            setCurrentMode(result.data.mode);
+          if (snapshot.mode.initialized !== false) {
+            setCurrentMode(snapshot.mode.mode);
           }
         }
       })
@@ -214,10 +214,11 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
       setIsLoading(true);
       try {
-        const result = await ipcBridge.acpConversation.setMode.invoke({
-          conversationId,
-          mode,
-        });
+        const result = (await getRendererCoreClient().acp.setMode(conversationId, mode)) as {
+          success?: boolean;
+          msg?: string;
+          data?: { mode?: string };
+        };
 
         if (result.success) {
           setCurrentMode(result.data?.mode ?? mode);
@@ -235,7 +236,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
         setIsLoading(false);
       }
     },
-    [conversationId, currentMode, onModeSelect]
+    [conversationId, currentMode, onModeChanged, onModeSelect]
   );
 
   const renderLogo = () => (

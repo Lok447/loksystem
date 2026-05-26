@@ -13,6 +13,13 @@ import type { TaskManager } from './TaskManager';
 import { buildRolePrompt } from './prompts/buildRolePrompt';
 import { formatMessages } from './prompts/formatHelpers';
 import { agentRegistry } from '@process/agent/AgentRegistry';
+import { mirrorAcpStreamMessage } from '@process/core/acp';
+import {
+  mirrorTeamAgentRemoved,
+  mirrorTeamAgentRenamed,
+  mirrorTeamAgentSpawned,
+  mirrorTeamAgentStatusChanged,
+} from '@process/core/team';
 
 type TeammateManagerParams = {
   teamId: string;
@@ -87,7 +94,9 @@ export class TeammateManager extends EventEmitter {
     this.agents = [...this.agents, agent];
     this.ownedConversationIds.add(agent.conversationId);
     // Notify renderer so it can refresh team data (tabs, status, etc.)
-    ipcBridge.team.agentSpawned.emit({ teamId: this.teamId, agent });
+    const event = { teamId: this.teamId, agent };
+    ipcBridge.team.agentSpawned.emit(event);
+    mirrorTeamAgentSpawned(event);
   }
 
   /**
@@ -156,12 +165,14 @@ export class TeammateManager extends EventEmitter {
             createdAt: Date.now(),
           };
           addMessage(agent.conversationId, teammateMsg);
-          ipcBridge.acpConversation.responseStream.emit({
+          const responseMessage: IResponseMessage = {
             type: 'teammate_message',
             conversation_id: agent.conversationId,
             msg_id: msgId,
             data: teammateMsg,
-          });
+          };
+          ipcBridge.acpConversation.responseStream.emit(responseMessage);
+          mirrorAcpStreamMessage(responseMessage, 'team');
         }
       }
 
@@ -265,8 +276,10 @@ export class TeammateManager extends EventEmitter {
   /** Set agent status, update the local agents array, and emit IPC event */
   setStatus(slotId: string, status: TeammateStatus, lastMessage?: string): void {
     this.agents = this.agents.map((a) => (a.slotId === slotId ? { ...a, status } : a));
-    ipcBridge.team.agentStatusChanged.emit({ teamId: this.teamId, slotId, status, lastMessage });
-    this.emit('agentStatusChanged', { teamId: this.teamId, slotId, status, lastMessage });
+    const event = { teamId: this.teamId, slotId, status, lastMessage };
+    ipcBridge.team.agentStatusChanged.emit(event);
+    mirrorTeamAgentStatusChanged(event);
+    this.emit('agentStatusChanged', event);
   }
 
   /** Clean up all IPC listeners, timers, and EventEmitter handlers */
@@ -618,7 +631,9 @@ export class TeammateManager extends EventEmitter {
 
     this.agents = this.agents.filter((a) => a.slotId !== slotId);
     console.log(`[TeammateManager] Agent ${slotId} (${agent.agentName}) removed`);
-    ipcBridge.team.agentRemoved.emit({ teamId: this.teamId, slotId });
+    const removedEvent = { teamId: this.teamId, slotId };
+    ipcBridge.team.agentRemoved.emit(removedEvent);
+    mirrorTeamAgentRemoved(removedEvent);
 
     // Notify upper layer to persist the removal (e.g. update DB)
     this.onAgentRemovedFn?.(this.teamId, this.agents);
@@ -653,6 +668,8 @@ export class TeammateManager extends EventEmitter {
     }
     this.agents = this.agents.map((a) => (a.slotId === slotId ? { ...a, agentName: trimmed } : a));
     console.log(`[TeammateManager] Agent ${slotId} renamed: "${oldName}" → "${trimmed}"`);
-    ipcBridge.team.agentRenamed.emit({ teamId: this.teamId, slotId, oldName, newName: trimmed });
+    const renamedEvent = { teamId: this.teamId, slotId, oldName, newName: trimmed };
+    ipcBridge.team.agentRenamed.emit(renamedEvent);
+    mirrorTeamAgentRenamed(renamedEvent);
   }
 }

@@ -5,13 +5,17 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { emitter } from '../../src/renderer/utils/emitter';
+import { useWorkspaceEvents } from '../../src/renderer/pages/conversation/Workspace/hooks/useWorkspaceEvents';
+import type { CoreEventEnvelope } from '../../src/process/core/shared/CoreEvent';
+
+let coreEventListeners: Array<(event: CoreEventEnvelope) => void> = [];
 
 // Mock ipcBridge
-vi.mock('../../src/common/adapter/ipcBridge', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
-    geminiConversation: {
+    conversation: {
       responseStream: {
         on: vi.fn(() => vi.fn()),
       },
@@ -26,17 +30,24 @@ vi.mock('../../src/common/adapter/ipcBridge', () => ({
         on: vi.fn(() => vi.fn()),
       },
     },
-    conversation: {
-      responseSearchWorkSpace: {
-        provider: vi.fn(() => vi.fn()),
+  },
+}));
+
+vi.mock('../../src/common/coreClient', () => ({
+  getRendererCoreClient: () => ({
+    events: {
+      subscribe: (listener: (event: CoreEventEnvelope) => void) => {
+        coreEventListeners.push(listener);
+        return vi.fn();
       },
     },
-  },
+  }),
 }));
 
 describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    coreEventListeners = [];
   });
 
   afterEach(() => {
@@ -250,6 +261,109 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
       });
 
       expect(setSelected).toHaveBeenCalledWith(['folder1']);
+    });
+  });
+
+  describe('core workspace search progress events', () => {
+    it('updates files from workspace.search.progress events for the active conversation', () => {
+      const setFiles = vi.fn();
+
+      renderHook(() =>
+        useWorkspaceEvents({
+          conversation_id: 'conv-1',
+          eventPrefix: 'acp',
+          refreshWorkspace: vi.fn(),
+          clearSelection: vi.fn(),
+          setFiles,
+          setSelected: vi.fn(),
+          setExpandedKeys: vi.fn(),
+          setTreeKey: vi.fn(),
+          selectedNodeRef: { current: null },
+          selectedKeysRef: { current: [] },
+          closeContextMenu: vi.fn(),
+          setContextMenu: vi.fn(),
+          closeRenameModal: vi.fn(),
+          closeDeleteModal: vi.fn(),
+        })
+      );
+
+      act(() => {
+        coreEventListeners.forEach((listener) =>
+          listener({
+          scope: 'workspace',
+          type: 'workspace.search.progress',
+          timestamp: 1,
+          data: {
+            conversationId: 'conv-1',
+            result: {
+              match: {
+                name: 'matched.txt',
+                fullPath: '/workspace/matched.txt',
+                relativePath: 'matched.txt',
+                isDir: false,
+                isFile: true,
+              },
+            },
+          },
+          } as CoreEventEnvelope)
+        );
+      });
+
+      expect(setFiles).toHaveBeenCalledWith([
+        {
+          name: 'matched.txt',
+          fullPath: '/workspace/matched.txt',
+          relativePath: 'matched.txt',
+          isDir: false,
+          isFile: true,
+        },
+      ]);
+    });
+
+    it('refreshes workspace from ACP stream messages mirrored as core events', () => {
+      const refreshWorkspace = vi.fn();
+
+      renderHook(() =>
+        useWorkspaceEvents({
+          conversation_id: 'conv-1',
+          eventPrefix: 'acp',
+          refreshWorkspace,
+          clearSelection: vi.fn(),
+          setFiles: vi.fn(),
+          setSelected: vi.fn(),
+          setExpandedKeys: vi.fn(),
+          setTreeKey: vi.fn(),
+          selectedNodeRef: { current: null },
+          selectedKeysRef: { current: [] },
+          closeContextMenu: vi.fn(),
+          setContextMenu: vi.fn(),
+          closeRenameModal: vi.fn(),
+          closeDeleteModal: vi.fn(),
+        })
+      );
+
+      refreshWorkspace.mockClear();
+
+      act(() => {
+        coreEventListeners.forEach((listener) =>
+          listener({
+            scope: 'acp',
+            type: 'acp.stream.message',
+            timestamp: 1,
+            data: {
+              conversationId: 'conv-1',
+              message: {
+                conversation_id: 'conv-1',
+                msg_id: 'm1',
+                type: 'acp_tool_call',
+                data: {},
+              },
+            },
+          } as CoreEventEnvelope)
+        );
+      });
+
+      expect(refreshWorkspace).toHaveBeenCalledOnce();
     });
   });
 });

@@ -6,12 +6,16 @@
 
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { ipcBridge } from '@/common';
+import { CoreBackendServices } from '@process/core';
 import { CoreAcpGatewayService } from '@process/core/acp';
 import { CoreTaskRuntimeService } from '@process/core/tasks';
 
-export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager): void {
-  const taskRuntimeService = new CoreTaskRuntimeService(workerTaskManager);
-  const acpGatewayService = new CoreAcpGatewayService(taskRuntimeService);
+export function initAcpConversationBridge(
+  workerTaskManager: IWorkerTaskManager,
+  coreServices?: Pick<CoreBackendServices, 'acpGateway'>
+): void {
+  const acpGatewayService: CoreAcpGatewayService =
+    coreServices?.acpGateway ?? new CoreAcpGatewayService(new CoreTaskRuntimeService(workerTaskManager));
 
   ipcBridge.acpConversation.checkEnv.provider(() => {
     return Promise.resolve(acpGatewayService.getEnvironmentSummary());

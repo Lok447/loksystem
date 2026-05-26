@@ -19,6 +19,7 @@ import { ProcessConfig } from '@process/utils/initStorage';
 import { getAssistantsDir } from '@process/utils/initStorage';
 import { TeamSession } from './TeamSession';
 import type { TTeam, TeamAgent } from './types';
+import { mirrorTeamListChanged, mirrorTeamMcpStatus } from '@process/core/team';
 import fs from 'fs/promises';
 import path from 'path';
 import { resolveLocaleKey } from '@/common/utils';
@@ -575,7 +576,9 @@ export class TeamSessionService {
     await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
     this.sessions.get(teamId)?.addAgent(newAgent);
     // Notify renderer so SWR caches (useTeamList, useSiderTeamBadges) revalidate
-    ipcBridge.team.listChanged.emit({ teamId, action: 'agent_added' });
+    const listEvent = { teamId, action: 'agent_added' as const };
+    ipcBridge.team.listChanged.emit(listEvent);
+    mirrorTeamListChanged(listEvent);
     return newAgent;
   }
 
@@ -653,7 +656,9 @@ export class TeamSessionService {
       await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
     }
     // Notify renderer so SWR caches (useTeamList, useSiderTeamBadges) revalidate
-    ipcBridge.team.listChanged.emit({ teamId, action: 'agent_removed' });
+    const listEvent = { teamId, action: 'agent_removed' as const };
+    ipcBridge.team.listChanged.emit(listEvent);
+    mirrorTeamListChanged(listEvent);
   }
 
   async getOrStartSession(teamId: string): Promise<TeamSession> {
@@ -711,12 +716,14 @@ export class TeamSessionService {
             } catch (err) {
               const error = err instanceof Error ? err.message : String(err);
               console.error(`[TeamSessionService] Failed to write MCP config for agent ${agent.slotId}:`, error);
-              ipcBridge.team.mcpStatus.emit({
+              const mcpEvent = {
                 teamId: team.id,
                 slotId: agent.slotId,
-                phase: 'config_write_failed',
+                phase: 'config_write_failed' as const,
                 error,
-              });
+              };
+              ipcBridge.team.mcpStatus.emit(mcpEvent);
+              mirrorTeamMcpStatus(mcpEvent);
             }
           }
         })

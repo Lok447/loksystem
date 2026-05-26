@@ -8,8 +8,10 @@ import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TokenUsageData } from '@/common/config/storage';
+import { getRendererCoreClient } from '@/common/coreClient';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { subscribeCoreConversationResponseStream } from '@/renderer/pages/conversation/platforms/coreConversationStream';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 type TokenUsage = {
@@ -117,7 +119,7 @@ export const useAionrsMessage = (
   }, []);
 
   useEffect(() => {
-    return ipcBridge.conversation.responseStream.on((message) => {
+    return subscribeCoreConversationResponseStream((message) => {
       if (conversation_id !== message.conversation_id) {
         return;
       }
@@ -257,7 +259,7 @@ export const useAionrsMessage = (
 
     // Check actual conversation status from backend before resetting all running states
     // to avoid flicker when switching to a running conversation
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+    void getRendererCoreClient().conversations.get(conversation_id).then((res) => {
       if (cancelled) {
         return;
       }

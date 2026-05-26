@@ -19,4 +19,11 @@ export class CoreUploadValidator {
     }
     return file;
   }
+
+  public static requireFileName(fileName: string | undefined): string {
+    if (!fileName || fileName.trim().length === 0) {
+      throw new CoreServiceError('Missing file name', 400, 'missing_file_name');
+    }
+    return fileName;
+  }
 }

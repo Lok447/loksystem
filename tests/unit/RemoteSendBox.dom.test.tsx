@@ -45,6 +45,30 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('../../src/common', () => ({
   ipcBridge: {
+    core: {
+      conversations: {
+        get: { invoke: (...args: unknown[]) => mockConvGet(...args) },
+        sendMessage: { invoke: (...args: unknown[]) => mockSendMessage(...args) },
+        stop: { invoke: (...args: unknown[]) => mockStop(...args) },
+      },
+      events: {
+        stream: {
+          on: (handler: (event: Record<string, unknown>) => void) => {
+            capturedResponseHandler = (msg: Record<string, unknown>) => {
+              handler({
+                type: 'conversation.stream.message',
+                scope: 'conversation',
+                timestamp: Date.now(),
+                data: { message: msg },
+              });
+            };
+            return () => {
+              capturedResponseHandler = null;
+            };
+          },
+        },
+      },
+    },
     conversation: {
       get: { invoke: (...args: unknown[]) => mockConvGet(...args) },
       sendMessage: { invoke: (...args: unknown[]) => mockSendMessage(...args) },

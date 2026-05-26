@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { getRendererCoreClient } from '@/common/coreClient';
 import type { FileMetadata } from './FileService';
 import { getFileExtension, uploadFileViaHttp } from './FileService';
 import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
@@ -22,7 +23,11 @@ async function createTempFile(
   source: UploadSource = 'sendbox'
 ): Promise<string | null> {
   if (isElectronDesktop()) {
-    const tempPath = await ipcBridge.fs.createUploadFile.invoke({ fileName, conversationId });
+    const result = await getRendererCoreClient().uploads.createFile({ fileName, conversationId });
+    if (!result.success || !result.data?.path) {
+      throw new Error(result.msg || 'Failed to create upload file');
+    }
+    const tempPath = result.data.path;
     if (tempPath) {
       await ipcBridge.fs.writeFile.invoke({ path: tempPath, data });
     }
