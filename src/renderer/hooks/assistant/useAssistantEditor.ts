@@ -40,6 +40,14 @@ export const useAssistantEditor = ({
 }: UseAssistantEditorParams) => {
   const { t } = useTranslation();
 
+  const persistDeletedBuiltinAssistant = useCallback(async (assistantId: string) => {
+    const deletedIds = ((await ConfigStorage.get('assistants.deletedBuiltinIds')) || []) as string[];
+    if (deletedIds.includes(assistantId)) {
+      return;
+    }
+    await ConfigStorage.set('assistants.deletedBuiltinIds', [...deletedIds, assistantId]);
+  }, []);
+
   // Edit drawer state
   const [editVisible, setEditVisible] = useState(false);
   const [editName, setEditName] = useState('');
@@ -404,6 +412,15 @@ export const useAssistantEditor = ({
       const agents = (await ConfigStorage.get('assistants')) || [];
       const updatedAgents = agents.map((agent) => (agent.id === assistant.id ? { ...agent, enabled } : agent));
       await ConfigStorage.set('assistants', updatedAgents);
+      if (assistant.isBuiltin && enabled) {
+        const deletedIds = ((await ConfigStorage.get('assistants.deletedBuiltinIds')) || []) as string[];
+        if (deletedIds.includes(assistant.id)) {
+          await ConfigStorage.set(
+            'assistants.deletedBuiltinIds',
+            deletedIds.filter((id) => id !== assistant.id)
+          );
+        }
+      }
 
       // Reload merged assistant list (local + extensions)
       await loadAssistants();
@@ -467,5 +484,6 @@ export const useAssistantEditor = ({
     handleDeleteClick,
     handleDeleteConfirm,
     handleToggleEnabled,
+    persistDeletedBuiltinAssistant,
   };
 };

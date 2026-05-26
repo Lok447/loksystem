@@ -13,6 +13,7 @@ import React, { useEffect } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import NanobotSendBox from './NanobotSendBox';
+import { useAbortUploadsOnConversationChange } from '@/renderer/services/FileService';
 
 const NanobotChat: React.FC<{
   conversation_id: string;
@@ -22,6 +23,7 @@ const NanobotChat: React.FC<{
   emptySlot?: React.ReactNode;
 }> = ({ conversation_id, workspace, cronJobId, hideSendBox, emptySlot }) => {
   useMessageLstCache(conversation_id);
+  useAbortUploadsOnConversationChange(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
     updateLocalImage({ root: workspace });

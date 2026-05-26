@@ -9,6 +9,74 @@ import { getRendererCoreClient } from '@/common/coreClient';
 import { resolveWebRuntimeServerPath } from '@/common/utils/webRuntimeOrigin';
 import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 import { isElectronDesktop } from '@/renderer/utils/platform';
+import { useEffect, useRef } from 'react';
+
+type UploadAbortReason = 'conversation-switched' | 'manual-cancel';
+
+type UploadAbortEntry = {
+  abort: (reason?: UploadAbortReason) => void;
+};
+
+const conversationUploadRegistry = new Map<string, Set<UploadAbortEntry>>();
+
+function registerConversationUpload(conversationId: string | undefined, entry: UploadAbortEntry): () => void {
+  const trimmedConversationId = conversationId?.trim();
+  if (!trimmedConversationId) {
+    return () => {};
+  }
+
+  let entries = conversationUploadRegistry.get(trimmedConversationId);
+  if (!entries) {
+    entries = new Set();
+    conversationUploadRegistry.set(trimmedConversationId, entries);
+  }
+  entries.add(entry);
+
+  return () => {
+    const currentEntries = conversationUploadRegistry.get(trimmedConversationId);
+    if (!currentEntries) {
+      return;
+    }
+    currentEntries.delete(entry);
+    if (currentEntries.size === 0) {
+      conversationUploadRegistry.delete(trimmedConversationId);
+    }
+  };
+}
+
+export function abortConversationUploads(conversationId?: string, reason: UploadAbortReason = 'conversation-switched'): void {
+  const trimmedConversationId = conversationId?.trim();
+  if (!trimmedConversationId) {
+    return;
+  }
+
+  const entries = conversationUploadRegistry.get(trimmedConversationId);
+  if (!entries?.size) {
+    return;
+  }
+
+  for (const entry of Array.from(entries)) {
+    entry.abort(reason);
+  }
+}
+
+export function useAbortUploadsOnConversationChange(conversationId?: string): void {
+  const previousConversationIdRef = useRef<string | undefined>(conversationId);
+
+  useEffect(() => {
+    const previousConversationId = previousConversationIdRef.current;
+    if (previousConversationId && previousConversationId !== conversationId) {
+      abortConversationUploads(previousConversationId, 'conversation-switched');
+    }
+    previousConversationIdRef.current = conversationId;
+
+    return () => {
+      if (previousConversationIdRef.current) {
+        abortConversationUploads(previousConversationIdRef.current, 'conversation-switched');
+      }
+    };
+  }, [conversationId]);
+}
 
 /**
  * Upload a file to the server via HTTP multipart (WebUI mode).
@@ -19,16 +87,27 @@ import { isElectronDesktop } from '@/renderer/utils/platform';
 export async function uploadFileViaHttp(
   file: File,
   conversationId?: string,
-  onProgress?: (percent: number) => void
+  onProgress?: (percent: number) => void,
+  workspace?: string
 ): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
   if (conversationId) {
     formData.append('conversationId', conversationId);
   }
+  if (workspace?.trim()) {
+    formData.append('workspace', workspace.trim());
+  }
 
   return new Promise<string>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    let abortedReason: UploadAbortReason | null = null;
+    const unregisterAbort = registerConversationUpload(conversationId, {
+      abort(reason = 'manual-cancel') {
+        abortedReason = reason;
+        xhr.abort();
+      },
+    });
     xhr.open('POST', resolveWebRuntimeServerPath('/api/upload', window.location));
     xhr.withCredentials = true;
 
@@ -41,6 +120,7 @@ export async function uploadFileViaHttp(
     }
 
     xhr.addEventListener('load', () => {
+      unregisterAbort();
       if (xhr.status === 413) {
         reject(new Error('FILE_TOO_LARGE'));
         return;
@@ -62,11 +142,13 @@ export async function uploadFileViaHttp(
     });
 
     xhr.addEventListener('error', () => {
+      unregisterAbort();
       reject(new Error('Upload failed: network error'));
     });
 
     xhr.addEventListener('abort', () => {
-      reject(new Error('Upload aborted'));
+      unregisterAbort();
+      reject(new Error(abortedReason === 'conversation-switched' ? 'UPLOAD_ABORTED_CONVERSATION_SWITCH' : 'Upload aborted'));
     });
 
     xhr.send(formData);
@@ -257,7 +339,8 @@ class FileServiceClass {
   async processDroppedFiles(
     files: FileList,
     conversationId?: string,
-    source: UploadSource = 'sendbox'
+    source: UploadSource = 'sendbox',
+    workspace?: string
   ): Promise<FileMetadata[]> {
     const processedFiles: FileMetadata[] = [];
 
@@ -275,7 +358,7 @@ class FileServiceClass {
             // WebUI: upload via HTTP multipart to the conversation workspace uploads directory
             const tracker = trackUpload(file.size, source);
             try {
-              filePath = await uploadFileViaHttp(file, conversationId || '', tracker.onProgress);
+              filePath = await uploadFileViaHttp(file, conversationId || '', tracker.onProgress, workspace);
             } finally {
               tracker.finish();
             }
@@ -283,7 +366,11 @@ class FileServiceClass {
             // Electron: use IPC to create upload file (respects saveToWorkspace setting)
             const arrayBuffer = await file.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
-            const result = await getRendererCoreClient().uploads.createFile({ fileName: file.name, conversationId });
+            const result = await getRendererCoreClient().uploads.createFile({
+              fileName: file.name,
+              conversationId,
+              workspace,
+            });
             if (!result.success || !result.data?.path) {
               throw new Error(result.msg || 'Failed to create upload file');
             }

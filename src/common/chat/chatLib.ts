@@ -434,6 +434,11 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
       };
     }
     case 'tool_call': {
+      const toolCall = message.data as Partial<IMessageToolCall['content']> | undefined;
+      if (!toolCall?.callId) {
+        console.warn('[chatLib] Ignoring tool_call without callId:', message);
+        return undefined as never;
+      }
       return {
         id: uuid(),
         type: 'tool_call',
@@ -473,6 +478,11 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
       };
     }
     case 'acp_tool_call': {
+      const toolCall = message.data as { update?: { toolCallId?: string } } | undefined;
+      if (!toolCall?.update?.toolCallId) {
+        console.warn('[chatLib] Ignoring acp_tool_call without toolCallId:', message);
+        return undefined as never;
+      }
       return {
         id: uuid(),
         type: 'acp_tool_call',
@@ -493,6 +503,11 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
       };
     }
     case 'codex_tool_call': {
+      const toolCall = message.data as Partial<IMessageCodexToolCall['content']> | undefined;
+      if (!toolCall?.toolCallId) {
+        console.warn('[chatLib] Ignoring codex_tool_call without toolCallId:', message);
+        return undefined as never;
+      }
       return {
         id: uuid(),
         type: 'codex_tool_call',
@@ -659,6 +674,9 @@ export const composeMessage = (
 
   // Handle Gemini tool_call message merging
   if (message.type === 'tool_call') {
+    if (!message.content.callId) {
+      return list;
+    }
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];
       if (msg.type === 'tool_call' && msg.content.callId === message.content.callId) {
@@ -672,6 +690,9 @@ export const composeMessage = (
 
   // Handle codex_tool_call message merging
   if (message.type === 'codex_tool_call') {
+    if (!message.content.toolCallId) {
+      return list;
+    }
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];
       if (msg.type === 'codex_tool_call' && msg.content.toolCallId === message.content.toolCallId) {
@@ -686,6 +707,9 @@ export const composeMessage = (
 
   // Handle acp_tool_call message merging (same logic as codex_tool_call)
   if (message.type === 'acp_tool_call') {
+    if (!message.content.update?.toolCallId) {
+      return list;
+    }
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];
       if (msg.type === 'acp_tool_call' && msg.content.update?.toolCallId === message.content.update?.toolCallId) {

@@ -268,6 +268,15 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
 
   // Other types: fallback to last message check
   // 其他类型: 回退到检查最后一条消息
+  if (message.type === 'tool_call' && !message.content?.callId) {
+    return list;
+  }
+  if (message.type === 'codex_tool_call' && !message.content?.toolCallId) {
+    return list;
+  }
+  if (message.type === 'acp_tool_call' && !message.content?.update?.toolCallId) {
+    return list;
+  }
   const last = list[list.length - 1];
   if (last.msg_id !== message.msg_id || last.type !== message.type) {
     // Add new message and update index

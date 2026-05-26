@@ -933,6 +933,10 @@ const initStorage = async () => {
     // Initialize assistant config (metadata only, no context)
     const existingAgents = (await configFile.get('assistants').catch((): undefined => undefined)) || [];
     const builtinAssistants = getBuiltinAssistants();
+    const deletedBuiltinIds = new Set(
+      ((await configFile.get('assistants.deletedBuiltinIds').catch((): undefined => undefined)) as string[] | undefined) ||
+        []
+    );
 
     // 5.2.1 检查是否需要迁移：修复老版本中所有助手都默认启用的问�?
     // Check if migration needed: fix old version where all assistants were enabled by default
@@ -1035,7 +1039,7 @@ const initStorage = async () => {
           };
           hasChanges = true;
         }
-      } else {
+      } else if (!deletedBuiltinIds.has(builtin.id)) {
         // 添加新的内置助手
         // Add new built-in assistant
         updatedAgents.unshift(builtin);

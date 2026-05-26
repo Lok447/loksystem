@@ -20,10 +20,11 @@ async function createTempFile(
   data: Uint8Array,
   contentType: string,
   conversationId?: string,
-  source: UploadSource = 'sendbox'
+  source: UploadSource = 'sendbox',
+  workspace?: string
 ): Promise<string | null> {
   if (isElectronDesktop()) {
-    const result = await getRendererCoreClient().uploads.createFile({ fileName, conversationId });
+    const result = await getRendererCoreClient().uploads.createFile({ fileName, conversationId, workspace });
     if (!result.success || !result.data?.path) {
       throw new Error(result.msg || 'Failed to create upload file');
     }
@@ -39,7 +40,7 @@ async function createTempFile(
   const file = new File([blob], fileName, { type: contentType });
   const tracker = trackUpload(file.size, source);
   try {
-    return await uploadFileViaHttp(file, conversationId || '', tracker.onProgress);
+    return await uploadFileViaHttp(file, conversationId || '', tracker.onProgress, workspace);
   } finally {
     tracker.finish();
   }
@@ -141,7 +142,8 @@ class PasteServiceClass {
     onFilesAdded: (files: FileMetadata[]) => void,
     onTextPaste?: (text: string) => void,
     conversationId?: string,
-    source: UploadSource = 'sendbox'
+    source: UploadSource = 'sendbox',
+    workspace?: string
   ): Promise<boolean> {
     // 立即事件冒泡,避免全局监听器重复处理
     event.stopPropagation();
@@ -191,7 +193,7 @@ class PasteServiceClass {
               usedFileNames.add(fileName);
 
               // 创建临时文件并写入数据（Electron 使用 IPC，WebUI 使用 HTTP API）
-              const tempPath = await createTempFile(fileName, uint8Array, file.type, conversationId, source);
+              const tempPath = await createTempFile(fileName, uint8Array, file.type, conversationId, source, workspace);
 
               if (tempPath) {
                 fileList.push({
@@ -258,7 +260,8 @@ class PasteServiceClass {
                 uint8Array,
                 file.type || 'application/octet-stream',
                 conversationId,
-                source
+                source,
+                workspace
               );
               if (tempPath) {
                 fileList.push({

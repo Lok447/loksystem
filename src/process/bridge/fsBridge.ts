@@ -494,9 +494,9 @@ export function initFsBridge(): void {
 
   // 创建上传文件 / Create upload file based on user preference
   // 根据"上传文件保存到工作区"设置决定文件保存位置
-  ipcBridge.fs.createUploadFile.provider(async ({ fileName, conversationId }) => {
+  ipcBridge.fs.createUploadFile.provider(async ({ fileName, conversationId, workspace }) => {
     try {
-      return (await CoreUploadService.createUploadFile({ fileName, conversationId })).path;
+      return (await CoreUploadService.createUploadFile({ fileName, conversationId, workspace })).path;
 
       // 检查用户偏好：保存到工作区还是缓存目录
       // Check user preference: save to workspace or cache directory

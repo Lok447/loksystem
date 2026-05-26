@@ -118,6 +118,8 @@ export interface IConfigStorageRefer {
   'migration.promptsI18nAdded'?: boolean;
   /** Migration flag: split 'assistants' into presets-only + 'acp.customAgents' (user-defined customs). */
   'migration.assistantsSplitCustom'?: boolean;
+  /** Deleted builtin assistant ids that should not be auto-restored on startup. */
+  'assistants.deletedBuiltinIds'?: string[];
   /** Migration flag: Electron desktop config has been imported to server config */
   'migration.electronConfigImported'?: boolean;
   // 关闭窗口时最小化到系统托盘 / Minimize to system tray when closing window

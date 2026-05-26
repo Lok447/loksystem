@@ -14,7 +14,7 @@ Sentry.init({
 });
 
 import './process/utils/configureConsoleLog';
-import { app, BrowserWindow, nativeImage, net, powerMonitor, protocol, screen, shell } from 'electron';
+import { app, BrowserWindow, dialog, nativeImage, net, powerMonitor, protocol, screen, shell } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -255,6 +255,38 @@ let isExplicitQuit = false;
 let appReadyDone = false;
 
 let mainWindow: BrowserWindow;
+let quitCleanupPromise: Promise<void> | null = null;
+
+const reportDesktopStartupFailure = async (error: unknown): Promise<void> => {
+  const detail = error instanceof Error ? error.stack || error.message : String(error);
+  const title = 'LokSystem failed to start';
+  const content = `Backend or core services failed during startup.\n\n${detail}`;
+
+  if (!isWebUIMode && !isResetPasswordMode) {
+    try {
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        createWindow({ showOnReady: true });
+      }
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        await dialog.showMessageBox(mainWindow, {
+          type: 'error',
+          buttons: ['OK'],
+          defaultId: 0,
+          title,
+          message: title,
+          detail: content,
+          noLink: true,
+        });
+        showAndFocusMainWindow(mainWindow);
+        return;
+      }
+    } catch (dialogError) {
+      console.error('[LokSystem] Failed to show startup error dialog:', dialogError);
+    }
+  }
+
+  dialog.showErrorBox(title, content);
+};
 
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
   console.log('[LokSystem] Creating main window...');
@@ -779,10 +811,13 @@ app.on('open-url', (event, url) => {
 void app
   .whenReady()
   .then(handleAppReady)
-  .catch((error) => {
+  .catch(async (error) => {
     // App initialization failed
     console.error('[LokSystem] App initialization failed:', error);
-    app.quit();
+    await reportDesktopStartupFailure(error);
+    if (isWebUIMode || isResetPasswordMode) {
+      app.quit();
+    }
   });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -821,70 +856,75 @@ app.on('before-quit', async () => {
   console.log('[LokSystem] before-quit');
   setIsQuitting(true);
   isExplicitQuit = true;
-  destroyTray();
+  if (!quitCleanupPromise) {
+    destroyTray();
+    quitCleanupPromise = (async () => {
+      const cleanup = async () => {
+        // Kill all agent worker processes
+        await workerTaskManager.clear();
 
-  const cleanup = async () => {
-    // Kill all agent worker processes
-    await workerTaskManager.clear();
+        // Destroy ambient bubble window (if active)
+        try {
+          const { destroyAmbientWindow } = await import('./process/ambient/ambientWindowManager');
+          destroyAmbientWindow();
+        } catch {
+          /* ambient not initialized */
+        }
 
-    // Destroy ambient bubble window (if active)
-    try {
-      const { destroyAmbientWindow } = await import('./process/ambient/ambientWindowManager');
-      destroyAmbientWindow();
-    } catch {
-      /* ambient not initialized */
-    }
+        // Stop all active team sessions (TCP servers + child processes)
+        await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
 
-    // Stop all active team sessions (TCP servers + child processes)
-    await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
+        // Shutdown Channel subsystem
+        try {
+          const { getChannelManager } = await import('@process/channels');
+          await getChannelManager().shutdown();
+        } catch (error) {
+          console.error('[App] Failed to shutdown ChannelManager:', error);
+        }
 
-    // Shutdown Channel subsystem
-    try {
-      const { getChannelManager } = await import('@process/channels');
-      await getChannelManager().shutdown();
-    } catch (error) {
-      console.error('[App] Failed to shutdown ChannelManager:', error);
-    }
+        // Stop Web Server (Express + WebSocket)
+        try {
+          const { getWebServerInstance, setWebServerInstance } = await import('@process/bridge/webuiBridge');
+          const { cleanupWebAdapter } = await import('@process/webserver/adapter');
+          const instance = getWebServerInstance();
+          if (instance) {
+            instance.wss.clients.forEach((client) => client.close(1000, 'App shutting down'));
+            await new Promise<void>((resolve) => instance.server.close(() => resolve()));
+            cleanupWebAdapter();
+            setWebServerInstance(null);
+          }
+        } catch {
+          /* server not started */
+        }
 
-    // Stop Web Server (Express + WebSocket)
-    try {
-      const { getWebServerInstance, setWebServerInstance } = await import('@process/bridge/webuiBridge');
-      const { cleanupWebAdapter } = await import('@process/webserver/adapter');
-      const instance = getWebServerInstance();
-      if (instance) {
-        instance.wss.clients.forEach((client) => client.close(1000, 'App shutting down'));
-        await new Promise<void>((resolve) => instance.server.close(() => resolve()));
-        cleanupWebAdapter();
-        setWebServerInstance(null);
-      }
-    } catch {
-      /* server not started */
-    }
+        // Stop Office Watch processes (Word / Excel / PPT preview)
+        try {
+          const { stopAllOfficeWatchSessions } = await import('@process/bridge/officeWatchBridge');
+          stopAllOfficeWatchSessions();
+        } catch {
+          /* not initialized */
+        }
+        try {
+          const { stopAllWatchSessions } = await import('@process/bridge/pptPreviewBridge');
+          stopAllWatchSessions();
+        } catch {
+          /* not initialized */
+        }
+      };
 
-    // Stop Office Watch processes (Word / Excel / PPT preview)
-    try {
-      const { stopAllOfficeWatchSessions } = await import('@process/bridge/officeWatchBridge');
-      stopAllOfficeWatchSessions();
-    } catch {
-      /* not initialized */
-    }
-    try {
-      const { stopAllWatchSessions } = await import('@process/bridge/pptPreviewBridge');
-      stopAllWatchSessions();
-    } catch {
-      /* not initialized */
-    }
-  };
+      // Master timeout: force quit if cleanup hangs
+      const timeout = new Promise<void>((resolve) => {
+        setTimeout(() => {
+          console.warn('[LokSystem] Cleanup timed out after 10s, forcing quit');
+          resolve();
+        }, 10000);
+      });
 
-  // Master timeout: force quit if cleanup hangs
-  const timeout = new Promise<void>((resolve) => {
-    setTimeout(() => {
-      console.warn('[LokSystem] Cleanup timed out after 10s, forcing quit');
-      resolve();
-    }, 10000);
-  });
+      await Promise.race([cleanup(), timeout]);
+    })();
+  }
 
-  await Promise.race([cleanup(), timeout]);
+  await quitCleanupPromise;
 });
 
 app.on('will-quit', () => {

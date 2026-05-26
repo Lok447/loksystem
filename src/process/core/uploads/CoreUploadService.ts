@@ -86,15 +86,20 @@ export class CoreUploadService {
   public static async createUploadFile(params: {
     fileName: string;
     conversationId?: string;
+    workspace?: string;
   }): Promise<StoredUploadFile> {
     const fileName = CoreUploadValidator.requireFileName(params.fileName);
     const conversationId = params.conversationId ?? '';
+    const requestedWorkspace = params.workspace ?? '';
     const saveToWorkspace = await CoreUploadRepository.shouldSaveToWorkspace();
-    const workspace = conversationId && saveToWorkspace ? await this.resolveUploadWorkspace(conversationId) : undefined;
+    const workspace =
+      conversationId && saveToWorkspace
+        ? await this.resolveUploadWorkspace(conversationId, requestedWorkspace)
+        : undefined;
     const uploadDir = CoreUploadPolicy.selectUploadDir({
       cacheDir: CoreUploadRepository.getCacheDir(),
       conversationId,
-      requestedWorkspace: '',
+      requestedWorkspace,
       saveToWorkspace,
       workspace,
     });

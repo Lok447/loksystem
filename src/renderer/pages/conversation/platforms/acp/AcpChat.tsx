@@ -13,6 +13,7 @@ import HOC from '@renderer/utils/ui/HOC';
 import React from 'react';
 import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import AcpSendBox from './AcpSendBox';
+import { useAbortUploadsOnConversationChange } from '@/renderer/services/FileService';
 
 const AcpChat: React.FC<{
   conversation_id: string;
@@ -40,6 +41,7 @@ const AcpChat: React.FC<{
   emptySlot,
 }) => {
   useMessageLstCache(conversation_id);
+  useAbortUploadsOnConversationChange(conversation_id);
 
   return (
     <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'acp', cronJobId, hideSendBox }}>

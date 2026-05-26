@@ -15,9 +15,10 @@ export interface UseDragUploadOptions {
   onFilesAdded?: (files: FileMetadata[]) => void;
   /** Conversation ID for WebUI file uploads */
   conversationId?: string;
+  workspace?: string;
 }
 
-export const useDragUpload = ({ supportedExts = [], onFilesAdded, conversationId }: UseDragUploadOptions) => {
+export const useDragUpload = ({ supportedExts = [], onFilesAdded, conversationId, workspace }: UseDragUploadOptions) => {
   const { t } = useTranslation();
   const [isFileDragging, setIsFileDragging] = useState(false);
 
@@ -89,18 +90,21 @@ export const useDragUpload = ({ supportedExts = [], onFilesAdded, conversationId
             length: validFiles.length,
             item: (index: number) => validFiles[index] || null,
           }) as unknown as FileList;
-          const processedFiles = await FileService.processDroppedFiles(validFileList, conversationId);
+          const processedFiles = await FileService.processDroppedFiles(validFileList, conversationId, 'sendbox', workspace);
 
           if (processedFiles.length > 0) {
             onFilesAdded(processedFiles);
           }
         }
       } catch (err) {
+        if (err instanceof Error && err.message === 'UPLOAD_ABORTED_CONVERSATION_SWITCH') {
+          return;
+        }
         console.error('Failed to process dropped files:', err);
         Message.error(t('conversation.workspace.dragFailed', 'Failed to process dropped files'));
       }
     },
-    [conversationId, onFilesAdded, supportedExts, t]
+    [conversationId, onFilesAdded, supportedExts, t, workspace]
   );
 
   const dragHandlers = {

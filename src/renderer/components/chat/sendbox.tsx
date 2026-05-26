@@ -364,6 +364,7 @@ const SendBox: React.FC<{
     supportedExts,
     onFilesAdded,
     conversationId: conversationContext?.conversationId,
+    workspace: conversationContext?.workspace,
   });
 
   const { isUploading } = useUploadState('sendbox');
@@ -947,6 +948,7 @@ const SendBox: React.FC<{
     supportedExts,
     onFilesAdded,
     conversationId: conversationContext?.conversationId,
+    workspace: conversationContext?.workspace,
     onTextPaste: (text: string) => {
       // 处理清理后的文本粘贴，在当前光标位置插入文本而不是替换整个内容
       const textarea = document.activeElement as HTMLTextAreaElement;

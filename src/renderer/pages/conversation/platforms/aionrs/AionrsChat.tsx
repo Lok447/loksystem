@@ -15,6 +15,7 @@ import LocalImageView from '@renderer/components/media/LocalImageView';
 import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import AionrsSendBox from './AionrsSendBox';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
+import { useAbortUploadsOnConversationChange } from '@/renderer/services/FileService';
 
 const AionrsChat: React.FC<{
   conversation_id: string;
@@ -26,6 +27,7 @@ const AionrsChat: React.FC<{
   emptySlot?: React.ReactNode;
 }> = ({ conversation_id, workspace, modelSelection, teamId, agentSlotId, sessionMode, emptySlot }) => {
   useMessageLstCache(conversation_id);
+  useAbortUploadsOnConversationChange(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
     updateLocalImage({ root: workspace });

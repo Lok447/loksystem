@@ -159,6 +159,7 @@ export type CoreTeamAgentDto = TeamAgent;
 export interface CoreUploadCreateFileDto {
   fileName: string;
   conversationId?: string;
+  workspace?: string;
 }
 
 export interface CoreUploadCreatedFileDto {

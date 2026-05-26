@@ -83,6 +83,12 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
       const allAgents = (await ConfigStorage.get('assistants')) || [];
       const updatedAgents = allAgents.filter((a) => a.id !== presetToDelete.id);
       await ConfigStorage.set('assistants', updatedAgents);
+      if (presetToDelete.isBuiltin) {
+        const deletedBuiltinIds = ((await ConfigStorage.get('assistants.deletedBuiltinIds')) || []) as string[];
+        if (!deletedBuiltinIds.includes(presetToDelete.id)) {
+          await ConfigStorage.set('assistants.deletedBuiltinIds', [...deletedBuiltinIds, presetToDelete.id]);
+        }
+      }
       setDeleteVisible(false);
       message.success(t('common.success', { defaultValue: 'Deleted' }));
       void loadPresets();
