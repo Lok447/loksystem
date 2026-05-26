@@ -8,25 +8,22 @@ import { type Express, type NextFunction, type Request, type RequestHandler, typ
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import http from 'node:http';
-import os from 'os';
 import path from 'path';
 import multer from 'multer';
-import { getDatabase } from '@process/services/database';
-import { getSystemDir } from '@process/utils/initStorage';
-import { ProcessConfig } from '@process/utils/initStorage';
+import { sendCoreHttpErrorResponse } from '@process/adapters/http';
+import { CoreUploadService } from '@process/core/uploads';
 import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { ExtensionRegistry } from '@process/extensions';
 import { SpeechToTextService } from '@process/bridge/services/SpeechToTextService';
 import { isActivePreviewPort } from '@process/bridge/pptPreviewBridge';
 import { isActiveOfficeWatchPort } from '@process/bridge/officeWatchBridge';
-import { LOKSYSTEM_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import directoryApi from '../directoryApi';
 import { apiRateLimiter } from '../middleware/security';
 import { registerWeixinLoginRoutes } from './weixinLoginRoutes';
 import { registerWecomChannelRoutes } from './wecomChannelRoutes';
 
 /** Temp directory used by multer disk storage — validated at runtime to prevent path traversal */
-const MULTER_TEMP_DIR = os.tmpdir();
+const MULTER_TEMP_DIR = CoreUploadService.MULTER_TEMP_DIR;
 
 /** File upload: disk storage so large files are streamed rather than buffered in memory */
 const uploadDisk = multer({ storage: multer.diskStorage({ destination: MULTER_TEMP_DIR }) });
@@ -38,27 +35,8 @@ const uploadAudio = multer({
   limits: { fileSize: MAX_AUDIO_SIZE },
 });
 
-/**
- * Decode filename from multer.
- * Multer v2 decodes Content-Disposition filename as Latin-1 (per HTTP spec),
- * but browsers encode non-ASCII filenames (CJK, etc.) as UTF-8 bytes.
- * Re-encode the Latin-1 string back to raw bytes and decode as UTF-8.
- */
-function decodeMulterFileName(raw: string): string {
-  try {
-    const bytes = Buffer.from(raw, 'latin1');
-    return bytes.toString('utf8');
-  } catch {
-    return raw;
-  }
-}
-
-function sanitizeFileName(fileName: string): string {
-  const decoded = decodeMulterFileName(fileName);
-  const basename = path.basename(decoded);
-  const safe = basename.replace(/[<>:"/\\|?*]/g, '_');
-  if (!safe || safe === '.' || safe === '..') return `file_${Date.now()}`;
-  return safe;
+export function resolveUploadWorkspace(conversationId: string, requestedWorkspace?: string): Promise<string> {
+  return CoreUploadService.resolveUploadWorkspace(conversationId, requestedWorkspace);
 }
 
 function normalizeMountPath(input: string): string {
@@ -70,33 +48,6 @@ function isPathInsideRoot(targetPath: string, rootPath: string): boolean {
   const normalizedTarget = path.resolve(targetPath);
   const normalizedRoot = path.resolve(rootPath);
   return normalizedTarget === normalizedRoot || normalizedTarget.startsWith(`${normalizedRoot}${path.sep}`);
-}
-
-export async function resolveUploadWorkspace(conversationId: string, requestedWorkspace?: string): Promise<string> {
-  if (!conversationId) {
-    throw new Error('Missing conversation id');
-  }
-
-  const db = await getDatabase();
-  const result = db.getConversation(conversationId);
-  const conversationWorkspace = result.data?.extra?.workspace;
-  if (!result.success || !conversationWorkspace) {
-    throw new Error('Conversation workspace not found');
-  }
-
-  const resolvedConversationWorkspace = path.resolve(conversationWorkspace);
-  if (requestedWorkspace && path.resolve(requestedWorkspace) !== resolvedConversationWorkspace) {
-    throw new Error('Workspace mismatch');
-  }
-
-  return resolvedConversationWorkspace;
-}
-
-async function getTempUploadDir(): Promise<string> {
-  const { cacheDir } = getSystemDir();
-  const tempDir = path.join(cacheDir, 'temp');
-  await fsPromises.mkdir(tempDir, { recursive: true });
-  return tempDir;
 }
 
 function resolveRouteHandler(moduleExports: unknown): RequestHandler | null {
@@ -304,85 +255,21 @@ export function registerApiRoutes(app: Express): void {
     },
     async (req: Request, res: Response) => {
       try {
-        const file = req.file;
-        const conversationId = typeof req.body.conversationId === 'string' ? req.body.conversationId : '';
-        const requestedWorkspace = typeof req.body.workspace === 'string' ? req.body.workspace : '';
-
-        if (!file) {
-          res.status(400).json({ success: false, msg: 'Missing file' });
-          return;
-        }
-
-        let uploadDir: string;
-        // Check user preference: save to workspace or cache directory
-        // Default to cache directory (false) to avoid cluttering workspace
-        const saveToWorkspace = await ProcessConfig.get('upload.saveToWorkspace').catch(() => false);
-        if (conversationId && saveToWorkspace) {
-          let workspace: string;
-          try {
-            workspace = await resolveUploadWorkspace(conversationId, requestedWorkspace);
-          } catch (error) {
-            const message = error instanceof Error ? error.message : 'Invalid upload workspace';
-            const statusCode =
-              message === 'Conversation workspace not found' || message === 'Missing conversation id' ? 400 : 403;
-            res.status(statusCode).json({ success: false, msg: message });
-            return;
-          }
-          uploadDir = path.join(workspace, 'uploads');
-          await fsPromises.mkdir(uploadDir, { recursive: true });
-        } else {
-          if (requestedWorkspace) {
-            res.status(403).json({
-              success: false,
-              msg: 'Workspace uploads require conversation id',
-            });
-            return;
-          }
-          uploadDir = await getTempUploadDir();
-        }
-
-        const safeFileName = sanitizeFileName(file.originalname);
-        let targetPath = path.join(uploadDir, safeFileName);
-
-        // Check for duplicate and append timestamp if needed
-        try {
-          await fsPromises.access(targetPath);
-          // File exists, append timestamp
-          const ext = path.extname(safeFileName);
-          const name = path.basename(safeFileName, ext);
-          targetPath = path.join(uploadDir, `${name}${LOKSYSTEM_TIMESTAMP_SEPARATOR}${Date.now()}${ext}`);
-        } catch {
-          // File doesn't exist, proceed with original name
-        }
-
-        // Verify path is still within uploadDir (defense in depth)
-        const resolvedTarget = path.resolve(targetPath);
-        const resolvedUploadDir = path.resolve(uploadDir);
-        if (!resolvedTarget.startsWith(resolvedUploadDir + path.sep) && resolvedTarget !== resolvedUploadDir) {
-          res.status(400).json({ success: false, msg: 'Invalid file name' });
-          return;
-        }
-
-        // Reconstruct the source path from a trusted base + only the filename component of file.path.
-        // This breaks the taint chain: path.basename() strips any directory traversal sequences,
-        // and MULTER_TEMP_DIR is a constant set at startup, not user-provided.
-        const safeTempPath = path.join(path.resolve(MULTER_TEMP_DIR), path.basename(file.path));
-        await fsPromises.rename(safeTempPath, targetPath);
+        const uploadResult = await CoreUploadService.storeUploadedFile({
+          file: req.file,
+          conversationId: typeof req.body.conversationId === 'string' ? req.body.conversationId : '',
+          requestedWorkspace: typeof req.body.workspace === 'string' ? req.body.workspace : '',
+        });
 
         res.json({
           success: true,
-          data: {
-            path: targetPath,
-            name: path.basename(targetPath),
-            size: file.size,
-            type: file.mimetype || 'application/octet-stream',
-          },
+          data: uploadResult,
         });
       } catch (error) {
         console.error('[API] Upload file error:', error);
-        res.status(500).json({
-          success: false,
-          msg: error instanceof Error ? error.message : 'Failed to upload file',
+        sendCoreHttpErrorResponse(res, error, {
+          messageField: 'msg',
+          fallbackMessage: error instanceof Error ? error.message : 'Failed to upload file',
         });
       }
     }
@@ -424,7 +311,7 @@ export function registerApiRoutes(app: Express): void {
 
         const result = await SpeechToTextService.transcribe({
           audioBuffer: Uint8Array.from(audio.buffer),
-          fileName: sanitizeFileName(audio.originalname || `speech-${Date.now()}.webm`),
+          fileName: CoreUploadService.sanitizeFileName(audio.originalname || `speech-${Date.now()}.webm`),
           languageHint,
           mimeType,
         });
