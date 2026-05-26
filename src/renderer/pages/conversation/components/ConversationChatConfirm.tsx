@@ -1,6 +1,7 @@
 import { ipcBridge } from '@/common';
 import type { IConfirmation } from '@/common/chat/chatLib';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { emitter } from '@/renderer/utils/emitter';
 import { Divider, Typography } from '@arco-design/web-react';
 import type { PropsWithChildren } from 'react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -58,6 +59,8 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
               callId: confirmation.callId,
               msg_id: confirmation.id,
               data: allowOption.value,
+            }).then(() => {
+              emitter.emit('acp.workspace.refresh');
             });
             return true;
           }
@@ -146,6 +149,8 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
         callId: confirmation.callId,
         msg_id: confirmation.id,
         data: option.value,
+      }).then(() => {
+        emitter.emit('acp.workspace.refresh');
       });
     };
 
@@ -298,6 +303,8 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
                       callId: confirmation.callId,
                       msg_id: confirmation.id,
                       data: option.value,
+                    }).then(() => {
+                      emitter.emit('acp.workspace.refresh');
                     });
                   }}
                   key={label + option.value + index}

@@ -172,6 +172,14 @@ export interface CoreAcpAgentDescriptorDto {
   name: string;
   kind?: string;
   available?: boolean;
+  displayName?: string;
+  teamCapable?: boolean;
+  conversationType?: 'acp' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'gemini';
+  supportedModes?: string[];
+  logos?: {
+    icon?: string | null;
+    avatar?: string | null;
+  };
   cliPath?: string;
   acpArgs?: string[];
   supportedTransports?: string[];
@@ -188,6 +196,11 @@ export interface CoreAcpAgentDescriptorDto {
   authType?: string;
   version?: string;
   gatewayUrl?: string;
+  modelInfo?: {
+    currentModelId?: string;
+    currentModelLabel?: string;
+    availableModelIds?: string[];
+  };
 }
 
 export interface CoreAcpHealthDto {

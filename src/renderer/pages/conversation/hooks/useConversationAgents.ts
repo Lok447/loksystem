@@ -26,14 +26,21 @@ export type UseConversationAgentsResult = {
  * Convert a preset assistant config into an AvailableAgent shape.
  */
 function configToAvailableAgent(config: AcpBackendConfig): AvailableAgent {
+  const backend = config.presetAgentType || 'hermes';
+  const conversationType =
+    backend === 'gemini' ? 'gemini' : backend === 'aionrs' ? 'aionrs' : backend === 'codex' ? 'codex' : 'acp';
   return {
-    backend: config.presetAgentType || 'hermes',
+    backend,
     name: config.name,
+    displayName: config.name,
     customAgentId: config.id,
     isPreset: true,
     context: config.context,
     avatar: config.avatar,
     presetAgentType: config.presetAgentType,
+    available: config.enabled !== false,
+    teamCapable: !['gemini', 'aionrs', 'claude'].includes(backend),
+    conversationType,
   };
 }
 

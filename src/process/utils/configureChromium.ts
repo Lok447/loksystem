@@ -297,10 +297,78 @@ export let cdpPort: number | null = null;
 
 /** Whether CDP was enabled at startup (requires restart to change). */
 export let cdpStartupEnabled: boolean = false;
+export let gpuFallbackDisabled = false;
+
+const GPU_CRASH_STATE_FILE = 'gpu-crash-state.json';
+const GPU_CRASH_THRESHOLD = 3;
+const GPU_CRASH_WINDOW_MS = 5 * 60 * 1000;
+
+type GpuCrashState = {
+  disabled?: boolean;
+  crashTimestamps?: number[];
+  updatedAt?: number;
+};
+
+function getGpuCrashStatePath(): string {
+  return path.join(app.getPath('userData'), GPU_CRASH_STATE_FILE);
+}
+
+function readGpuCrashState(): GpuCrashState {
+  try {
+    const filePath = getGpuCrashStatePath();
+    if (!fs.existsSync(filePath)) return {};
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as GpuCrashState;
+  } catch {
+    return {};
+  }
+}
+
+function writeGpuCrashState(state: GpuCrashState): void {
+  try {
+    fs.writeFileSync(getGpuCrashStatePath(), JSON.stringify(state, null, 2), 'utf-8');
+  } catch (error) {
+    console.warn('[GPU] Failed to persist GPU crash state:', error);
+  }
+}
+
+export function isGpuFallbackDisabled(): boolean {
+  return gpuFallbackDisabled;
+}
+
+export function recordGpuCrashAndMaybeDisableFallback(): boolean {
+  const now = Date.now();
+  const state = readGpuCrashState();
+  const recent = (state.crashTimestamps || []).filter((timestamp) => now - timestamp <= GPU_CRASH_WINDOW_MS);
+  recent.push(now);
+  const disabled = recent.length >= GPU_CRASH_THRESHOLD;
+  writeGpuCrashState({
+    disabled,
+    crashTimestamps: recent,
+    updatedAt: now,
+  });
+  gpuFallbackDisabled = disabled;
+  return disabled;
+}
+
+export function resetGpuCrashState(): void {
+  gpuFallbackDisabled = false;
+  writeGpuCrashState({
+    disabled: false,
+    crashTimestamps: [],
+    updatedAt: Date.now(),
+  });
+}
 
 // Load config and initialize CDP at startup
 const cdpConfig = loadCdpConfig();
 cdpStartupEnabled = shouldEnableCdp(cdpConfig);
+gpuFallbackDisabled = Boolean(readGpuCrashState().disabled);
+
+if (gpuFallbackDisabled) {
+  app.commandLine.appendSwitch('disable-gpu');
+  app.commandLine.appendSwitch('disable-software-rasterizer');
+  console.warn('[GPU] Persistent GPU fallback is enabled due to recent crash recovery');
+}
 
 if (cdpStartupEnabled) {
   const preferredPort = getPreferredPort(cdpConfig);

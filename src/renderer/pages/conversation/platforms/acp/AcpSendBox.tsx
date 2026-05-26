@@ -117,7 +117,7 @@ const AcpSendBox: React.FC<{
   const showModeSelector = true;
   const isLeaderInTeam = teamPermission && conversation_id === teamPermission.leaderConversationId;
   const { checkAndUpdateTitle } = useAutoTitle();
-  const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
+  const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus, deferUntilReady: true });
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
 

@@ -14,6 +14,7 @@ import { Cron } from 'croner';
 import i18n, { i18nReady } from '@process/services/i18n';
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import { ProcessConfig } from '@process/utils/initStorage';
+import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import type { CronJob, CronSchedule } from './CronStore';
 import type { ICronRepository } from './ICronRepository';
 import type { ICronEventEmitter } from './ICronEventEmitter';
@@ -182,13 +183,26 @@ export class CronService {
     const extra = (conv.extra ?? {}) as Record<string, unknown>;
     const backend = (extra.backend as string) || job.metadata.agentType;
     if (!backend) return null;
+    const modelId =
+      (extra.currentModelId as string | undefined) ||
+      ('model' in conv ? (conv as { model?: { useModel?: string } }).model?.useModel : undefined);
+    const provider = 'model' in conv ? (conv as { model?: { id?: string; name?: string; platform?: string } }).model : undefined;
 
     return {
       backend: backend as import('@/common/types/acpTypes').AcpBackendAll,
       name: (extra.agentName as string) || job.name,
+      displayName: (extra.agentName as string) || job.name,
       cliPath: extra.cliPath as string | undefined,
       isPreset: !!extra.presetAssistantId,
       customAgentId: (extra.presetAssistantId as string) || (extra.customAgentId as string) || undefined,
+      mode: extra.sessionMode as string | undefined,
+      modelId,
+      modelLabel: modelId,
+      workspace: extra.workspace as string | undefined,
+      providerId: provider?.id,
+      providerName: provider?.name,
+      vendorName: provider?.platform,
+      logo: getAgentLogo(backend),
     };
   }
 

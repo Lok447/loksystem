@@ -8,9 +8,33 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import * as Sentry from '@sentry/electron/main';
+type SentryEvent = Parameters<NonNullable<Parameters<typeof Sentry.init>[0]['beforeSend']>>[0];
+type SentryEventHint = Parameters<NonNullable<Parameters<typeof Sentry.init>[0]['beforeSend']>>[1];
+
+function shouldDropGpuCrashEvent(event: SentryEvent, hint?: SentryEventHint): boolean {
+  const message = [
+    event.message,
+    event.exception?.values?.map((value: { type?: string; value?: string }) => `${value.type || ''} ${value.value || ''}`).join(' '),
+    hint?.originalException instanceof Error ? hint.originalException.message : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return (
+    message.includes('gpu process') &&
+    (message.includes('crashed') || message.includes('crashpad') || message.includes('child process gone'))
+  );
+}
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
+  beforeSend(event, hint) {
+    if (shouldDropGpuCrashEvent(event, hint)) {
+      return null;
+    }
+    return event;
+  },
 });
 
 import './process/utils/configureConsoleLog';
@@ -62,6 +86,7 @@ import {
   setCloseToTrayEnabled,
   setIsQuitting,
 } from './process/utils/tray';
+import { isGpuFallbackDisabled, recordGpuCrashAndMaybeDisableFallback } from './process/utils/configureChromium';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
@@ -256,6 +281,7 @@ let appReadyDone = false;
 
 let mainWindow: BrowserWindow;
 let quitCleanupPromise: Promise<void> | null = null;
+let gpuCrashRestartInFlight = false;
 
 const reportDesktopStartupFailure = async (error: unknown): Promise<void> => {
   const detail = error instanceof Error ? error.stack || error.message : String(error);
@@ -286,6 +312,32 @@ const reportDesktopStartupFailure = async (error: unknown): Promise<void> => {
   }
 
   dialog.showErrorBox(title, content);
+};
+
+const handleGpuProcessCrash = async (details: { reason?: string; exitCode?: number }): Promise<void> => {
+  console.error('[GPU] GPU process crash detected:', details);
+  Sentry.setTag('gpu_fallback_disabled', isGpuFallbackDisabled() ? 'true' : 'false');
+
+  if (gpuCrashRestartInFlight) {
+    return;
+  }
+
+  const fallbackDisabled = recordGpuCrashAndMaybeDisableFallback();
+  if (!fallbackDisabled) {
+    return;
+  }
+
+  gpuCrashRestartInFlight = true;
+  try {
+    dialog.showErrorBox(
+      'LokSystem GPU acceleration disabled',
+      'Repeated GPU crashes were detected. The app will restart with GPU acceleration disabled.'
+    );
+    app.relaunch();
+    app.exit(0);
+  } finally {
+    gpuCrashRestartInFlight = false;
+  }
 };
 
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
@@ -537,6 +589,16 @@ const handleAppReady = async (): Promise<void> => {
   }
 
   Sentry.setUser({ id: getOrCreateAnalyticsId() });
+  Sentry.setTag('app_mode', isWebUIMode ? 'webui' : 'desktop');
+  Sentry.setTag('platform', process.platform);
+  Sentry.setTag('arch', process.arch);
+  Sentry.setTag('gpu_fallback_disabled', isGpuFallbackDisabled() ? 'true' : 'false');
+  Sentry.setContext('runtime', {
+    appVersion: app.getVersion(),
+    electronVersion: process.versions.electron,
+    chromeVersion: process.versions.chrome,
+    nodeVersion: process.version,
+  });
 
   try {
     await initializeProcess();
@@ -783,8 +845,22 @@ const handleAppReady = async (): Promise<void> => {
       })
       .catch(() => {
         // Cron recovery is best-effort after system resume
-      });
+    });
   });
+
+  app.on('child-process-gone', (_event, details) => {
+    if (details.type === 'GPU') {
+      void handleGpuProcessCrash(details);
+    }
+  });
+
+  if ('gpu-process-crashed' in app) {
+    (app as unknown as {
+      on(event: 'gpu-process-crashed', listener: (_event: Event, killed: boolean) => void): Electron.App;
+    }).on('gpu-process-crashed', (_event: Event, killed: boolean) => {
+      void handleGpuProcessCrash({ reason: killed ? 'killed' : 'crashed' });
+    });
+  }
 };
 
 // ============ Protocol Registration ============

@@ -6,6 +6,7 @@
 
 import type { IMessageAcpPermission } from '@/common/chat/chatLib';
 import { conversation } from '@/common/adapter/ipcBridge';
+import { emitter } from '@/renderer/utils/emitter';
 import { Button, Card, Radio, Typography } from '@arco-design/web-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -20,59 +21,54 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
   const { options = [], toolCall } = message.content || {};
   const { t } = useTranslation();
 
-  // 基于实际数据生成显示信息
   const getToolInfo = () => {
     if (!toolCall) {
       return {
         title: t('messages.permissionRequest'),
         description: t('messages.agentRequestingPermission'),
-        icon: '🔐',
+        icon: '!',
       };
     }
 
-    // 直接使用 toolCall 中的实际数据
     const displayTitle = toolCall.title || toolCall.rawInput?.description || t('messages.permissionRequest');
-
-    // 简单的图标映射
     const kindIcons: Record<string, string> = {
-      edit: '✏️',
-      read: '📖',
-      fetch: '🌐',
-      execute: '⚡',
+      edit: 'E',
+      read: 'R',
+      fetch: 'F',
+      execute: 'X',
     };
 
     return {
       title: displayTitle,
-      icon: kindIcons[toolCall.kind || 'execute'] || '⚡',
+      icon: kindIcons[toolCall.kind || 'execute'] || 'X',
     };
   };
+
   const { title, icon } = getToolInfo();
   const [selected, setSelected] = useState<string | null>(null);
   const [isResponding, setIsResponding] = useState(false);
   const [hasResponded, setHasResponded] = useState(false);
+  const toolCallId = toolCall?.toolCallId;
 
   const handleConfirm = async () => {
-    if (hasResponded || !selected) return;
+    if (hasResponded || !selected || !toolCallId) return;
 
     setIsResponding(true);
     try {
-      const invokeData = {
+      const result = await conversation.confirmMessage.invoke({
         confirmKey: selected,
         msg_id: message.id,
         conversation_id: message.conversation_id,
-        callId: toolCall?.toolCallId || message.id, // 使用 toolCallId 或 message.id 作为 fallback
-      };
-
-      const result = await conversation.confirmMessage.invoke(invokeData);
+        callId: toolCallId,
+      });
 
       if (result.success) {
         setHasResponded(true);
+        emitter.emit('acp.workspace.refresh');
       } else {
-        // Handle failure case - could add error display here
         console.error('Failed to confirm permission:', result);
       }
     } catch (error) {
-      // Handle error case - could add error logging here
       console.error('Error confirming permission:', error);
     } finally {
       setIsResponding(false);
@@ -86,7 +82,6 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
   return (
     <Card className='mb-4' bordered={false} style={{ background: 'var(--bg-1)' }}>
       <div className='space-y-4'>
-        {/* Header with icon and title */}
         <div className='flex items-center space-x-2'>
           <span className='text-2xl'>{icon}</span>
           <Text className='block'>{title}</Text>
@@ -118,7 +113,7 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
               )}
             </Radio.Group>
             <div className='flex justify-start pl-20px'>
-              <Button type='primary' size='mini' disabled={!selected || isResponding} onClick={handleConfirm}>
+              <Button type='primary' size='mini' disabled={!selected || isResponding || !toolCallId} onClick={handleConfirm}>
                 {isResponding ? t('messages.processing') : t('messages.confirm')}
               </Button>
             </div>
@@ -131,7 +126,7 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
             style={{ backgroundColor: 'var(--color-success-light-1)', borderColor: 'rgb(var(--success-3))' }}
           >
             <Text className='text-sm' style={{ color: 'rgb(var(--success-6))' }}>
-              ✓ {t('messages.responseSentSuccessfully')}
+              {t('messages.responseSentSuccessfully')}
             </Text>
           </div>
         )}

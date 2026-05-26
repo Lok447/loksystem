@@ -28,8 +28,6 @@ export function useTeamSession(team: TTeam) {
   });
 
   useEffect(() => {
-    void getRendererCoreClient().teams.ensureSession(team.id);
-
     return getRendererCoreClient().events.subscribe((event) => {
       if (event.scope !== 'team') return;
       switch (event.type) {

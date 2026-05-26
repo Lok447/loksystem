@@ -256,11 +256,20 @@ const TaskDetailPage: React.FC = () => {
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.agent')}</h2>
                 <div className='flex items-center gap-10px'>
                   <img
-                    src={getAgentLogo(job.metadata.agentConfig.backend)}
-                    alt={job.metadata.agentConfig.name}
+                    src={job.metadata.agentConfig.logo || getAgentLogo(job.metadata.agentConfig.backend) || ''}
+                    alt={job.metadata.agentConfig.displayName || job.metadata.agentConfig.name}
                     className='h-28px w-28px rounded-50%'
                   />
-                  <span className='min-w-0 text-14px font-medium text-t-primary'>{job.metadata.agentConfig.name}</span>
+                  <div className='min-w-0 flex flex-col gap-2px'>
+                    <span className='min-w-0 text-14px font-medium text-t-primary'>
+                      {job.metadata.agentConfig.displayName || job.metadata.agentConfig.name}
+                    </span>
+                    {(job.metadata.agentConfig.providerName || job.metadata.agentConfig.vendorName) && (
+                      <span className='min-w-0 text-12px leading-18px text-t-secondary'>
+                        {job.metadata.agentConfig.providerName || job.metadata.agentConfig.vendorName}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </section>
             )}
@@ -294,7 +303,7 @@ const TaskDetailPage: React.FC = () => {
               <section className='flex flex-col gap-10px'>
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.page.form.model')}</h2>
                 <span className='break-words text-14px leading-22px text-t-primary'>
-                  {job.metadata.agentConfig.modelId}
+                  {job.metadata.agentConfig.modelLabel || job.metadata.agentConfig.modelId}
                 </span>
               </section>
             )}

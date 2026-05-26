@@ -396,6 +396,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     let agentConfig: ICronAgentConfig | undefined;
     let resolvedAgentType: ICreateCronJobParams['agentType'] = (agentType ||
       'claude') as ICreateCronJobParams['agentType'];
+    const resolvedProvider = modelId
+      ? filteredProviders.find((provider) => getAvailableModels(provider).includes(modelId))
+      : undefined;
+    const resolvedModelLabel =
+      modelId && resolvedProvider ? formatModelLabel(resolvedProvider, modelId) || modelId : modelId;
 
     if (agentKind === 'cli') {
       const agent = cliAgents.find((a) => a.backend === agentId);
@@ -404,11 +409,17 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         agentConfig = {
           backend: agent.backend as AgentBackend,
           name: agent.name,
+          displayName: agent.displayName || agent.name,
           cliPath: agent.cliPath,
           mode: getFullAutoMode(agent.backend),
           modelId,
+          modelLabel: resolvedModelLabel,
           configOptions: mergedConfigOptions,
           workspace,
+          providerId: resolvedProvider?.id,
+          providerName: resolvedProvider?.name,
+          vendorName: resolvedProvider?.platform,
+          logo: agent.logo || getAgentLogo(agent.backend),
         };
       }
     } else if (agentKind === 'preset') {
@@ -418,13 +429,19 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         agentConfig = {
           backend: agent.backend as AgentBackend,
           name: agent.name,
+          displayName: agent.displayName || agent.name,
           isPreset: true,
           customAgentId: agent.customAgentId,
           presetAgentType: agent.presetAgentType,
           mode: getFullAutoMode(agent.backend),
           modelId,
+          modelLabel: resolvedModelLabel,
           configOptions: mergedConfigOptions,
           workspace,
+          providerId: resolvedProvider?.id,
+          providerName: resolvedProvider?.name,
+          vendorName: resolvedProvider?.platform,
+          logo: agent.logo || getAgentLogo(agent.backend),
         };
       }
     }

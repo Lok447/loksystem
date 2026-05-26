@@ -24,16 +24,19 @@ function normalizeAgentBackend(agent: string | undefined): AcpBackendAll | undef
   return agent.replace(/^cli:/, '').replace(/^preset:/, '') as AcpBackendAll;
 }
 
-function getJobAgentMeta(job: ICronJob): { name?: string; logo?: string | null } {
+function getJobAgentMeta(job: ICronJob): { name?: string; logo?: string | null; vendor?: string; model?: string } {
   const backend = job.metadata.agentConfig?.backend || normalizeAgentBackend(job.metadata.agentType);
   if (!backend) return {};
 
   return {
     name:
+      job.metadata.agentConfig?.displayName ||
       job.metadata.agentConfig?.name ||
       (ACP_BACKENDS_ALL as Record<string, AcpBackendConfig>)[backend]?.name ||
       backend,
-    logo: getAgentLogo(backend),
+    logo: job.metadata.agentConfig?.logo || getAgentLogo(backend),
+    vendor: job.metadata.agentConfig?.providerName || job.metadata.agentConfig?.vendorName,
+    model: job.metadata.agentConfig?.modelLabel || job.metadata.agentConfig?.modelId,
   };
 }
 
@@ -228,7 +231,9 @@ const ScheduledTasksPage: React.FC = () => {
                           </div>
                         </Tooltip>
                       ) : null}
-                      <span className='min-w-0 truncate'>{executionModeLabel}</span>
+                      <span className='min-w-0 truncate'>
+                        {[agentMeta.vendor, agentMeta.model, executionModeLabel].filter(Boolean).join(' · ')}
+                      </span>
                     </div>
 
                     <div className='shrink-0' onClick={(e) => e.stopPropagation()}>

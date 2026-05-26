@@ -40,11 +40,13 @@ interface UseSlashCommandsOptions {
   /** When provided, changes to this value trigger a re-fetch. Used by ACP to
    *  re-fetch commands after the agent becomes active. */
   agentStatus?: string | null;
+  deferUntilReady?: boolean;
 }
 
 export function useSlashCommands(conversationId: string, options: UseSlashCommandsOptions = {}) {
-  const { conversationType, codexStatus, agentStatus } = options;
+  const { conversationType, codexStatus, agentStatus, deferUntilReady = false } = options;
   const canUseCachedCommands = isSlashCommandListEnabled({ conversationType, codexStatus });
+  const agentReady = !deferUntilReady || ['connected', 'authenticated', 'session_active'].includes(agentStatus || '');
   const requestIdRef = useRef(0);
   const [commands, setCommands] = useState<SlashCommandItem[]>(() => {
     if (!canUseCachedCommands) {
@@ -67,6 +69,10 @@ export function useSlashCommands(conversationId: string, options: UseSlashComman
       return;
     }
 
+    if (!agentReady) {
+      return;
+    }
+
     const cached = getCachedCommands(conversationId);
     if (canUseCachedCommands && cached) {
       setCommands(cached);
@@ -79,7 +85,9 @@ export function useSlashCommands(conversationId: string, options: UseSlashComman
           return;
         }
         if (!response.success || !response.data?.commands) {
-          setCommands([]);
+          if (!cached) {
+            setCommands([]);
+          }
           return;
         }
         setCachedCommands(conversationId, response.data.commands);
@@ -90,13 +98,15 @@ export function useSlashCommands(conversationId: string, options: UseSlashComman
           return;
         }
         console.error('[useSlashCommands] Failed to load slash commands:', error);
-        setCommands([]);
+        if (!cached) {
+          setCommands([]);
+        }
       });
 
     return () => {
       isCancelled = true;
     };
-  }, [conversationId, canUseCachedCommands, codexStatus, conversationType, agentStatus]);
+  }, [conversationId, canUseCachedCommands, codexStatus, conversationType, agentStatus, agentReady]);
 
   return commands;
 }

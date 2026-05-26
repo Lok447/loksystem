@@ -38,14 +38,20 @@ export type CronJob = {
     agentConfig?: {
       backend: AgentBackend;
       name: string;
+      displayName?: string;
       cliPath?: string;
       isPreset?: boolean;
       customAgentId?: string;
       presetAgentType?: string;
       mode?: string;
       modelId?: string;
+      modelLabel?: string;
       configOptions?: Record<string, string>;
       workspace?: string;
+      providerId?: string;
+      providerName?: string;
+      vendorName?: string;
+      logo?: string | null;
     };
   };
   state: {

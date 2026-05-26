@@ -8,6 +8,7 @@ import * as os from 'os';
 import { agentRegistry } from '@process/agent/AgentRegistry';
 import { isAgentKind } from '@/common/types/detectedAgent';
 import { mcpService } from '@/process/services/mcpServices/McpService';
+import { getConversationTypeForBackend } from '@/common/utils/buildAgentConversationParams';
 import { LegacyConnectorFactory } from '@process/acp/compat/LegacyConnectorFactory';
 import { noopProtocolHandlers } from '@process/acp/types';
 import { CoreTaskRuntimeService } from '@process/core/tasks/CoreTaskRuntimeService';
@@ -19,6 +20,7 @@ import type {
   CoreAcpSessionSnapshotDto,
 } from '@process/core/shared/CoreContracts';
 import type { CoreEventPayloadMap } from '@process/core/shared/CoreEvent';
+import { ProcessConfig } from '@process/utils/initStorage';
 
 type CoreAcpSessionUpdatedPayload = CoreEventPayloadMap['acp.session.updated'];
 type CoreAcpSessionUpdatedInput = Omit<CoreAcpSessionUpdatedPayload, 'action' | 'conversationId' | 'snapshot'> & {
@@ -27,6 +29,26 @@ type CoreAcpSessionUpdatedInput = Omit<CoreAcpSessionUpdatedPayload, 'action' | 
 
 export class CoreAcpGatewayService {
   constructor(private readonly taskRuntimeService: CoreTaskRuntimeService) {}
+
+  private async resolveAgentModelInfo(backend: string): Promise<CoreAcpAgentDescriptorDto['modelInfo']> {
+    try {
+      const cachedModels = await ProcessConfig.get('acp.cachedModels');
+      const cached = cachedModels?.[backend];
+      if (!cached) {
+        return undefined;
+      }
+
+      return {
+        currentModelId: cached.currentModelId,
+        currentModelLabel: cached.currentModelLabel,
+        availableModelIds: Array.isArray(cached.availableModels)
+          ? cached.availableModels.map((model: { id: string }) => model.id).filter(Boolean)
+          : [],
+      };
+    } catch {
+      return undefined;
+    }
+  }
 
   public getEnvironmentSummary() {
     return {
@@ -52,13 +74,21 @@ export class CoreAcpGatewayService {
     };
   }
 
-  public getAvailableAgents() {
+  public async getAvailableAgents() {
     try {
       const agents = agentRegistry.getDetectedAgents();
-      const data: CoreAcpAgentDescriptorDto[] = agents.map((agent) => ({
-        ...agent,
-        supportedTransports: mcpService.getSupportedTransportsForAgent(agent),
-      }));
+      const data: CoreAcpAgentDescriptorDto[] = await Promise.all(
+        agents.map(async (agent) => ({
+          ...agent,
+          displayName: agent.name,
+          teamCapable: ['acp', 'aionrs', 'remote', 'openclaw-gateway', 'nanobot'].includes(agent.kind),
+          conversationType: getConversationTypeForBackend(agent.backend),
+          supportedModes: agent.backend === 'codex' ? ['default', 'workspace-write', 'bypassPermissions'] : ['default'],
+          logos: {},
+          supportedTransports: mcpService.getSupportedTransportsForAgent(agent),
+          modelInfo: await this.resolveAgentModelInfo(agent.backend),
+        }))
+      );
 
       this.emitAgentDiscovery('listed', data);
       return { success: true as const, data };

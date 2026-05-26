@@ -14,6 +14,12 @@ import type { AcpBackendConfig, AcpModelInfo } from '@/common/types/acpTypes';
 export type AvailableAgent = {
   backend: string;
   name: string;
+  displayName?: string;
+  kind?: string;
+  available?: boolean;
+  teamCapable?: boolean;
+  conversationType?: 'acp' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'gemini';
+  supportedModes?: string[];
   cliPath?: string;
   customAgentId?: string;
   isPreset?: boolean;
@@ -22,6 +28,12 @@ export type AvailableAgent = {
   presetAgentType?: string;
   isExtension?: boolean;
   extensionName?: string;
+  logo?: string | null;
+  modelInfo?: {
+    currentModelId?: string;
+    currentModelLabel?: string;
+    availableModelIds?: string[];
+  };
 };
 
 /**
