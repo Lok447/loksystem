@@ -1,4 +1,4 @@
-import { ConfigStorage } from '@/common/config/storage';
+import { assistantService } from '@/common/config/assistantService';
 import AgentBadge from '@/renderer/components/agent/AgentBadge';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
@@ -9,6 +9,7 @@ import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleE
 import ConversationTitleMinimap from '@/renderer/pages/conversation/components/ConversationTitleMinimap';
 import MobileWorkspaceOverlay from './MobileWorkspaceOverlay';
 import WorkspacePanelHeader, { DesktopWorkspaceToggle } from './WorkspacePanelHeader';
+import WorkspaceOpenButton from './WorkspaceOpenButton';
 import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
 import { useContainerWidth } from '@/renderer/pages/conversation/hooks/useContainerWidth';
 import { useLayoutConstraints } from '@/renderer/pages/conversation/hooks/useLayoutConstraints';
@@ -90,7 +91,7 @@ const ChatLayout: React.FC<{
   // Fetch custom agents config as fallback when agentName is not provided
   const needCustomFallback = backend === 'custom' && !presetAssistant && !agentName;
   const { data: customAgents } = useSWR(needCustomFallback ? 'acp.customAgents' : null, () =>
-    ConfigStorage.get('acp.customAgents')
+    assistantService.listCustomAgents()
   );
 
   // Compute display name with fallback chain
@@ -183,10 +184,22 @@ const ChatLayout: React.FC<{
           layout?.isMobile && 'chat-layout-header--mobile-unified'
         )}
       >
-        <div className='shrink-0'>{props.headerLeft}</div>
+        {props.headerLeft && <div className='shrink-0 min-w-0'>{props.headerLeft}</div>}
         <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center gap-16px'>
           {!layout?.isMobile && !hasTabs && (
             <ChatTitleEditor
+              leading={
+                (backend || presetAssistant) && isDesktop ? (
+                  <AgentBadge
+                    backend={backend}
+                    agentName={displayName}
+                    agentLogo={presetAssistant?.logo}
+                    agentLogoIsEmoji={presetAssistant?.isEmoji}
+                    assistantId={presetAssistant?.id}
+                    compact
+                  />
+                ) : undefined
+              }
               editingTitle={editingTitle}
               titleDraft={titleDraft}
               setTitleDraft={setTitleDraft}
@@ -201,15 +214,21 @@ const ChatLayout: React.FC<{
           )}
           {(hasTabs || layout?.isMobile) && <ConversationTitleMinimap conversationId={conversationId} hideTrigger />}
         </FlexFullContainer>
-        <div className='flex items-center gap-12px shrink-0'>
+        <div className='flex items-center gap-10px shrink-0 min-w-0 chat-layout-header__actions'>
+          {workspacePath && isDesktop && (
+            <div className='chat-layout-header__workspace hidden md:flex items-center shrink-0'>
+              <WorkspaceOpenButton workspacePath={workspacePath} />
+            </div>
+          )}
           {props.headerExtra}
-          {(backend || presetAssistant) && (
+          {(backend || presetAssistant) && layout?.isMobile && (
             <AgentBadge
               backend={backend}
               agentName={displayName}
               agentLogo={presetAssistant?.logo}
               agentLogoIsEmoji={presetAssistant?.isEmoji}
               assistantId={presetAssistant?.id}
+              compact
             />
           )}
           {isWindowsRuntime && workspaceEnabled && (

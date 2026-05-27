@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mockOnLanguageChanged = vi.hoisted(() => ({
   handler: undefined as ((payload: { language: string }) => Promise<void>) | undefined,
 }));
-const mockConfigStorageGet = vi.hoisted(() => vi.fn());
-const mockConfigStorageSet = vi.hoisted(() => vi.fn());
+const mockConfigServiceGet = vi.hoisted(() => vi.fn());
+const mockConfigServiceSet = vi.hoisted(() => vi.fn());
 const mockChangeLanguageInvoke = vi.hoisted(() => vi.fn());
 const mockI18n = vi.hoisted(() => {
   const instance = {
@@ -37,10 +37,11 @@ vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: vi.fn() },
 }));
 
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: {
-    get: mockConfigStorageGet,
-    set: mockConfigStorageSet,
+vi.mock('@/common/config/configService', () => ({
+  configService: {
+    get: mockConfigServiceGet,
+    set: mockConfigServiceSet,
+    subscribe: vi.fn(() => () => {}),
   },
 }));
 
@@ -65,8 +66,8 @@ describe('renderer i18n localStorage guards', () => {
     vi.clearAllMocks();
     mockI18n.language = 'en-US';
     mockI18n.languageChangedHandler = undefined;
-    mockConfigStorageGet.mockResolvedValue('ja-JP');
-    mockConfigStorageSet.mockResolvedValue(undefined);
+    mockConfigServiceGet.mockResolvedValue('ja-JP');
+    mockConfigServiceSet.mockResolvedValue(undefined);
     mockChangeLanguageInvoke.mockResolvedValue(undefined);
     mockOnLanguageChanged.handler = undefined;
 
@@ -100,7 +101,7 @@ describe('renderer i18n localStorage guards', () => {
 
   it('defaults browser WebUI login to Chinese when the user has not explicitly chosen a language', async () => {
     const storage = new Map<string, string>();
-    mockConfigStorageGet.mockResolvedValue('en-US');
+    mockConfigServiceGet.mockResolvedValue('en-US');
     Object.defineProperty(globalThis, 'localStorage', {
       value: {
         getItem: (key: string) => storage.get(key) ?? null,
@@ -149,13 +150,13 @@ describe('renderer i18n localStorage guards', () => {
     expect(mockI18n.changeLanguage).toHaveBeenCalledWith('ko-KR');
   });
 
-  it('persists language through ConfigStorage even when localStorage is unavailable', async () => {
+  it('persists language through configService even when localStorage is unavailable', async () => {
     const module = await import('@/renderer/services/i18n');
     await Promise.resolve();
 
     await module.changeLanguage('tr');
 
-    expect(mockConfigStorageSet).toHaveBeenCalledWith('language', 'tr-TR');
+    expect(mockConfigServiceSet).toHaveBeenCalledWith('language', 'tr-TR');
     expect(mockChangeLanguageInvoke).toHaveBeenCalledWith({ language: 'tr-TR' });
   });
 });

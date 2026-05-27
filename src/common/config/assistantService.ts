@@ -26,6 +26,11 @@ export const assistantService = {
     return normalizeList(items);
   },
 
+  async listPresetAssistants(): Promise<AcpBackendConfig[]> {
+    const items = await this.listAssistants();
+    return items.filter((item: AcpBackendConfig) => item.isPreset);
+  },
+
   async saveAssistants(items: AcpBackendConfig[]): Promise<AcpBackendConfig[]> {
     const normalized = normalizeList(items);
     await configService.set(ASSISTANT_KEY, normalized);
@@ -45,6 +50,11 @@ export const assistantService = {
     return this.saveAssistants(current.filter((agent: AcpBackendConfig) => agent.id !== assistantId));
   },
 
+  async getAssistantById(assistantId: string): Promise<AcpBackendConfig | undefined> {
+    const current = await this.listAssistants();
+    return current.find((agent: AcpBackendConfig) => agent.id === assistantId);
+  },
+
   async listCustomAgents(): Promise<AcpBackendConfig[]> {
     const items = await configService.get(CUSTOM_AGENT_KEY);
     return normalizeList(items);
@@ -54,5 +64,46 @@ export const assistantService = {
     const normalized = normalizeList(items);
     await configService.set(CUSTOM_AGENT_KEY, normalized);
     return normalized;
+  },
+
+  async upsertCustomAgent(item: AcpBackendConfig): Promise<AcpBackendConfig[]> {
+    const current = await this.listCustomAgents();
+    const next = current.some((agent: AcpBackendConfig) => agent.id === item.id)
+      ? current.map((agent: AcpBackendConfig) => (agent.id === item.id ? { ...agent, ...item } : agent))
+      : [...current, item];
+    return this.saveCustomAgents(next);
+  },
+
+  async removeCustomAgent(agentId: string): Promise<AcpBackendConfig[]> {
+    const current = await this.listCustomAgents();
+    return this.saveCustomAgents(current.filter((agent: AcpBackendConfig) => agent.id !== agentId));
+  },
+
+  async updateAssistant(
+    assistantId: string,
+    updater: (assistant: AcpBackendConfig) => AcpBackendConfig
+  ): Promise<AcpBackendConfig[]> {
+    const current = await this.listAssistants();
+    return this.saveAssistants(
+      current.map((agent: AcpBackendConfig) => (agent.id === assistantId ? updater(agent) : agent))
+    );
+  },
+
+  async updateCustomAgent(
+    agentId: string,
+    updater: (assistant: AcpBackendConfig) => AcpBackendConfig
+  ): Promise<AcpBackendConfig[]> {
+    const current = await this.listCustomAgents();
+    return this.saveCustomAgents(
+      current.map((agent: AcpBackendConfig) => (agent.id === agentId ? updater(agent) : agent))
+    );
+  },
+
+  async findAssistantLikeById(assistantId: string): Promise<AcpBackendConfig | undefined> {
+    const [presets, customAgents] = await Promise.all([this.listAssistants(), this.listCustomAgents()]);
+    return (
+      presets.find((agent: AcpBackendConfig) => agent.id === assistantId) ??
+      customAgents.find((agent: AcpBackendConfig) => agent.id === assistantId)
+    );
   },
 };

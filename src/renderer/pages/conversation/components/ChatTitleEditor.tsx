@@ -5,6 +5,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 type ChatTitleEditorProps = {
+  leading?: React.ReactNode;
   editingTitle: boolean;
   titleDraft: string;
   setTitleDraft: (value: string) => void;
@@ -19,6 +20,7 @@ type ChatTitleEditorProps = {
 
 // Inline title display with double-click-to-edit rename support
 const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
+  leading,
   editingTitle,
   titleDraft,
   setTitleDraft,
@@ -42,7 +44,12 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
       )}
       style={{ width: '100%', maxWidth: `${titleAreaMaxWidth}px` }}
     >
-      <div className='min-w-0 flex-1 px-10px py-5px'>
+      {leading && (
+        <div className='flex shrink-0 items-center pl-10px pr-4px py-5px'>
+          {leading}
+        </div>
+      )}
+      <div className='min-w-0 flex-1 py-5px pr-10px'>
         {editingTitle && canRenameTitle ? (
           <Input
             autoFocus

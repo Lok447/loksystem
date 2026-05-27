@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { getRendererCoreClient } from '@/common/coreClient';
-import { ConfigStorage } from '@/common/config/storage';
+import { assistantService } from '@/common/config/assistantService';
 import type { AcpBackendConfig } from '../types';
 import { DETECTED_AGENTS_SWR_KEY } from '@/renderer/utils/model/agentTypes';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -23,7 +23,7 @@ type UseCustomAgentsLoaderResult = {
 };
 
 /**
- * Hook that loads custom agents from ConfigStorage and ipcBridge.
+ * Hook that loads custom agents from the assistant/config service layer and ipcBridge.
  * Handles both user-created custom agents and extension-contributed assistants.
  */
 export const useCustomAgentsLoader = ({
@@ -38,8 +38,8 @@ export const useCustomAgentsLoader = ({
   const loadCustomAgents = useCallback(async () => {
     try {
       const [presetAssistants, userCustomAgents, extAssistants] = await Promise.all([
-        ConfigStorage.get('assistants'),
-        ConfigStorage.get('acp.customAgents'),
+        assistantService.listPresetAssistants(),
+        assistantService.listCustomAgents(),
         ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[]),
       ]);
       const list: AcpBackendConfig[] = [
@@ -82,7 +82,7 @@ export const useCustomAgentsLoader = ({
     } catch (error) {
       console.error('Failed to refresh custom agents:', error);
     }
-    // Re-read ConfigStorage so UI reflects any changes (e.g. presetAgentType switch)
+    // Re-read from the service layer so UI reflects any changes (e.g. presetAgentType switch)
     await loadCustomAgents();
   }, [loadCustomAgents]);
 

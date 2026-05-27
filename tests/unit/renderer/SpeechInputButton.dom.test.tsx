@@ -17,8 +17,8 @@ const mockMessageWarning = vi.fn();
 let speechInputErrorCode: string | null = null;
 let speechInputErrorMessage: string | null = null;
 
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: {
+vi.mock('@/common/config/configService', () => ({
+  configService: {
     get: vi.fn(async (key: string) => {
       if (key === 'tools.speechToText') {
         return {

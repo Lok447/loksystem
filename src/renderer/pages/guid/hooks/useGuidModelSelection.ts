@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { hasAvailableModels } from '../utils/modelUtils';
@@ -58,7 +58,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
   const setCurrentModel = useCallback(
     async (modelInfo: TProviderWithModel) => {
       selectedModelKeyRef.current = buildModelKey(modelInfo.id, modelInfo.useModel);
-      await ConfigStorage.set(storageKey, { id: modelInfo.id, useModel: modelInfo.useModel }).catch((error) => {
+      await configService.set(storageKey, { id: modelInfo.id, useModel: modelInfo.useModel }).catch((error) => {
         console.error('Failed to save default model:', error);
       });
       _setCurrentModel(modelInfo);
@@ -86,7 +86,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
         return;
       }
 
-      const savedModel = await ConfigStorage.get(storageKey);
+      const savedModel = await configService.get(storageKey);
       const isNewFormat = savedModel && typeof savedModel === 'object' && 'id' in savedModel;
 
       let defaultModel: IProvider | undefined;

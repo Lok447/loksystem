@@ -102,6 +102,16 @@ export const configService = {
     cache.set(key, value);
     emitChange(key, value);
   },
+
+  clearCache<K extends ConfigKey>(key?: K): void {
+    if (key) {
+      cache.delete(key);
+      pending.delete(key);
+      return;
+    }
+    cache.clear();
+    pending.clear();
+  },
 };
 
 export const loadConfigValue = <K extends ConfigKey>(

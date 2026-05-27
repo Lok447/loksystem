@@ -54,8 +54,61 @@
   color: var(--color-text-1);
 }
 
+.chat-layout-header__workspace .workspace-open-button__btn,
+.chat-layout-header__workspace .workspace-open-button__dropdown-btn {
+  min-height: 28px;
+  height: 28px;
+  border-radius: 999px;
+}
+
+.chat-layout-header__workspace .workspace-open-button__btn {
+  background: var(--color-fill-2);
+}
+
+.chat-layout-header__workspace .workspace-open-button__btn:hover,
+.chat-layout-header__workspace .workspace-open-button__dropdown-btn:hover {
+  background: var(--color-fill-3);
+}
+
+.chat-layout-header__actions > * {
+  min-width: 0;
+}
+
+.chat-layout-header__selector {
+  min-width: 0;
+  max-width: min(220px, 24vw);
+}
+
+.chat-layout-header__selector .arco-btn,
+.chat-layout-header__selector .arco-dropdown-trigger,
+.chat-layout-header__selector button {
+  max-width: 100%;
+}
+
+.chat-layout-header__selector .arco-btn-content,
+.chat-layout-header__selector button span {
+  min-width: 0;
+}
+
 /* Mobile: conversation header pills */
 @media (max-width: 767px) {
+  .chat-layout-header__actions {
+    gap: 6px;
+  }
+
+  .chat-layout-header__selector {
+    max-width: 132px;
+  }
+
+  .chat-layout-header--mobile-unified [data-testid='agent-badge'] {
+    max-width: 120px;
+  }
+
+  .chat-layout-header--mobile-unified [data-testid='agent-badge'] span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .agent-mode-compact-pill {
     min-height: 32px !important;
     height: 32px !important;

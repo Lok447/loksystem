@@ -4,7 +4,7 @@ import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Close } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { getRendererCoreClient } from '@/common/coreClient';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { AcpInitializeResult } from '@/common/types/acpTypes';
 import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
@@ -44,7 +44,8 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   useEffect(() => {
     if (!visible) return;
     let active = true;
-    ConfigStorage.get('acp.cachedInitializeResult')
+    configService
+      .get('acp.cachedInitializeResult')
       .then((data) => {
         if (active) setCachedInitResults(data ?? null);
       })

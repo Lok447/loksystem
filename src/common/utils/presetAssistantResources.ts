@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
-import { ConfigStorage } from '@/common/config/storage';
+import { assistantService } from '@/common/config/assistantService';
 
 export type PresetAssistantResourceDeps = {
   readAssistantRule: (args: { assistantId: string; locale: string }) => Promise<string>;
@@ -37,21 +37,11 @@ const defaultDeps: PresetAssistantResourceDeps = {
   readBuiltinRule: (args) => ipcBridge.fs.readBuiltinRule.invoke(args),
   readBuiltinSkill: (args) => ipcBridge.fs.readBuiltinSkill.invoke(args),
   getEnabledSkills: async (customAgentId) => {
-    const [presets, customs] = await Promise.all([
-      ConfigStorage.get('assistants'),
-      ConfigStorage.get('acp.customAgents'),
-    ]);
-    const assistant =
-      presets?.find((agent) => agent.id === customAgentId) ?? customs?.find((agent) => agent.id === customAgentId);
+    const assistant = await assistantService.findAssistantLikeById(customAgentId);
     return assistant?.enabledSkills;
   },
   getDisabledBuiltinSkills: async (customAgentId) => {
-    const [presets, customs] = await Promise.all([
-      ConfigStorage.get('assistants'),
-      ConfigStorage.get('acp.customAgents'),
-    ]);
-    const assistant =
-      presets?.find((agent) => agent.id === customAgentId) ?? customs?.find((agent) => agent.id === customAgentId);
+    const assistant = await assistantService.findAssistantLikeById(customAgentId);
     return assistant?.disabledBuiltinSkills;
   },
   warn: (message, error) => {

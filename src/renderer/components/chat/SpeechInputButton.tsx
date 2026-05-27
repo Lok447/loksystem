@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { normalizeSpeechToTextConfig, SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT } from '@/common/config/speechToText';
 import { Message, Button, Tooltip } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -132,7 +132,7 @@ const SpeechInputButton: React.FC<SpeechInputButtonProps> = ({ disabled, locale,
 
     const syncSpeechToTextEnabled = async () => {
       try {
-        const config = normalizeSpeechToTextConfig(await ConfigStorage.get('tools.speechToText'));
+        const config = normalizeSpeechToTextConfig(await configService.get('tools.speechToText'));
         if (cancelled) {
           return;
         }

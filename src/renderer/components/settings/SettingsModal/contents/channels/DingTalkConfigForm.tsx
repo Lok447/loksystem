@@ -6,8 +6,8 @@
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
+import { configService } from '@/common/config/configService';
 import { getRendererCoreClient } from '@/common/coreClient';
-import { ConfigStorage } from '@/common/config/storage';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
 import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
@@ -124,7 +124,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
       try {
         const [agentsResp, saved] = await Promise.all([
           getRendererCoreClient().acp.getAvailableAgents(),
-          ConfigStorage.get('assistant.dingtalk.agent'),
+          configService.get('assistant.dingtalk.agent'),
         ]);
 
         if (agentsResp.success && agentsResp.data) {
@@ -159,7 +159,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
 
   const persistSelectedAgent = async (agent: { backend: string; customAgentId?: string; name?: string }) => {
     try {
-      await ConfigStorage.set('assistant.dingtalk.agent', agent);
+      await configService.set('assistant.dingtalk.agent', agent);
       await channel.syncChannelSettings
         .invoke({ platform: 'dingtalk', agent })
         .catch((err) => console.warn('[DingTalkConfig] syncChannelSettings failed:', err));

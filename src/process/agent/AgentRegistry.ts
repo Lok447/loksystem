@@ -32,7 +32,7 @@ import path from 'node:path';
  *   - Remote       - user-configured WebSocket agents (from DB)
  *   - OpenClaw GW  - detected via `openclaw` CLI on PATH
  *   - Nanobot      - detected via `nanobot` CLI on PATH
- *   - Custom ACP   - user-defined ACP CLIs from ConfigStorage 'assistants'
+ *   - Custom ACP   - user-defined ACP CLIs from the configuration layer
  *
  * Preset assistants (prompt-only presets with no CLI binary) are NOT
  * execution engines — they live in the configuration layer and reference
@@ -287,7 +287,7 @@ class AgentRegistry {
   }
 
   /**
-   * Refresh custom ACP agents from ConfigStorage 'assistants'.
+   * Refresh custom ACP agents from the configuration layer.
    * Called after the user adds/edits/deletes a custom agent in Settings.
    */
   async refreshCustomAgents(): Promise<void> {

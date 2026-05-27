@@ -311,10 +311,10 @@ function Layout() {
 
 ```typescript
 // 禁用粘贴确认
-await ConfigStorage.set('workspace.pasteConfirm', true);
+await configService.set('workspace.pasteConfirm', true);
 
 // 启用粘贴确认（默认）
-await ConfigStorage.set('workspace.pasteConfirm', false);
+await configService.set('workspace.pasteConfirm', false);
 ```
 
 ## 性能优化
@@ -415,7 +415,7 @@ if (['new', 'ext'].includes(ext)) {
 用户可以在粘贴确认对话框中勾选"不再询问"，或者通过代码设置:
 
 ```typescript
-await ConfigStorage.set('workspace.pasteConfirm', true);
+await configService.set('workspace.pasteConfirm', true);
 ```
 
 ## 相关链接

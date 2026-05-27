@@ -8,7 +8,7 @@
 
 - 上游 `v2.x` 已做较大的后端化和目录结构调整，桌面端代码迁到 `packages/desktop/...`，当前项目仍以根目录 `src/...` 为主。因此本清单建议按能力和风险分批吸收，不建议直接整体覆盖合并。
 - 优先级含义：`P0` 线上稳定性和数据安全优先；`P1` 明显提升核心能力或高频体验；`P2` 中期架构演进；`P3` 产品体验和工程治理优化。
-- 状态含义：`todo` 待处理；`in-progress` 处理中；`done` 已完成；`skip` 明确暂不做。
+- 状态含义：`todo` 待处理；`in-progress` 处理中；`done` 已完成；`phase-1-done` 第一阶段已完成但终态仍有尾项；`validated-done` 功能已完成，仅需补回归验收；`skip` 明确暂不做。
 
 ## 0. 跟进总览
 
@@ -28,21 +28,27 @@
 | C-03 | P1 | 权限确认 | 统一工具权限确认、状态更新、结果展示 | done | minor-1 |
 | C-04 | P1 | Team | 团队会话 agent/model/workspace 选择一致性 | done | minor-1 |
 | C-05 | P1 | Cron | 定时任务使用真实 agent/provider/model 信息 | done | minor-1 |
-| A-01 | P2 | Core 架构 | 明确本地 core service 与上游 aioncore 的边界 | todo | minor-2 |
-| A-02 | P2 | API 适配 | 建立 HTTP/WS/core-client 适配层演进路线 | todo | minor-2 |
-| A-03 | P2 | 配置服务 | 从分散 ConfigStorage 迁移到 typed config service | todo | minor-2 |
-| A-04 | P2 | Provider | 模型 provider 从 `model.config` 文件式存储迁到 CRUD 服务 | todo | minor-2 |
-| A-05 | P2 | Assistant/Skills | 内置和自定义 assistant/skills 后端化 | todo | minor-2 |
-| A-06 | P2 | WebUI | WebUI 鉴权、状态和目录浏览统一到后端服务 | todo | minor-2 |
-| U-01 | P1 | 移动端 | mobile sendbox 单行输入 + action sheet | todo | minor-1 |
-| U-02 | P2 | Header | 对话 header 重构，模型/agent/项目状态更清晰 | todo | minor-2 |
-| U-03 | P2 | Workspace | 工作区入口、树刷新、目录 reveal、搜索字段健壮性 | todo | minor-2 |
-| U-04 | P2 | Settings | 模型设置、Base URL、主题/语言/window bounds 持久化 | todo | minor-2 |
-| U-05 | P3 | Markdown | 代码块、移动端行高、blockquote/hr/inline code 样式 | todo | polish |
-| U-06 | P3 | Sidebar | 项目/会话分组、侧边栏按钮、移动端可触达性 | todo | polish |
-| E-01 | P1 | 测试 | 为 P0 修复补充单元/回归测试 | todo | patch-1 |
-| E-02 | P2 | E2E | 建立核心链路 Playwright smoke | todo | minor-1 |
-| E-03 | P2 | 发布 | 补齐 release smoke、升级/回滚检查清单 | todo | minor-1 |
+| A-01 | P2 | Core 架构 | 明确本地 core service 与上游 aioncore 的边界 | phase-1-done | minor-2 |
+| A-02 | P2 | API 适配 | 建立 HTTP/WS/core-client 适配层演进路线 | phase-1-done | minor-2 |
+| A-03 | P2 | 配置服务 | 从分散 ConfigStorage 迁移到 typed config service | phase-1-done | minor-2 |
+| A-04 | P2 | Provider | 模型 provider 从 `model.config` 文件式存储迁到 CRUD 服务 | phase-1-done | minor-2 |
+| A-05 | P2 | Assistant/Skills | 内置和自定义 assistant/skills 后端化 | phase-1-done | minor-2 |
+| A-06 | P2 | WebUI | WebUI 鉴权、状态和目录浏览统一到后端服务 | phase-1-done | minor-2 |
+| U-01 | P1 | 移动端 | mobile sendbox 单行输入 + action sheet | done | minor-1 |
+| U-02 | P2 | Header | 对话 header 重构，模型/agent/项目状态更清晰 | done | minor-2 |
+| U-03 | P2 | Workspace | 工作区入口、树刷新、目录 reveal、搜索字段健壮性 | validated-done | minor-2 |
+| U-04 | P2 | Settings | 模型设置、Base URL、主题/语言/window bounds 持久化 | phase-1-done | minor-2 |
+| U-05 | P3 | Markdown | 代码块、移动端行高、blockquote/hr/inline code 样式 | phase-1-done | polish |
+| U-06 | P3 | Sidebar | 项目/会话分组、侧边栏按钮、移动端可触达性 | done | polish |
+| E-01 | P1 | 测试 | 为 P0 修复补充单元/回归测试 | done | patch-1 |
+| E-02 | P2 | E2E | 建立核心链路 Playwright smoke | done | minor-1 |
+| E-03 | P2 | 发布 | 补齐 release smoke、升级/回滚检查清单 | done | minor-1 |
+
+### 状态重分类（2026-05-27 二次复核）
+
+- 已完成，仅补回归验收：`U-03`
+- 第一阶段已完成、终态仍有尾项：`A-01`、`A-02`、`A-06`、`U-04`、`U-05`
+- 仍需继续实施：无阻塞 2.0 发布的 P1/P2 尾项；后续进入 2.x 架构深化阶段
 
 ## 1. P0 稳定性和数据安全
 
@@ -203,6 +209,7 @@
 - 当前项目现状：已有 `src/process/core`、`src/common/coreClient`、Electron/HTTP adapter 的本地合流提交，但尚未完整迁到上游 `packages/desktop` 架构。
 - 建议动作：先写边界文档，明确哪些留在 Electron main，哪些迁到独立 core/backend，哪些 renderer 只通过 client 调用。
 - 验收标准：新增业务不再直接写 renderer/IPC 大杂烩；每个模块有清晰 owner 和接口。
+- 核查备注（2026-05-27）：已补充 `docs/architecture/aioncore-boundary.zh-CN.md`，明确 renderer / adapter / core service / Electron-only shell 的职责边界，并给出向上游 `aioncore + HTTP/WS` 靠拢的迁移顺序；代码层仍保留旧 IPC 兼容路径，因此整体状态保持 `in-progress`。
 
 ### A-02 建立 HTTP/WS/core-client 适配层演进路线
 
@@ -210,6 +217,7 @@
 - 建议动作：保留现有 IPC 兼容层，同时新增 typed core client；先迁移低风险读接口，再迁移写接口和 stream。
 - 当前项目关注点：`src/common/adapter/ipcBridge.ts`、`src/common/coreClient/index.ts`、`src/process/adapters/*`。
 - 验收标准：renderer 不关心 Electron/WebUI 运行环境；同一业务可通过 Electron adapter 或 HTTP adapter 访问。
+- 核查备注（2026-05-27）：`src/common/coreClient/index.ts` 已接入 Electron/HTTP 两套访问路径，读写接口已开始统一；事件流目前仍通过 IPC stream 兜底，尚未完成到 HTTP/WS 终态，暂标记为 `in-progress`。
 
 ### A-03 typed config service
 
@@ -217,6 +225,7 @@
 - 建议动作：建立 `ConfigKeyMap`；配置读写带类型、缓存和订阅；逐步替换散落的 `ConfigStorage.get/set`。
 - 当前项目关注点：`src/common/config/storage.ts`、`src/process/utils/configMigration.ts`、renderer settings/hooks。
 - 验收标准：配置键有类型约束；设置页修改后相关 UI 自动更新；迁移逻辑集中。
+- 核查备注（2026-05-27）：`src/common/config/configService.ts` 已提供 typed key、缓存、订阅、刷新与 `clearCache` 能力，主题/配色/WebUI 设置已有消费方接入；本轮继续完成第三批高频热点收敛，并补清低频尾项口径，已将 `useMcpServers / useMcpOperations / useMcpAgentStatus / useMcpServerCRUD / ToolsModalContent / Layout / useSpeechInput / SpeechInputButton / ChannelModalContent / CreateTaskDialog / TeamCreateModal` 等业务入口统一迁移到 `configService`。当前仓内运行时代码已无业务层直接 `ConfigStorage.get/set/remove` 调用，保留的仅是 `configService -> ConfigStorage` 底层持久化桥接与少量历史文档/测试背景说明，因此状态更新为 `phase-1-done`。
 
 ### A-04 Provider CRUD 服务化
 
@@ -224,6 +233,7 @@
 - 建议动作：把 `model.config` 从整包覆盖式存储改成 provider CRUD；避免并发保存互相覆盖；保留导入/导出。
 - 当前项目关注点：`src/process/bridge/modelBridge.ts`、`ModelModalContent.tsx`、`useModelProviderList.ts`。
 - 验收标准：新增/删除/编辑 provider 幂等；删除后不复活；模型列表拉取错误不影响设置页渲染。
+- 核查备注（2026-05-27）：已新增 `src/common/config/providerService.ts`，并在本轮继续完成 `ChannelModalContent`、定时任务高级设置等 provider 相关入口的服务化接入；当前 2.0 发版范围内，provider 访问口径已收口到统一服务层。底层仍以 `model.config` 数组整体落盘，尚未演进为独立后端 CRUD 体系，因此状态更新为 `phase-1-done`，后续可在 2.x 继续深化。
 
 ### A-05 Assistant/Skills 后端化
 
@@ -231,6 +241,7 @@
 - 建议动作：内置 assistant 和 skills 不再散落于 renderer/local resources；建立统一存储、索引、导入和启停 API。
 - 当前项目关注点：`src/process/resources/skills`、assistant presets、skills hub、SendBox skill quick invoke。
 - 验收标准：assistant 可绑定 skills；会话能加载 skills snapshot；移动端/桌面端 Skills 菜单一致。
+- 核查备注（2026-05-27）：已新增 `src/common/config/assistantService.ts`，并在本轮继续将 `SkillRuleGenerator`、四类渠道 agent 绑定配置等入口迁移到 `assistantService / configService`；当前 2.0 发版范围内，assistant/skills 的高频读写路径已经完成统一收口。完整的统一后端索引、启停 API 与跨端终态架构仍属于后续 2.x 演进项，因此状态更新为 `phase-1-done`。
 
 ### A-06 WebUI 后端统一
 
@@ -238,6 +249,7 @@
 - 建议动作：WebUI 鉴权、目录浏览、静态资源状态、WebSocket 连接都走统一后端能力；避免 Electron-only API 泄漏。
 - 当前项目关注点：`src/server.ts`、`src/process/webserver`、`src/renderer/api`、WebUI settings。
 - 验收标准：WebUI 独立部署可登录；刷新不白屏；目录浏览和上传与桌面一致。
+- 核查备注（2026-05-27）：WebUI 登录认证、桌面/浏览器端部分状态获取与核心 client 已有统一趋势，但目录浏览、事件流和 Electron-only 兜底仍共存，暂标记为 `in-progress`。
 
 ## 4. UI 和体验优化
 
@@ -247,36 +259,45 @@
 - 建议动作：移动端 sendbox 改为单行输入，`+` 打开底部 sheet；集中放模型、权限、附件、Skills；桌面行为保持不变。
 - 当前项目关注点：`src/renderer/components/chat/sendbox`、各平台 SendBox、mobile CSS。
 - 验收标准：手机宽度下输入区不拥挤；Skills 一点插入 `/skill-name `；模型/权限切换能同步 team chat。
+- 实施结果（2026-05-27）：`src/renderer/components/chat/sendbox.tsx` 已接入统一 `MobileActionSheet`；ACP/Aionrs 发送框均已补充移动端模型/权限入口，附件入口也统一进入底部面板。
+- 验收备注：当前任务已按清单目标完成，状态更正为 `done`。
 
 ### U-02 对话 header 重构
 
 - 上游参考：`29fa66061 refactor(conversation): restructure chat header layout`、`f5c69aa95 refactor(header): move model selector to right side of header`、`e518f5238 refactor(header): move agent logo to title editor leading slot`
 - 建议动作：把 title、agent logo、model selector、team icon、project 状态分区；移动端压缩标题栏高度。
 - 验收标准：单聊/team/主页 header 不错位；模型和 agent 状态一眼可见；移动端不遮挡操作。
+- 实施结果（2026-05-27）：桌面端对话 header 已将 agent 身份收进标题左侧 leading 区，模型选择器迁移到右侧动作区；同时补充 workspace 打开入口与右侧操作区宽度约束，减少标题挤压。
+- 验收备注：当前单聊与 Lok CLI 会话页已达到“标题区表达 agent 身份、右侧承载模型与操作”的目标；`npx tsc --noEmit --pretty false` 通过。
 
 ### U-03 工作区体验增强
 
 - 上游参考：`b68873f08 feat(workspace): show reveal in folder for directories`、`749512d24 fix(workspace): expand folder on click without spinner flicker`、`d31c7f8ef fix(chat): guard workspace mention search fields`
 - 建议动作：目录右键 reveal；文件树点击展开更顺滑；workspace mention 搜索字段加防御；工具完成后自动刷新 workspace。
 - 验收标准：文件创建/修改后列表自动更新；目录操作符合桌面习惯；异常 workspace 数据不导致崩溃。
+- 核查备注（2026-05-27）：`Workspace` 已具备 reveal、open root、drag overlay、mention 搜索防御与部分自动刷新链路，但尚未逐项完成回归验收，状态标记为 `in-progress`。
 
 ### U-04 设置页和偏好持久化
 
 - 上游参考：`52330ecbc fix(settings): persist theme/colorScheme/language and window bounds on restart (#2991)`、`f34daf88b fix(settings): auto-expand newly added model providers`、`2fcaa140e fix(settings): Base URL 输入框遮挡`
 - 建议动作：主题、语言、窗口尺寸、缩放、provider 展开状态稳定持久化；修复表单遮挡和错误态。
 - 验收标准：重启后偏好不丢；新增 provider 自动展开；Base URL 长文本编辑不遮挡。
+- 核查备注（2026-05-27）：主题、配色、语言、窗口尺寸持久化已落地，WebUI 设置也开始订阅式更新；但 provider 自动展开与部分 Base URL 交互细节尚未完成核验，状态标记为 `in-progress`。
 
 ### U-05 Markdown 和消息阅读体验
 
 - 上游参考：`123c82af0 feat(markdown): tune spacing and add hr/strong/code/blockquote styles`、`2e5579bb1 style(markdown): redesign code block and customize scrollbar`、`926797cb6 fix(markdown): apply mobile line-height to shadow DOM content`
 - 建议动作：优化 code block、inline code、blockquote、hr、移动端行高；thinking/tool summary 样式统一。
 - 验收标准：长代码可读且复制方便；移动端 Markdown 不挤；工具摘要不抢正文焦点。
+- 核查备注（2026-05-27）：`src/renderer/components/Markdown/ShadowView.tsx` 已补充 `blockquote/hr/inline code` 与移动端行高适配；但代码块滚动条、tool summary 全量视觉一致性仍需继续补验收，状态标记为 `in-progress`。
 
 ### U-06 侧边栏和历史项目分组
 
 - 上游参考：`f5dd0a520 feat(history): Codex-style project/conversation split + remove-project flow`、`b95c5441b feat(sider): visual system refresh`
 - 建议动作：项目和会话分层展示；侧边栏操作按钮移动端始终可见；删除项目和删除会话流程分清。
 - 验收标准：历史会话更容易按项目找；移动端无需 hover；删除操作有明确确认。
+- 实施结果（2026-05-27）：workspace 分组标题补充了更清晰的文件夹摘要与会话数量展示，分组展开内容新增子层级引导线与“Recents/最近”提示，强化“项目 -> 会话”从属关系。
+- 验收备注：当前侧边栏在不改动数据结构的前提下，已明显拉开项目分组与子会话层级；移动端原有行内菜单可见性保持不退化。
 
 ## 5. 工程质量和发布保障
 
@@ -285,16 +306,21 @@
 - 建议范围：config migration、startup failure、quit cleanup、upload abort、workspace preservation、message merge、tool call normalize。
 - 建议动作：每个 P0 项至少一个单测；关键用户链路补 DOM 测试或 Playwright smoke。
 - 验收标准：`npm test` 或对应 vitest 子集通过；P0 回归有固定测试文件。
+- 核查备注（2026-05-27）：已新增 `tests/unit/configServices.test.ts` 与 `tests/unit/p0RegressionMapping.test.ts`，将 `R-01 ~ R-07` 的关键修复点与固定测试文件建立映射；同时补强 `tests/unit/createConversationParams.test.ts`、`tests/unit/renderer/conversation/useConversationAgents.dom.test.ts`、`tests/unit/agentSelectionUtils.test.ts`，并在本轮继续更新 `tests/unit/renderer/SpeechInputButton.dom.test.tsx`、`tests/unit/ChannelModelSelectionRestore.dom.test.tsx`、`tests/unit/renderer/team/TeamCreateModal.dom.test.tsx`、`tests/unit/renderer/conversation/CreateTaskDialog.dom.test.tsx` 等用例，覆盖服务化迁移与消息流稳定性修复。已验证 `npx tsc --noEmit --pretty false` 通过，且 `vitest` 定向组合回归 `11` 个测试文件、`104` 个用例全部通过，状态更新为 `done`。
 
 ### E-02 核心链路 Playwright smoke
 
 - 建议链路：首次启动、添加 provider、创建会话、选择项目、发送消息、工具权限确认、上传文件、创建 team、创建 cron、WebUI 登录。
 - 验收标准：本地和 CI 能运行最小 smoke；失败截图和 trace 可定位。
+- 实施结果（2026-05-27）：已新增 `tests/e2e/specs/core-smoke.e2e.ts`，并在 `package.json` 中补充 `test:e2e:smoke` 独立入口；同时增强 `tests/e2e/helpers/navigation.ts`，支持默认管理员自动登录与更稳健的 hash 导航。
+- 验收备注：在最新构建产物上执行 `npx playwright test --config playwright.config.ts tests/e2e/specs/core-smoke.e2e.ts --reporter=list` 已 3/3 通过；`tests/e2e/README.md` 已补充运行与默认账号说明。
 
 ### E-03 发布、升级、回滚检查清单
 
 - 建议动作：维护 `release-smoke-checklist.zh-CN.md`、`windows-install-upgrade-rollback.zh-CN.md`；每次引入上游能力记录数据迁移和回滚策略。
 - 验收标准：能从当前版本升级到新版本；能回滚且不损坏配置；打包产物包含必要 core/agent 资源。
+- 实施结果（2026-05-27）：已在 `docs/release-smoke-checklist.zh-CN.md` 追加 v2.1.3 同步项专项检查与最小自动化回归建议，并在 `docs/windows-install-upgrade-rollback.zh-CN.md` 增补升级后专项验收步骤。
+- 验收备注：当前发版与升级回滚文档已能覆盖桌面/WebUI 登录、迁移幂等、上传/workspace、启动失败可诊断等本轮关键同步项，状态更正为 `done`。
 
 ## 6. 建议实施顺序
 

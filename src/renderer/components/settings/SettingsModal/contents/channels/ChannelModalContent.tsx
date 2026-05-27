@@ -7,7 +7,7 @@
 import type { IChannelPluginStatus } from '@process/channels/types';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { channel, webui, type IWebUIStatus } from '@/common/adapter/ipcBridge';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import LokScrollArea from '@/renderer/components/base/LokScrollArea';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
@@ -47,7 +47,7 @@ const BUILTIN_CHANNEL_TYPES = new Set(['lark', 'dingtalk', 'weixin', 'wecom']);
 const REMOVED_CHANNEL_TYPES = new Set(['telegram', 'slack', 'discord']);
 
 /**
- * Internal hook: wraps useAionrsModelSelection with ConfigStorage persistence
+ * Internal hook: wraps useAionrsModelSelection with configService-backed persistence
  * for a specific channel config key (e.g. 'assistant.lark.defaultModel').
  *
  * Restoration is done by resolving the saved model reference into a full
@@ -73,7 +73,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): AionrsModel
 
     const restore = async () => {
       try {
-        const saved = (await ConfigStorage.get(configKey)) as { id: string; useModel: string } | undefined;
+        const saved = (await configService.get(configKey)) as { id: string; useModel: string } | undefined;
         if (!saved?.id || !saved?.useModel) {
           // Nothing saved — mark restored so we don't keep retrying
           setRestored(true);
@@ -116,7 +116,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): AionrsModel
     async (provider: IProvider, modelName: string) => {
       try {
         const modelRef = { id: provider.id, useModel: modelName };
-        await ConfigStorage.set(configKey, modelRef);
+        await configService.set(configKey, modelRef);
 
         // Derive platform from configKey and sync to channel system
         const platform = configKey.replace('assistant.', '').replace('.defaultModel', '') as
@@ -125,7 +125,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): AionrsModel
           | 'weixin'
           | 'wecom';
         const agentKey = `assistant.${platform}.agent` as const;
-        const currentAgent = await ConfigStorage.get(agentKey);
+        const currentAgent = await configService.get(agentKey);
         await channel.syncChannelSettings
           .invoke({
             platform,
@@ -188,7 +188,7 @@ const ChannelModalContent: React.FC = () => {
     wecom: true,
   });
 
-  // Model selection state — uses unified hook with ConfigStorage persistence
+  // Model selection state — uses unified hook with configService-backed persistence
   const larkModelSelection = useChannelModelSelection('assistant.lark.defaultModel');
   const dingtalkModelSelection = useChannelModelSelection('assistant.dingtalk.defaultModel');
   const weixinModelSelection = useChannelModelSelection('assistant.weixin.defaultModel');

@@ -311,10 +311,10 @@ Control whether to show paste confirmation dialog via `workspace.pasteConfirm` c
 
 ```typescript
 // Disable paste confirmation
-await ConfigStorage.set('workspace.pasteConfirm', true);
+await configService.set('workspace.pasteConfirm', true);
 
 // Enable paste confirmation (default)
-await ConfigStorage.set('workspace.pasteConfirm', false);
+await configService.set('workspace.pasteConfirm', false);
 ```
 
 ## Performance Optimizations
@@ -415,7 +415,7 @@ The 200ms delay ensures the file system operation completes, avoiding reading st
 Users can check "do not ask again" in the paste confirmation dialog, or set it programmatically:
 
 ```typescript
-await ConfigStorage.set('workspace.pasteConfirm', true);
+await configService.set('workspace.pasteConfirm', true);
 ```
 
 ## Related Links

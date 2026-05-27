@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { usePasteService } from '@/renderer/hooks/file/usePasteService';
 import { uploadFileViaHttp } from '@/renderer/services/FileService';
 import { trackUpload } from '@/renderer/hooks/file/useUploadState';
@@ -169,7 +169,7 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
       }
 
       // 如果用户已禁用确认，直接执行复制 / If user has disabled confirmation, perform copy directly
-      const skipConfirm = await ConfigStorage.get('workspace.pasteConfirm');
+      const skipConfirm = await configService.get('workspace.pasteConfirm');
       if (skipConfirm) {
         try {
           const filePaths = filesMeta.map((f) => f.path);
@@ -219,7 +219,7 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
     try {
       // 如果用户选中了"不再询问"，保存偏好设置 / Save preference if user checked "do not ask again"
       if (pasteConfirm.doNotAsk) {
-        await ConfigStorage.set('workspace.pasteConfirm', true);
+        await configService.set('workspace.pasteConfirm', true);
       }
 
       // 获取目标文件夹路径 / Get target folder path

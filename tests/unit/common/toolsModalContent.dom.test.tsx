@@ -61,6 +61,7 @@ const testState = vi.hoisted(() => ({
   mockConfigGet: vi.fn(),
   mockConfigSet: vi.fn(() => Promise.resolve()),
   mockConfigRemove: vi.fn(() => Promise.resolve()),
+  mockConfigSubscribe: vi.fn(() => vi.fn()),
   mockCheckSingleServerInstallStatus: vi.fn(() => Promise.resolve()),
   mockRemoveMcpFromAgents: vi.fn(() => Promise.resolve()),
   mockHandleTestMcpConnection: vi.fn(),
@@ -214,10 +215,14 @@ vi.mock('@/renderer/hooks/agent/useConfigModelListWithImage', () => ({
 
 vi.mock('@/common/config/storage', () => ({
   BUILTIN_IMAGE_GEN_ID: testState.BUILTIN_IMAGE_GEN_ID,
-  ConfigStorage: {
+}));
+
+vi.mock('@/common/config/configService', () => ({
+  configService: {
     get: (...args: unknown[]) => testState.mockConfigGet(...args),
     set: (...args: unknown[]) => testState.mockConfigSet(...args),
     remove: (...args: unknown[]) => testState.mockConfigRemove(...args),
+    subscribe: (...args: unknown[]) => testState.mockConfigSubscribe(...args),
   },
 }));
 

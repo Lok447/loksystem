@@ -8,7 +8,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
 import type { TChatConversation } from '@/common/config/storage';
-import { ConfigStorage } from '@/common/config/storage';
+import { assistantService } from '@/common/config/assistantService';
 import { ipcBridge } from '@/common';
 import CoworkLogo from '@/renderer/assets/icons/cowork.svg';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
@@ -38,7 +38,7 @@ type AssistantLike = {
  */
 /**
  * Resolve the assistant config ID (preserving original prefix like 'builtin-').
- * Use this when matching against the assistant list in ConfigStorage 'assistants'.
+ * Use this when matching against the assistant config list exposed via assistantService.
  */
 export function resolveAssistantConfigId(conversation: TChatConversation): string | null {
   const extra = conversation.extra as {
@@ -299,10 +299,10 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
   // Fetch both preset assistants and user-defined custom ACP agents.
   // `presetId` may reference either, so we merge both sources before lookup.
   const { data: assistantsList, isLoading: isLoadingAssistants } = useSWR('assistants', () =>
-    ConfigStorage.get('assistants')
+    assistantService.listAssistants()
   );
   const { data: userCustomAgentsList, isLoading: isLoadingUserCustomAgents } = useSWR('acp.customAgents', () =>
-    ConfigStorage.get('acp.customAgents')
+    assistantService.listCustomAgents()
   );
   const customAgents = useMemo(
     () => [

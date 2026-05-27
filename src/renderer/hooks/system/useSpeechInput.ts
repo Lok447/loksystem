@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { transcribeAudioBlob } from '@/renderer/services/SpeechToTextService';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { normalizeSpeechToTextConfig, validateSpeechToTextConfig } from '@/common/config/speechToText';
 
 export type SpeechInputAvailability = 'record' | 'file' | 'unsupported';
@@ -408,7 +408,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
         let detail = message.startsWith('STT_REQUEST_FAILED:') ? message.replace('STT_REQUEST_FAILED:', '').trim() : null;
 
         if (!detail && mappedError === 'not-configured') {
-          const readiness = validateSpeechToTextConfig(await ConfigStorage.get('tools.speechToText'));
+          const readiness = validateSpeechToTextConfig(await configService.get('tools.speechToText'));
           detail = readiness.message;
         }
 
@@ -426,7 +426,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
       throw new Error('STT_BUILTIN_NOT_SUPPORTED');
     }
 
-    const config = normalizeSpeechToTextConfig(await ConfigStorage.get('tools.speechToText'));
+    const config = normalizeSpeechToTextConfig(await configService.get('tools.speechToText'));
     const recognition = new RecognitionCtor();
     recognitionRef.current = recognition;
     recognition.continuous = false;
@@ -486,7 +486,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
   }, [cleanupRecognition, onTranscriptRef, recognitionLocale]);
 
   const startRecording = useCallback(async () => {
-    const config = normalizeSpeechToTextConfig(await ConfigStorage.get('tools.speechToText'));
+    const config = normalizeSpeechToTextConfig(await configService.get('tools.speechToText'));
     const readiness = validateSpeechToTextConfig(config);
 
     if (!readiness.ready) {

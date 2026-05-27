@@ -61,7 +61,12 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
 
       {/* 折叠内容 - 子项缩进 20px,使子项 icon 中心落在父级文字起点附近,形成清晰的层级 */}
       {showContent && (
-        <div className={classNames('workspace-collapse-content min-w-0', { 'pl-20px': !siderCollapsed })}>
+        <div
+          className={classNames('workspace-collapse-content min-w-0 relative', {
+            'pl-20px ml-14px mt-4px border-l border-solid border-[color:color-mix(in_srgb,var(--color-fill-3)_82%,transparent)]':
+              !siderCollapsed,
+          })}
+        >
           {children}
         </div>
       )}

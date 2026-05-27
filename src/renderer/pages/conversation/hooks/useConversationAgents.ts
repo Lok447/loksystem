@@ -6,7 +6,7 @@
 
 import { useMemo } from 'react';
 import useSWR from 'swr';
-import { ConfigStorage } from '@/common/config/storage';
+import { assistantService } from '@/common/config/assistantService';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
@@ -49,20 +49,17 @@ function configToAvailableAgent(config: AcpBackendConfig): AvailableAgent {
  *
  * Two independent data sources:
  *   - Execution engines — from AgentRegistry via IPC (agents.detected)
- *   - Preset assistants — from ConfigStorage ('assistants')
+ *   - Preset assistants — from assistantService/configService
  */
 export const useConversationAgents = (): UseConversationAgentsResult => {
-  // Execution engines from AgentRegistry (shared cache with useDetectedAgents / useGuidAgentSelection)
   const {
     data: cliAgents,
     isLoading: isLoadingAgents,
     mutate,
   } = useSWR<AvailableAgent[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
 
-  // Preset assistants from config layer
   const { data: presetConfigs, isLoading: isLoadingPresets } = useSWR('assistants.presets', async () => {
-    const agents: AcpBackendConfig[] = (await ConfigStorage.get('assistants')) || [];
-    return agents.filter((a) => a.isPreset && a.enabled !== false);
+    return (await assistantService.listPresetAssistants()).filter((a) => a.enabled !== false);
   });
 
   const presetAssistants = useMemo(() => (presetConfigs || []).map(configToAvailableAgent), [presetConfigs]);

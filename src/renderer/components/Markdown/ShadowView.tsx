@@ -216,7 +216,7 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
   const styleRef = React.useRef<HTMLStyleElement | null>(null);
   const [customCss, setCustomCss] = useState<string>('');
 
-  // Load custom CSS from ConfigStorage
+  // Load custom CSS from configService
   React.useEffect(() => {
     configService
       .get('customCss')

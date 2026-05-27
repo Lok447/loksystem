@@ -5,7 +5,7 @@
  */
 
 import { getRendererCoreClient } from '@/common/coreClient';
-import { ConfigStorage } from '@/common/config/storage';
+import { assistantService } from '@/common/config/assistantService';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import LokModal from '@/renderer/components/base/LokModal';
 import { Button, Typography } from '@arco-design/web-react';
@@ -29,8 +29,7 @@ const LocalAgents: React.FC = () => {
 
   // Custom agents (user-defined, stored in 'acp.customAgents')
   const { data: customAgents, mutate: mutateCustomAgents } = useSWR('acp.customAgents.settings', async () => {
-    const agents = await ConfigStorage.get('acp.customAgents');
-    return (agents || []) as AcpBackendConfig[];
+    return assistantService.listCustomAgents();
   });
 
   const [editorVisible, setEditorVisible] = useState(false);
@@ -38,11 +37,7 @@ const LocalAgents: React.FC = () => {
 
   const handleSaveCustomAgent = useCallback(
     async (agent: AcpBackendConfig) => {
-      const current = ((await ConfigStorage.get('acp.customAgents')) || []) as AcpBackendConfig[];
-      const existingIndex = current.findIndex((a) => a.id === agent.id);
-      const updatedAgents =
-        existingIndex >= 0 ? current.map((a, i) => (i === existingIndex ? agent : a)) : [...current, agent];
-      await ConfigStorage.set('acp.customAgents', updatedAgents);
+      await assistantService.upsertCustomAgent(agent);
       await mutateCustomAgents();
       setEditorVisible(false);
       setEditingAgent(null);
@@ -52,9 +47,7 @@ const LocalAgents: React.FC = () => {
 
   const handleDeleteCustomAgent = useCallback(
     async (agentId: string) => {
-      const current = ((await ConfigStorage.get('acp.customAgents')) || []) as AcpBackendConfig[];
-      const agents = current.filter((a) => a.id !== agentId);
-      await ConfigStorage.set('acp.customAgents', agents);
+      await assistantService.removeCustomAgent(agentId);
       await mutateCustomAgents();
     },
     [mutateCustomAgents]
@@ -62,12 +55,8 @@ const LocalAgents: React.FC = () => {
 
   const handleToggleCustomAgent = useCallback(
     async (agentId: string, enabled: boolean) => {
-      const current = ((await ConfigStorage.get('acp.customAgents')) || []) as AcpBackendConfig[];
-      const updatedAgents = current.map((a) => (a.id === agentId ? { ...a, enabled } : a));
-      if (updatedAgents.some((a) => a.id === agentId)) {
-        await ConfigStorage.set('acp.customAgents', updatedAgents);
-        await mutateCustomAgents();
-      }
+      await assistantService.updateCustomAgent(agentId, (agent) => ({ ...agent, enabled }));
+      await mutateCustomAgents();
     },
     [mutateCustomAgents]
   );

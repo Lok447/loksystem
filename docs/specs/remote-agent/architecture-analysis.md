@@ -305,7 +305,7 @@ interface IResponseMessage {
 
 ```
 1. AgentType 新增 'remote'（或更细分为 'remote-openclaw'）
-2. ConfigStorage 新增 remote.agents 配置
+2. 配置层新增 remote.agents 配置
 3. DB migration: conversations.type CHECK 新增
 4. 新建 RemoteOpenClawAgentManager
    - 继承 BaseAgentManager

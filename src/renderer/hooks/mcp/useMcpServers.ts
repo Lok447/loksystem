@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ConfigStorage } from '@/common/config/storage';
 import type { IMcpServer } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
 
 /**
@@ -16,7 +16,7 @@ export const useMcpServers = () => {
   // 加载MCP服务器配置
   useEffect(() => {
     // Load user-configured MCP servers
-    void ConfigStorage.get('mcp.config')
+    void configService.get('mcp.config')
       .then((data) => {
         if (data) {
           setMcpServers(data);
@@ -61,7 +61,7 @@ export const useMcpServers = () => {
 
         // 异步保存到存储（在微任务中执行）
         queueMicrotask(() => {
-          ConfigStorage.set('mcp.config', newServers)
+          configService.set('mcp.config', newServers)
             .then(() => resolve())
             .catch((error) => {
               console.error('Failed to save MCP servers:', error);

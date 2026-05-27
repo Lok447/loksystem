@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 
-// Hoist mocks for ipcBridge and ConfigStorage
+// Hoist mocks for ipcBridge and configuration storage
 const bridgeMocks = vi.hoisted(() => ({
   readAssistantRule: vi.fn(),
   readAssistantSkill: vi.fn(),

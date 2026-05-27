@@ -60,12 +60,24 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
   const lastProgrammaticScrollTimeRef = useRef(0);
   const scrollerElRef = useRef<HTMLElement | null>(null);
   const followOutputTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialHydrationTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const hasHydratedInitialListRef = useRef(itemCount > 0);
 
   // Capture Virtuoso's scroll container
   const handleScrollerRef = useCallback((ref: HTMLElement | Window | null) => {
     const el = ref instanceof HTMLElement ? ref : null;
     scrollerElRef.current = el;
     setScrollerEl(el);
+  }, []);
+
+  const syncScrollerToBottomIfNeeded = useCallback(() => {
+    const el = scrollerElRef.current;
+    if (!el || userScrolledRef.current) return;
+    const gap = el.scrollHeight - el.clientHeight - el.scrollTop;
+    if (gap > 2) {
+      lastProgrammaticScrollTimeRef.current = Date.now();
+      el.scrollTop = el.scrollHeight - el.clientHeight;
+    }
   }, []);
 
   // ResizeObserver: when the container resizes, set the programmatic scroll guard
@@ -119,6 +131,16 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
     };
   }, [scrollerEl]);
 
+  useEffect(() => {
+    return () => {
+      initialHydrationTimersRef.current.forEach((timer) => clearTimeout(timer));
+      initialHydrationTimersRef.current = [];
+      if (followOutputTimerRef.current) {
+        clearTimeout(followOutputTimerRef.current);
+      }
+    };
+  }, []);
+
   // Scroll to bottom helper - only for user messages and button clicks
   const scrollToBottom = useCallback(
     (behavior: 'smooth' | 'auto' = 'smooth') => {
@@ -146,17 +168,10 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
     lastProgrammaticScrollTimeRef.current = Date.now();
     if (followOutputTimerRef.current) clearTimeout(followOutputTimerRef.current);
     followOutputTimerRef.current = setTimeout(() => {
-      if (!userScrolledRef.current && scrollerElRef.current) {
-        const el = scrollerElRef.current;
-        const gap = el.scrollHeight - el.clientHeight - el.scrollTop;
-        if (gap > 2) {
-          lastProgrammaticScrollTimeRef.current = Date.now();
-          el.scrollTop = el.scrollHeight - el.clientHeight;
-        }
-      }
+      syncScrollerToBottomIfNeeded();
     }, 500);
     return 'auto';
-  }, []);
+  }, [syncScrollerToBottomIfNeeded]);
 
   // Bottom state detection + container resize compensation.
   // When atBottom transitions true → false and user hasn't scrolled up,
@@ -251,6 +266,29 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
     }
   }, [messages]);
 
+  useEffect(() => {
+    if (itemCount <= 0 || hasHydratedInitialListRef.current) {
+      return;
+    }
+
+    hasHydratedInitialListRef.current = true;
+    initialHydrationTimersRef.current.forEach((timer) => clearTimeout(timer));
+    initialHydrationTimersRef.current = [0, 50, 200].map((delay) =>
+      setTimeout(() => {
+        if (userScrolledRef.current) return;
+        if (virtuosoRef.current && itemCount > 0) {
+          lastProgrammaticScrollTimeRef.current = Date.now();
+          virtuosoRef.current.scrollToIndex({
+            index: 'LAST',
+            behavior: 'auto',
+            align: 'end',
+          });
+        }
+        syncScrollerToBottomIfNeeded();
+      }, delay)
+    );
+  }, [itemCount, syncScrollerToBottomIfNeeded]);
+
   // Scroll to bottom when streaming content updates existing messages.
   // Virtuoso's followOutput only fires when totalCount changes (new items added),
   // but during ACP/Gemini streaming the existing text message grows in-place
@@ -258,15 +296,8 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
   // and scrolls to bottom when the user hasn't scrolled away.
   useEffect(() => {
     if (userScrolledRef.current) return;
-    const el = scrollerElRef.current;
-    if (!el) return;
-
-    const gap = el.scrollHeight - el.clientHeight - el.scrollTop;
-    if (gap > 2) {
-      lastProgrammaticScrollTimeRef.current = Date.now();
-      el.scrollTop = el.scrollHeight - el.clientHeight;
-    }
-  }, [messages]);
+    syncScrollerToBottomIfNeeded();
+  }, [messages, syncScrollerToBottomIfNeeded]);
 
   // Hide scroll button handler
   const hideScrollButton = useCallback(() => {

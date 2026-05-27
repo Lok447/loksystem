@@ -377,6 +377,32 @@ export type TMessage =
   | IMessageSkillSuggest
   | IMessageCronTrigger;
 
+export const isRenderableMessage = (message: TMessage | undefined): message is TMessage => {
+  if (!message) return false;
+
+  switch (message.type) {
+    case 'text':
+      return typeof message.content.content === 'string' && message.content.content.trim().length > 0;
+    case 'tips':
+      return typeof message.content.content === 'string' && message.content.content.trim().length > 0;
+    case 'tool_group':
+      return Array.isArray(message.content) && message.content.length > 0;
+    case 'thinking':
+      return (
+        message.content.status === 'thinking' ||
+        Boolean(message.content.subject?.trim()) ||
+        Boolean(message.content.duration) ||
+        message.content.content.trim().length > 0
+      );
+    default:
+      return true;
+  }
+};
+
+const toRenderableMessage = <T extends TMessage>(message: T): T | undefined => {
+  return isRenderableMessage(message) ? message : undefined;
+};
+
 // 统一所有需要用户交互的用户类型
 export interface IConfirmation<Option extends any = any> {
   title?: string;
@@ -402,7 +428,7 @@ export interface IConfirmation<Option extends any = any> {
 export const transformMessage = (message: IResponseMessage): TMessage => {
   switch (message.type) {
     case 'error': {
-      return {
+      return toRenderableMessage({
         id: uuid(),
         type: 'tips',
         msg_id: message.msg_id,
@@ -412,13 +438,13 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
           content: message.data as string,
           type: 'error',
         },
-      };
+      }) as TMessage;
     }
     case 'content':
     case 'user_content': {
       const data = message.data;
       const isRichData = typeof data === 'object' && data !== null && 'content' in data;
-      return {
+      return toRenderableMessage({
         id: uuid(),
         type: 'text',
         msg_id: message.msg_id,
@@ -431,7 +457,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
             }
           : { content: data as string },
         ...(message.hidden && { hidden: true }),
-      };
+      }) as TMessage;
     }
     case 'tool_call': {
       const toolCall = message.data as Partial<IMessageToolCall['content']> | undefined;
@@ -439,43 +465,43 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         console.warn('[chatLib] Ignoring tool_call without callId:', message);
         return undefined as never;
       }
-      return {
+      return toRenderableMessage({
         id: uuid(),
         type: 'tool_call',
         msg_id: message.msg_id,
         conversation_id: message.conversation_id,
         position: 'left',
         content: message.data as any,
-      };
+      }) as TMessage;
     }
     case 'tool_group': {
-      return {
+      return toRenderableMessage({
         type: 'tool_group',
         id: uuid(),
         msg_id: message.msg_id,
         conversation_id: message.conversation_id,
         content: message.data as any,
-      };
+      }) as TMessage;
     }
     case 'agent_status': {
-      return {
+      return toRenderableMessage({
         id: uuid(),
         type: 'agent_status',
         msg_id: message.msg_id,
         position: 'center',
         conversation_id: message.conversation_id,
         content: message.data as any,
-      };
+      }) as TMessage;
     }
     case 'acp_permission': {
-      return {
+      return toRenderableMessage({
         id: uuid(),
         type: 'acp_permission',
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
         content: message.data as any,
-      };
+      }) as TMessage;
     }
     case 'acp_tool_call': {
       const toolCall = message.data as { update?: { toolCallId?: string } } | undefined;
@@ -483,24 +509,24 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         console.warn('[chatLib] Ignoring acp_tool_call without toolCallId:', message);
         return undefined as never;
       }
-      return {
+      return toRenderableMessage({
         id: uuid(),
         type: 'acp_tool_call',
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
         content: message.data as any,
-      };
+      }) as TMessage;
     }
     case 'codex_permission': {
-      return {
+      return toRenderableMessage({
         id: uuid(),
         type: 'codex_permission',
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
         content: message.data as any,
-      };
+      }) as TMessage;
     }
     case 'codex_tool_call': {
       const toolCall = message.data as Partial<IMessageCodexToolCall['content']> | undefined;
@@ -508,24 +534,24 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         console.warn('[chatLib] Ignoring codex_tool_call without toolCallId:', message);
         return undefined as never;
       }
-      return {
+      return toRenderableMessage({
         id: uuid(),
         type: 'codex_tool_call',
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
         content: message.data as any,
-      };
+      }) as TMessage;
     }
     case 'plan': {
-      return {
+      return toRenderableMessage({
         id: uuid(),
         type: 'plan',
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
         content: message.data as any,
-      };
+      }) as TMessage;
     }
     case 'thinking': {
       const data = message.data as {
@@ -534,7 +560,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         duration?: number;
         status: 'thinking' | 'done';
       };
-      return {
+      return toRenderableMessage({
         id: uuid(),
         type: 'thinking',
         msg_id: message.msg_id,
@@ -546,7 +572,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
           duration: data.duration,
           status: data.status,
         },
-      };
+      }) as TMessage;
     }
     // Disabled: available_commands messages are too noisy and distracting in the chat UI
     case 'available_commands':
@@ -558,14 +584,14 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         description: string;
         skillContent: string;
       };
-      return {
+      return toRenderableMessage({
         id: uuid(),
         type: 'skill_suggest',
         msg_id: message.msg_id,
         conversation_id: message.conversation_id,
         position: 'center',
         content: suggestData,
-      };
+      }) as TMessage;
     }
     case 'cron_trigger': {
       const triggerData = message.data as {
@@ -573,14 +599,14 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         cronJobName: string;
         triggeredAt: number;
       };
-      return {
+      return toRenderableMessage({
         id: uuid(),
         type: 'cron_trigger',
         msg_id: message.msg_id,
         conversation_id: message.conversation_id,
         position: 'center',
         content: triggerData,
-      };
+      }) as TMessage;
     }
     case 'start':
     case 'finish':

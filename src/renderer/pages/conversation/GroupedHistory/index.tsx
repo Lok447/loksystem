@@ -7,10 +7,11 @@
 import type { TChatConversation } from '@/common/config/storage';
 import DirectorySelectionModal from '@/renderer/components/settings/DirectorySelectionModal';
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
+import { isTemporaryWorkspace } from '@/renderer/utils/workspace/workspace';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button, Empty, Input, Modal } from '@arco-design/web-react';
-import { FolderOpen } from '@icon-park/react';
+import { FolderOpen, MessageOne } from '@icon-park/react';
 import classNames from 'classnames';
 import { Down, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -424,13 +425,31 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                         siderCollapsed={collapsed}
                         header={
                           <div className='flex items-center gap-8px text-14px min-w-0'>
-                            <span className='font-medium truncate flex-1 text-t-primary min-w-0'>
-                              {group.displayName}
+                            <span className='inline-flex h-24px w-24px shrink-0 items-center justify-center rounded-8px bg-fill-2 text-t-secondary'>
+                              <FolderOpen theme='outline' size='14' />
+                            </span>
+                            <div className='flex min-w-0 flex-1 flex-col'>
+                              <span className='font-medium truncate text-t-primary min-w-0'>{group.displayName}</span>
+                              <span className='truncate text-12px text-t-secondary min-w-0'>
+                                {isTemporaryWorkspace(group.workspace)
+                                  ? t('conversation.workspace.temporarySpace')
+                                  : group.workspace}
+                              </span>
+                            </div>
+                            <span className='inline-flex shrink-0 items-center gap-4px rounded-full bg-fill-2 px-8px py-3px text-12px text-t-secondary'>
+                              <MessageOne theme='outline' size='12' />
+                              {group.conversations.length}
                             </span>
                           </div>
                         }
                       >
                         <div className={classNames('flex flex-col gap-2px min-w-0', { 'mt-2px': !collapsed })}>
+                          {!collapsed && (
+                            <div className='flex items-center gap-6px px-10px pb-2px text-11px uppercase tracking-[0.08em] text-t-tertiary'>
+                              <span className='inline-block h-1px w-14px rounded-full bg-[color:color-mix(in_srgb,var(--color-text-4)_55%,transparent)]' />
+                              <span>{t('conversation.history.recents')}</span>
+                            </div>
+                          )}
                           {group.conversations.map((conversation) => renderConversation(conversation))}
                         </div>
                       </WorkspaceCollapse>

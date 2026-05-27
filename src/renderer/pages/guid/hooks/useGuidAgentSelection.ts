@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import type { IProvider } from '@/common/config/storage';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { AcpBackendAll, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import type { AcpBackend, AcpBackendConfig, AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
@@ -92,7 +92,7 @@ export const useGuidAgentSelection = ({
   const setSelectedAgentKey = useCallback((key: string) => {
     initialRestoreDoneRef.current = true;
     _setSelectedAgentKey(key);
-    ConfigStorage.set('guid.lastSelectedAgent', key).catch((error) => {
+    configService.set('guid.lastSelectedAgent', key).catch((error) => {
       console.error('Failed to save selected agent:', error);
     });
   }, []);
@@ -235,7 +235,7 @@ export const useGuidAgentSelection = ({
       const firstCliAgent = availableAgents.find((a) => !a.isPreset);
       const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'hermes';
       _setSelectedAgentKey(fallbackKey);
-      ConfigStorage.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
+      configService.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
         console.error('Failed to save reset agent key:', error);
       });
     }
@@ -251,7 +251,7 @@ export const useGuidAgentSelection = ({
 
     const restoreSavedSelection = async () => {
       try {
-        const savedKey = await ConfigStorage.get('guid.lastSelectedAgent');
+        const savedKey = await configService.get('guid.lastSelectedAgent');
         if (cancelled) return;
 
         if (savedKey) {
@@ -287,7 +287,8 @@ export const useGuidAgentSelection = ({
   // Load cached ACP model lists
   useEffect(() => {
     let isActive = true;
-    ConfigStorage.get('acp.cachedModels')
+    configService
+      .get('acp.cachedModels')
       .then((cached) => {
         if (!isActive) return;
         setAcpCachedModels(cached || {});
@@ -322,7 +323,8 @@ export const useGuidAgentSelection = ({
         : selectedAgentKey;
     if (!backend) return;
     let isActive = true;
-    ConfigStorage.get('acp.cachedConfigOptions')
+    configService
+      .get('acp.cachedConfigOptions')
       .then((cached) => {
         if (!isActive) return;
         const options = cached?.[backend];
@@ -356,7 +358,8 @@ export const useGuidAgentSelection = ({
 
     let cancelled = false;
     // Read preferred model from acp.config[backend], fallback to cached model list default
-    void ConfigStorage.get('acp.config')
+    void configService
+      .get('acp.config')
       .then((config) => {
         if (cancelled) return;
         const preferred = (config?.[backend as AcpBackendAll] as Record<string, unknown>)?.preferredModelId as
@@ -397,14 +400,14 @@ export const useGuidAgentSelection = ({
         let yoloMode = false;
 
         if (configKey === 'gemini') {
-          const config = await ConfigStorage.get('gemini.config');
+          const config = await configService.get('gemini.config');
           preferred = config?.preferredMode;
           yoloMode = config?.yoloMode ?? false;
         } else if (configKey === 'aionrs') {
-          const config = await ConfigStorage.get('aionrs.config');
+          const config = await configService.get('aionrs.config');
           preferred = config?.preferredMode;
         } else {
-          const config = await ConfigStorage.get('acp.config');
+          const config = await configService.get('acp.config');
           const backendConfig = config?.[configKey as AcpBackendAll] as Record<string, unknown> | undefined;
           preferred = backendConfig?.preferredMode as string | undefined;
           yoloMode = (backendConfig?.yoloMode as boolean) ?? false;

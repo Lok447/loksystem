@@ -262,10 +262,10 @@ idle → loading_qr → showing_qr → scanned → connected
 3. 默认选中"Gemini CLI"（`{ backend: 'gemini' }`）
 4. 选择新 Agent 后：
    - 本地状态更新
-   - `ConfigStorage.set('assistant.{platform}.agent', agent)` 持久化
+   - `configService.set('assistant.{platform}.agent', agent)` 持久化
    - `channel.syncChannelSettings.invoke({ platform, agent })` 同步到后端
    - toast "Agent switched successfully"
-5. 页面重新打开时从 ConfigStorage 恢复之前的选择
+5. 页面重新打开时从配置层恢复之前的选择
 
 **异常情况**：
 
@@ -294,7 +294,7 @@ idle → loading_qr → showing_qr → scanned → connected
 1. 每个渠道配置面板内有"Default Model"选择行
 2. 使用 `GeminiModelSelector` 组件渲染模型下拉选择
 3. 选择模型后：
-   - `ConfigStorage.set('assistant.{platform}.defaultModel', { id, useModel })` 持久化
+   - `configService.set('assistant.{platform}.defaultModel', { id, useModel })` 持久化
    - `channel.syncChannelSettings.invoke({ platform, agent, model })` 同步到后端
    - toast "Model switched successfully"
 4. 页面重新打开时自动恢复保存的模型（`useChannelModelSelection` hook，最多重试 5 次匹配 provider）
@@ -431,7 +431,7 @@ idle → loading_qr → showing_qr → scanned → connected
 │  Agent/模型:                                                          │
 │    ├─ acpConversation.getAvailableAgents.invoke() [加载 Agent 列表]  │
 │    ├─ channel.syncChannelSettings.invoke({ platform, agent, model }) │
-│    └─ ConfigStorage.get/set('assistant.{platform}.agent/defaultModel')│
+│    └─ configService.get/set('assistant.{platform}.agent/defaultModel')│
 │  WeChat 登录:                                                         │
 │    ├─ electronAPI.weixinLoginStart() [Electron IPC]                  │
 │    ├─ electronAPI.weixinLoginOnQR/OnScanned/OnDone [IPC 事件]        │

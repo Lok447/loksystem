@@ -20,6 +20,8 @@ Object.defineProperty(window, 'matchMedia', {
 const mockShowOpen = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 const mockCreateTeam = vi.hoisted(() => vi.fn());
 const mockIsElectronDesktop = vi.hoisted(() => vi.fn(() => true));
+const mockMessageWarning = vi.hoisted(() => vi.fn());
+const mockMessageError = vi.hoisted(() => vi.fn());
 
 const cliAgents: AvailableAgent[] = [
   { backend: 'hermes', name: 'Lok CLI', cliPath: 'hermes' },
@@ -49,12 +51,15 @@ vi.mock('@/common', () => ({
         invoke: mockShowOpen,
       },
     },
-    team: {
-      create: {
-        invoke: mockCreateTeam,
-      },
-    },
   },
+}));
+
+vi.mock('@/common/coreClient', () => ({
+  getRendererCoreClient: () => ({
+    teams: {
+      create: mockCreateTeam,
+    },
+  }),
 }));
 
 vi.mock('@renderer/hooks/context/AuthContext', () => ({
@@ -73,8 +78,8 @@ vi.mock('@renderer/utils/platform', () => ({
   isElectronDesktop: mockIsElectronDesktop,
 }));
 
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: {
+vi.mock('@/common/config/configService', () => ({
+  configService: {
     get: vi.fn(async (key: string) => {
       if (key === 'acp.cachedInitializeResult') {
         return {
@@ -94,7 +99,6 @@ vi.mock('@/common/config/storage', () => ({
       }
       return null;
     }),
-    set: vi.fn(async () => {}),
   },
 }));
 
@@ -128,6 +132,18 @@ vi.mock('@/renderer/components/base/LokModal', () => ({
     );
   },
 }));
+
+vi.mock('@arco-design/web-react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@arco-design/web-react')>();
+  return {
+    ...actual,
+    Message: {
+      warning: mockMessageWarning,
+      error: mockMessageError,
+      success: vi.fn(),
+    },
+  };
+});
 
 import TeamCreateModal from '@/renderer/pages/team/components/TeamCreateModal';
 
@@ -178,7 +194,7 @@ describe('TeamCreateModal', () => {
   });
 
   it('creates a team with the preset customAgentId and presetAgentType-derived backend', async () => {
-    mockCreateTeam.mockResolvedValue({ id: 'team-created' });
+    mockCreateTeam.mockResolvedValue({ success: true, data: { id: 'team-created' } });
     const onCreated = vi.fn();
 
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={onCreated} />);

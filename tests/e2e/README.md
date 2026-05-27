@@ -22,7 +22,13 @@ bun run test:e2e
 
 # Specific test file
 npx playwright test --config playwright.config.ts tests/e2e/specs/team-workspace-migration.e2e.ts --reporter=list
+
+# Core smoke suite
+npm run test:e2e:smoke
 ```
+
+> 默认会在检测到登录页时自动使用 `admin / Admin@123` 完成登录。
+> 如需覆盖，可设置 `E2E_USERNAME` / `E2E_PASSWORD`。
 
 ### 3. View Results
 

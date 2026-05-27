@@ -21,6 +21,8 @@ export type AgentBadgeProps = {
   agentLogoIsEmoji?: boolean;
   /** Assistant ID — when provided, clicking the badge navigates to AssistantSettings */
   assistantId?: string;
+  /** Compact visual style for dense header usage */
+  compact?: boolean;
 };
 
 /** Render agent logo from custom logo, backend logo, or fallback Robot icon */
@@ -54,7 +56,14 @@ export const AgentLogoIcon: React.FC<
  * When `assistantId` is provided, clicking navigates to AssistantSettings editor.
  * Otherwise renders as a static display badge.
  */
-const AgentBadge: React.FC<AgentBadgeProps> = ({ backend, agentName, agentLogo, agentLogoIsEmoji, assistantId }) => {
+const AgentBadge: React.FC<AgentBadgeProps> = ({
+  backend,
+  agentName,
+  agentLogo,
+  agentLogoIsEmoji,
+  assistantId,
+  compact = false,
+}) => {
   const navigate = useNavigate();
   const handleClick = useCallback(() => {
     if (!assistantId) return;
@@ -63,7 +72,7 @@ const AgentBadge: React.FC<AgentBadgeProps> = ({ backend, agentName, agentLogo, 
 
   return (
     <div
-      className={`flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px] ${assistantId ? 'cursor-pointer hover:bg-3' : ''}`}
+      className={`flex items-center ${compact ? 'gap-1.5 px-[7px] py-[2px]' : 'gap-2 px-[8px] py-[2px]'} bg-2 w-fit rounded-full ${assistantId ? 'cursor-pointer hover:bg-3' : ''}`}
       data-testid='agent-badge'
       onClick={handleClick}
     >
@@ -73,7 +82,7 @@ const AgentBadge: React.FC<AgentBadgeProps> = ({ backend, agentName, agentLogo, 
         agentLogo={agentLogo}
         agentLogoIsEmoji={agentLogoIsEmoji}
       />
-      <span className='text-sm text-t-primary'>{agentName || backend}</span>
+      <span className={`${compact ? 'text-12px' : 'text-sm'} text-t-primary whitespace-nowrap`}>{agentName || backend}</span>
     </div>
   );
 };

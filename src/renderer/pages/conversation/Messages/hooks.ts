@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
 import { composeMessage } from '@/common/chat/chatLib';
+import { isRenderableMessage } from '@/common/chat/chatLib';
 import { useCallback, useEffect, useRef } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
 
@@ -80,7 +81,7 @@ function getOrBuildIndex(list: TMessage[]): MessageIndex {
 // 使用索引优化的消息合并函数
 // Index-optimized message compose function
 function composeMessageWithIndex(message: TMessage, list: TMessage[], index: MessageIndex): TMessage[] {
-  if (!message) return list || [];
+  if (!message || !isRenderableMessage(message)) return list || [];
   if (!list?.length) {
     // Update index when adding first message
     if (message.msg_id) {
@@ -359,6 +360,9 @@ export const useAddOrUpdateMessage = () => {
 
   return useCallback(
     (message: TMessage, add = false) => {
+      if (!isRenderableMessage(message)) {
+        return;
+      }
       pendingRef.current.push({ message, add });
       if (rafRef.current === null) {
         rafRef.current = setTimeout(flush);
@@ -436,8 +440,11 @@ export const useMessageLstCache = (key: string) => {
             const streamingOnly = sameConversation.filter(
               (m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id))
             );
-            if (!streamingOnly.length && !streamingByMsgId.size) return messages;
-            return [...mergedMessages, ...streamingOnly];
+            const filteredMergedMessages = [...mergedMessages, ...streamingOnly].filter(isRenderableMessage);
+            if (!streamingOnly.length && !streamingByMsgId.size) {
+              return messages.filter(isRenderableMessage);
+            }
+            return filteredMergedMessages;
           });
         }
       })

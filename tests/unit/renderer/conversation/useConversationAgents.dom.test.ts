@@ -15,9 +15,8 @@ import type { AvailableAgent } from '../../../../src/renderer/utils/model/agentT
 // Hoisted mocks
 // ---------------------------------------------------------------------------
 
-const configStorageMock = vi.hoisted(() => ({
-  get: vi.fn(),
-  set: vi.fn().mockResolvedValue(undefined),
+const assistantServiceMock = vi.hoisted(() => ({
+  listPresetAssistants: vi.fn(),
 }));
 
 const ipcMock = vi.hoisted(() => ({
@@ -36,8 +35,8 @@ vi.mock('../../../../src/common', () => ({
   },
 }));
 
-vi.mock('../../../../src/common/config/storage', () => ({
-  ConfigStorage: configStorageMock,
+vi.mock('../../../../src/common/config/assistantService', () => ({
+  assistantService: assistantServiceMock,
 }));
 
 // SWR mock: uses React state to trigger re-renders when async data resolves.
@@ -110,12 +109,7 @@ function makePresetConfig(overrides: Partial<AcpBackendConfig> = {}): AcpBackend
 
 function setupMocks(presetConfigs: AcpBackendConfig[] = []) {
   ipcMock.getAvailableAgents.mockResolvedValue({ success: true, data: CLI_AGENTS });
-  configStorageMock.get.mockImplementation(async (key: string) => {
-    if (key === 'assistants') {
-      return presetConfigs;
-    }
-    return null;
-  });
+  assistantServiceMock.listPresetAssistants.mockResolvedValue(presetConfigs.filter((item) => item.isPreset));
 }
 
 // ---------------------------------------------------------------------------
@@ -241,10 +235,12 @@ describe('useConversationAgents', () => {
         expect(result.current.cliAgents.length).toBe(2);
       });
 
-      expect(result.current.cliAgents).toEqual(CLI_AGENTS);
+      expect(result.current.cliAgents.map((agent) => ({ backend: agent.backend, name: agent.name }))).toEqual(
+        CLI_AGENTS
+      );
     });
 
-    it('returns presetAssistants derived from ConfigStorage("assistants")', async () => {
+    it('returns presetAssistants derived from the preset assistant configuration', async () => {
       const presets = [
         makePresetConfig({ id: 'p1', name: 'Assistant A', presetAgentType: 'claude' }),
         makePresetConfig({ id: 'p2', name: 'Assistant B', presetAgentType: 'gemini' }),
@@ -286,15 +282,15 @@ describe('useConversationAgents', () => {
       const { result } = renderHook(() => useConversationAgents());
 
       await waitFor(() => {
-        expect(result.current.presetAssistants.length).toBe(1);
+      expect(result.current.presetAssistants.length).toBe(1);
       });
 
       expect(result.current.presetAssistants[0].customAgentId).toBe('preset');
     });
 
-    it('returns empty arrays when ConfigStorage returns null', async () => {
+    it('returns empty arrays when preset assistant service returns empty', async () => {
       ipcMock.getAvailableAgents.mockResolvedValue({ success: true, data: [] });
-      configStorageMock.get.mockResolvedValue(null);
+      assistantServiceMock.listPresetAssistants.mockResolvedValue([]);
 
       const { result } = renderHook(() => useConversationAgents());
 

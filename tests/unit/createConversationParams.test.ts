@@ -10,6 +10,8 @@ import { resolveLocaleKey } from '../../src/common/utils';
 const loadPresetAssistantResources = vi.fn();
 const configGet = vi.fn();
 const defaultCodexModels: Array<{ id: string; label: string }> = [];
+const providerListMock = vi.fn();
+const configServiceGetMock = vi.fn();
 
 vi.mock('@/common', () => ({
   ipcBridge: {},
@@ -27,6 +29,18 @@ vi.mock('@/common/config/storage', async () => {
   };
 });
 
+vi.mock('@/common/config/providerService', () => ({
+  providerService: {
+    list: (...args: unknown[]) => providerListMock(...args),
+  },
+}));
+
+vi.mock('@/common/config/configService', () => ({
+  configService: {
+    get: (...args: unknown[]) => configServiceGetMock(...args),
+  },
+}));
+
 vi.mock('@/common/utils/presetAssistantResources', () => ({
   loadPresetAssistantResources,
 }));
@@ -42,6 +56,8 @@ describe('createConversationParams', () => {
   beforeEach(() => {
     loadPresetAssistantResources.mockReset();
     configGet.mockReset();
+    providerListMock.mockReset();
+    configServiceGetMock.mockReset();
     defaultCodexModels.length = 0;
   });
 
@@ -51,7 +67,7 @@ describe('createConversationParams', () => {
       skills: '',
       enabledSkills: ['moltbook'],
     });
-    configGet.mockResolvedValue([
+    providerListMock.mockResolvedValue([
       {
         id: 'provider-1',
         platform: 'openai',
@@ -115,7 +131,7 @@ describe('createConversationParams', () => {
       skills: '',
       enabledSkills: [],
     });
-    configGet.mockResolvedValue([]); // No providers
+    providerListMock.mockResolvedValue([]); // No providers
 
     await expect(
       buildPresetAssistantParams(
@@ -133,7 +149,7 @@ describe('createConversationParams', () => {
   });
 
   it('throws for legacy gemini backend agents when no provider is configured', async () => {
-    configGet.mockResolvedValue([]); // No providers
+    providerListMock.mockResolvedValue([]); // No providers
 
     await expect(
       buildCliAgentParams(
@@ -147,7 +163,7 @@ describe('createConversationParams', () => {
   });
 
   it('resolves aionrs model from enabled provider', async () => {
-    configGet.mockResolvedValue([
+    providerListMock.mockResolvedValue([
       {
         id: 'provider-1',
         platform: 'openai',
@@ -173,7 +189,7 @@ describe('createConversationParams', () => {
   });
 
   it('throws error for aionrs if no provider configured', async () => {
-    configGet.mockResolvedValue([]);
+    providerListMock.mockResolvedValue([]);
 
     await expect(
       buildCliAgentParams(
@@ -200,7 +216,7 @@ describe('createConversationParams', () => {
   });
 
   it('reuses the saved ACP mode and model for workspace conversations', async () => {
-    configGet.mockImplementation(async (key: string) => {
+    configServiceGetMock.mockImplementation(async (key: string) => {
       if (key === 'acp.config') {
         return {
           codex: {
@@ -225,7 +241,7 @@ describe('createConversationParams', () => {
   });
 
   it('falls back to legacy yolo mode when preferred ACP mode is missing', async () => {
-    configGet.mockImplementation(async (key: string) => {
+    configServiceGetMock.mockImplementation(async (key: string) => {
       if (key === 'acp.config') {
         return {
           claude: {
@@ -249,7 +265,7 @@ describe('createConversationParams', () => {
 
   it('reuses the effective preset backend mode and model for ACP preset assistants', async () => {
     loadPresetAssistantResources.mockResolvedValue({ rules: 'r', skills: '', enabledSkills: [] });
-    configGet.mockImplementation(async (key: string) => {
+    configServiceGetMock.mockImplementation(async (key: string) => {
       if (key === 'acp.config') {
         return {
           claude: {
@@ -274,7 +290,7 @@ describe('createConversationParams', () => {
 
   it('falls back to default codex model when no cached ACP model exists', async () => {
     defaultCodexModels.push({ id: 'gpt-5', label: 'GPT-5' });
-    configGet.mockImplementation(async (key: string) => {
+    configServiceGetMock.mockImplementation(async (key: string) => {
       if (key === 'acp.config') {
         return {};
       }
@@ -296,14 +312,14 @@ describe('createConversationParams', () => {
   });
 
   it('throws error for aionrs if no enabled provider', async () => {
-    configGet.mockResolvedValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
+    providerListMock.mockResolvedValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
     await expect(buildCliAgentParams({ backend: 'aionrs', name: 'Agent' }, '/tmp')).rejects.toThrow(
       'No enabled model provider for Lok CLI'
     );
   });
 
   it('throws error for legacy gemini if no enabled provider', async () => {
-    configGet.mockResolvedValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
+    providerListMock.mockResolvedValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
     await expect(buildCliAgentParams({ backend: 'gemini', name: 'Agent' }, '/tmp')).rejects.toThrow(
       'No enabled model provider for Lok CLI'
     );
@@ -324,7 +340,7 @@ describe('createConversationParams', () => {
   });
 
   it('falls back to first model if none enabled for aionrs', async () => {
-    configGet.mockResolvedValue([
+    providerListMock.mockResolvedValue([
       {
         id: 'p1',
         platform: 'openai',

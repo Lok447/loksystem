@@ -33,7 +33,7 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-// ── ConfigStorage mock ───────────────────────────────────────────────────────
+// ── Configuration storage mock ───────────────────────────────────────────────
 
 const configStorageGetMock = vi.fn().mockResolvedValue([]);
 const configStorageSetMock = vi.fn().mockResolvedValue(undefined);
@@ -118,7 +118,7 @@ describe('useAssistantList', () => {
     expect(result.current.activeAssistant).toBeNull();
   });
 
-  it('loadAssistants fetches from ConfigStorage and populates the list', async () => {
+  it('loadAssistants fetches from the configuration layer and populates the list', async () => {
     const storedAgents = [
       { id: 'builtin-coder', name: 'Coder', isPreset: true, isBuiltin: true, enabled: true },
       { id: 'builtin-default', name: 'Default', isPreset: true, isBuiltin: true, enabled: true },
@@ -214,7 +214,7 @@ describe('useAssistantList', () => {
     expect(result.current.isExtensionAssistant(result.current.assistants[0])).toBe(true);
   });
 
-  it('handles ConfigStorage error gracefully', async () => {
+  it('handles configuration storage errors gracefully', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     configStorageGetMock.mockRejectedValue(new Error('storage failure'));
 

@@ -30,7 +30,7 @@
 - 启动 IPC 调用失败（网络错误/主进程异常）：Switch 回滚到关闭状态，toast 提示"操作失败"（`settings.webui.operationFailed`）
 - 启动 IPC 超时（3 秒未返回）：UI 乐观地认为服务已启动，显示为运行中，**同时持久化 enabled=true**（已知局限：可能导致 UI 与实际状态不一致，且下次启动时循环恢复失败服务）
 - 端口被占用：服务器自动尝试下一个端口（`port + 1`），递增上限固定为 `DEFAULT_PORT + 10`（默认端口：生产 25808，开发 25809，上限 25818/25819）；当用户通过 CLI/环境变量指定端口超出此范围时，不触发递增，直接报错
-- 停止操作为 fire-and-forget 模式：UI 和 ConfigStorage 先行更新为停止状态 → toast 提示"WebUI 已停止"（`settings.webui.stopSuccess`）→ 然后才异步调用 `webui.stop.invoke()`。**Toast 出现时服务器可能仍在运行**
+- 停止操作为 fire-and-forget 模式：UI 和配置层先行更新为停止状态 → toast 提示"WebUI 已停止"（`settings.webui.stopSuccess`）→ 然后才异步调用 `webui.stop.invoke()`。**Toast 出现时服务器可能仍在运行**
 - 服务器已在运行时再次收到启动请求：先停止旧实例（关闭所有 WebSocket 连接、释放端口），再启动新实例
 
 **验收标准**：
@@ -51,7 +51,7 @@
 **正常流程**（用户视角）：
 
 1. 用户启用 WebUI 服务（F-WEBUI-01）
-2. 系统在启动成功后将 `webui.desktop.enabled = true` 写入 ConfigStorage
+2. 系统在启动成功后将 `webui.desktop.enabled = true` 写入配置层
 3. 用户关闭并重新打开应用
 4. 应用在后台自动启动 WebUI 服务（非阻塞，不影响应用启动速度）
 5. 进入设置页面时显示为已启动状态
@@ -60,27 +60,27 @@
 
 端口解析（覆盖式优先级）：CLI 参数（`--port` / `--webui-port`）> 环境变量（`LOKSYSTEM_PORT` / `PORT`）> 配置文件（`userData/webui.config.json`）> 默认值（25808/25809）
 
-远程访问（多源 OR 聚合 — 只要任一来源为 true 即启用）：`isRemoteMode` || 环境变量（`LOKSYSTEM_ALLOW_REMOTE` / `LOKSYSTEM_REMOTE` / `LOKSYSTEM_HOST=0.0.0.0`）|| 配置文件（`allowRemote: true`）|| ConfigStorage 偏好
+远程访问（多源 OR 聚合 — 只要任一来源为 true 即启用）：`isRemoteMode` || 环境变量（`LOKSYSTEM_ALLOW_REMOTE` / `LOKSYSTEM_REMOTE` / `LOKSYSTEM_HOST=0.0.0.0`）|| 配置文件（`allowRemote: true`）|| 配置层偏好
 
 **两种启动路径的配置差异**：
 
 | 启动路径       | 端口解析                                                | 远程访问解析                               |
 | -------------- | ------------------------------------------------------- | ------------------------------------------ |
 | CLI/服务器模式 | 经过 `resolveWebUIPort`（CLI > env > config > default） | 经过 `resolveRemoteAccess`（多源 OR 聚合） |
-| 桌面自动恢复   | 仅从 ConfigStorage 读取（不经过 resolve）               | 仅从 ConfigStorage 读取（不经过 resolve）  |
+| 桌面自动恢复   | 仅从配置层读取（不经过 resolve）               | 仅从配置层读取（不经过 resolve）  |
 
 **异常情况**：
 
 - 自动恢复失败（端口全部占用/其他错误）：仅记录日志，不影响应用正常启动
 - 配置文件 JSON 解析失败：使用空配置 `{}`，不报错
-- ConfigStorage 读取失败：默认为未启用
+- 配置层读取失败：默认为未启用
 
 **验收标准**：
 
 - [ ] 启用 WebUI 后，重启应用时自动恢复 WebUI 服务 [验证策略：集成测试]
 - [ ] 禁用 WebUI 后，重启应用不会自动启动服务 [验证策略：集成测试]
 - [ ] 启动失败不影响应用正常使用 [验证策略：集成测试]
-- [ ] 持久化在启动成功后才写入（失败不写入，避免循环恢复失败）[验证策略：evaluate_script 读 ConfigStorage]
+- [ ] 持久化在启动成功后才写入（失败不写入，避免循环恢复失败）[验证策略：evaluate_script 读配置层]
 
 ---
 
@@ -436,8 +436,8 @@
 │ 渲染进程 (Renderer) - WebuiModalContent.tsx                          │
 │                                                                      │
 │  状态加载:                                                            │
-│    ├─ ConfigStorage.get('webui.desktop.enabled')                     │
-│    ├─ ConfigStorage.get('webui.desktop.allowRemote')                 │
+│    ├─ configService.get('webui.desktop.enabled')                     │
+│    ├─ configService.get('webui.desktop.allowRemote')                 │
 │    ├─ electronAPI.webuiGetStatus() [优先]                             │
 │    └─ webui.getStatus.invoke() [后备, 1.5s timeout]                  │
 │                                                                      │

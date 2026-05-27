@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { assistantService } from '@/common/config/assistantService';
 import { resolveLocaleKey } from '@/common/utils';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
@@ -24,7 +25,6 @@ import { useGuidMention } from './hooks/useGuidMention';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
-import { ConfigStorage } from '@/common/config/storage';
 import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import type { AcpBackendConfig } from './types';
@@ -422,23 +422,25 @@ const GuidPage: React.FC = () => {
       if (!customAgentId || nextType === currentPresetAgentType) return;
       try {
         const [presetAssistants, localAgents] = await Promise.all([
-          ConfigStorage.get('assistants').then((v) => (v || []) as AcpBackendConfig[]),
-          ConfigStorage.get('acp.customAgents').then((v) => (v || []) as AcpBackendConfig[]),
+          assistantService.listAssistants(),
+          assistantService.listCustomAgents(),
         ]);
         const presetIdx = presetAssistants.findIndex((a) => a.id === customAgentId);
         if (presetIdx >= 0) {
-          const updated = [...presetAssistants];
-          updated[presetIdx] = { ...updated[presetIdx], presetAgentType: nextType };
-          await ConfigStorage.set('assistants', updated);
+          await assistantService.updateAssistant(customAgentId, (assistant) => ({
+            ...assistant,
+            presetAgentType: nextType,
+          }));
         } else {
           const localIdx = localAgents.findIndex((a) => a.id === customAgentId);
           if (localIdx < 0) {
             Message.warning(t('common.failed', { defaultValue: 'Failed' }));
             return;
           }
-          const updated = [...localAgents];
-          updated[localIdx] = { ...updated[localIdx], presetAgentType: nextType };
-          await ConfigStorage.set('acp.customAgents', updated);
+          await assistantService.updateCustomAgent(customAgentId, (assistant) => ({
+            ...assistant,
+            presetAgentType: nextType,
+          }));
         }
         await agentSelection.refreshCustomAgents();
         const agentName = ACP_BACKENDS_ALL[nextType as keyof typeof ACP_BACKENDS_ALL]?.name || nextType;

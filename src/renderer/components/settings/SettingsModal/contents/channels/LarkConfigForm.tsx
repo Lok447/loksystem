@@ -6,8 +6,8 @@
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
+import { configService } from '@/common/config/configService';
 import { getRendererCoreClient } from '@/common/coreClient';
-import { ConfigStorage } from '@/common/config/storage';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
 import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
@@ -129,7 +129,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
       try {
         const [agentsResp, saved] = await Promise.all([
           getRendererCoreClient().acp.getAvailableAgents(),
-          ConfigStorage.get('assistant.lark.agent'),
+          configService.get('assistant.lark.agent'),
         ]);
 
         if (agentsResp.success && agentsResp.data) {
@@ -164,7 +164,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
 
   const persistSelectedAgent = async (agent: { backend: string; customAgentId?: string; name?: string }) => {
     try {
-      await ConfigStorage.set('assistant.lark.agent', agent);
+      await configService.set('assistant.lark.agent', agent);
       await channel.syncChannelSettings
         .invoke({ platform: 'lark', agent })
         .catch((err) => console.warn('[LarkConfig] syncChannelSettings failed:', err));

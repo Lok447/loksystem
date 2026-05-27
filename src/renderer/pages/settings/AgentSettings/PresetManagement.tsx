@@ -4,7 +4,8 @@ import { EditTwo, Delete, Lightning } from '@icon-park/react';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate } from 'swr';
-import { ConfigStorage } from '@/common/config/storage';
+import { assistantService } from '@/common/config/assistantService';
+import { configService } from '@/common/config/configService';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import { getRendererCoreClient } from '@/common/coreClient';
 import { DETECTED_AGENTS_SWR_KEY } from '@/renderer/utils/model/agentTypes';
@@ -31,10 +32,8 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
 
   const loadPresets = useCallback(async () => {
     try {
-      const agents = await ConfigStorage.get('assistants');
-      if (agents && Array.isArray(agents)) {
-        setPresets(agents.filter((a) => a.isPreset));
-      }
+      const agents = await assistantService.listPresetAssistants();
+      setPresets(agents);
     } catch (error) {
       console.error('Failed to load presets:', error);
     }
@@ -63,11 +62,11 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
   const handleSave = async () => {
     if (!editingPreset) return;
     try {
-      const allAgents = (await ConfigStorage.get('assistants')) || [];
-      const updatedAgents = allAgents.map((a) =>
-        a.id === editingPreset.id ? { ...a, name: editName, context: editContext } : a
-      );
-      await ConfigStorage.set('assistants', updatedAgents);
+      await assistantService.updateAssistant(editingPreset.id, (assistant) => ({
+        ...assistant,
+        name: editName,
+        context: editContext,
+      }));
       setEditVisible(false);
       message.success(t('common.success', { defaultValue: 'Success' }));
       void loadPresets();
@@ -80,13 +79,11 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
   const handleDelete = async () => {
     if (!presetToDelete) return;
     try {
-      const allAgents = (await ConfigStorage.get('assistants')) || [];
-      const updatedAgents = allAgents.filter((a) => a.id !== presetToDelete.id);
-      await ConfigStorage.set('assistants', updatedAgents);
+      await assistantService.removeAssistant(presetToDelete.id);
       if (presetToDelete.isBuiltin) {
-        const deletedBuiltinIds = ((await ConfigStorage.get('assistants.deletedBuiltinIds')) || []) as string[];
+        const deletedBuiltinIds = ((await configService.get('assistants.deletedBuiltinIds')) || []) as string[];
         if (!deletedBuiltinIds.includes(presetToDelete.id)) {
-          await ConfigStorage.set('assistants.deletedBuiltinIds', [...deletedBuiltinIds, presetToDelete.id]);
+          await configService.set('assistants.deletedBuiltinIds', [...deletedBuiltinIds, presetToDelete.id]);
         }
       }
       setDeleteVisible(false);

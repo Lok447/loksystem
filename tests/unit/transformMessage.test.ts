@@ -30,6 +30,11 @@ describe('transformMessage', () => {
     expect(result!.position).toBe('left');
   });
 
+  it('returns undefined for non-renderable empty content messages', () => {
+    expect(transformMessage(makeMessage('content', '   '))).toBeUndefined();
+    expect(transformMessage(makeMessage('user_content', { content: '' }))).toBeUndefined();
+  });
+
   it('transforms user_content messages into right-aligned text', () => {
     const result = transformMessage(makeMessage('user_content', 'user msg'));
     expect(result).toBeDefined();
@@ -41,6 +46,10 @@ describe('transformMessage', () => {
     for (const type of ['start', 'finish', 'thought', 'info', 'system', 'acp_model_info', 'request_trace']) {
       expect(transformMessage(makeMessage(type))).toBeUndefined();
     }
+  });
+
+  it('returns undefined for empty tool_group payloads', () => {
+    expect(transformMessage(makeMessage('tool_group', []))).toBeUndefined();
   });
 
   it('does not warn for info messages', () => {

@@ -6,7 +6,8 @@
 
 import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
-import { ConfigStorage, type ICssTheme } from '@/common/config/storage';
+import { type ICssTheme } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
@@ -116,9 +117,9 @@ const Layout: React.FC<{
   const loadAndHealCustomCss = useCallback(async () => {
     try {
       const [savedCssRaw, activeThemeId, savedThemes] = await Promise.all([
-        ConfigStorage.get('customCss'),
-        ConfigStorage.get('css.activeThemeId'),
-        ConfigStorage.get('css.themes'),
+        configService.get('customCss'),
+        configService.get('css.activeThemeId'),
+        configService.get('css.themes'),
       ]);
 
       const decision = computeCssSyncDecision({
@@ -142,13 +143,13 @@ const Layout: React.FC<{
         effectiveCss = defaultCss;
         // Persist the fallback so Layout doesn't keep retrying
         await Promise.all([
-          ConfigStorage.set('css.activeThemeId', 'default-theme'),
-          ConfigStorage.set('customCss', effectiveCss),
+          configService.set('css.activeThemeId', 'default-theme'),
+          configService.set('customCss', effectiveCss),
         ]).catch((error) => {
           console.warn('Failed to persist theme fallback:', error);
         });
       } else if (decision.shouldHealStorage) {
-        await ConfigStorage.set('customCss', effectiveCss).catch((error) => {
+        await configService.set('customCss', effectiveCss).catch((error) => {
           console.warn('Failed to heal custom CSS from active theme:', error);
         });
       }
@@ -180,11 +181,23 @@ const Layout: React.FC<{
         void loadAndHealCustomCss();
       }
     };
+    const unsubscribeCustomCss = configService.subscribe('customCss', () => {
+      void loadAndHealCustomCss();
+    });
+    const unsubscribeActiveTheme = configService.subscribe('css.activeThemeId', () => {
+      void loadAndHealCustomCss();
+    });
+    const unsubscribeThemes = configService.subscribe('css.themes', () => {
+      void loadAndHealCustomCss();
+    });
 
     window.addEventListener('custom-css-updated', handleCssUpdate as EventListener);
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
+      unsubscribeCustomCss();
+      unsubscribeActiveTheme();
+      unsubscribeThemes();
       window.removeEventListener('custom-css-updated', handleCssUpdate as EventListener);
       window.removeEventListener('storage', handleStorageChange);
     };

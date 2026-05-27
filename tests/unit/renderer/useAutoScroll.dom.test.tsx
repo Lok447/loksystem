@@ -195,4 +195,18 @@ describe('useAutoScroll — streaming content scroll', () => {
     // Should scroll to new bottom: 1500 - 400 = 1100
     expect(scrollerDiv.scrollTop).toBe(1100);
   });
+
+  it('forces bottom alignment after initial hydrate from empty list', () => {
+    const { rerender } = render(<HarnessInner messages={[]} itemCount={0} scrollerRef={scrollerRef} />);
+
+    Object.defineProperty(scrollerDiv, 'scrollHeight', { value: 1600, configurable: true });
+    Object.defineProperty(scrollerDiv, 'scrollTop', { value: 0, configurable: true });
+
+    act(() => {
+      rerender(<HarnessInner messages={[makeTextMessage('m1', 'hydrated')]} itemCount={1} scrollerRef={scrollerRef} />);
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(scrollerDiv.scrollTop).toBe(1600 - 400);
+  });
 });

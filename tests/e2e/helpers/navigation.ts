@@ -7,6 +7,9 @@
 import type { Page } from '@playwright/test';
 import { channelItemById, webuiTabByKey } from './selectors';
 
+const E2E_DEFAULT_USERNAME = process.env.E2E_USERNAME || 'admin';
+const E2E_DEFAULT_PASSWORD = process.env.E2E_PASSWORD || 'Admin@123';
+
 // ── Route constants ──────────────────────────────────────────────────────────
 
 export const ROUTES = {
@@ -46,6 +49,60 @@ function isAlreadyAt(page: Page, hash: string): boolean {
   }
 }
 
+async function canUseRendererContext(page: Page): Promise<boolean> {
+  return page
+    .evaluate(() => typeof window !== 'undefined' && typeof document !== 'undefined' && document.readyState !== 'loading')
+    .catch(() => false);
+}
+
+async function tryDirectHashNavigation(page: Page, hash: string): Promise<boolean> {
+  if (!(await canUseRendererContext(page))) {
+    return false;
+  }
+
+  await page
+    .evaluate((targetHash) => {
+      if (window.location.hash === targetHash) return;
+      window.location.hash = targetHash;
+    }, hash)
+    .catch(() => undefined);
+
+  try {
+    await page.waitForFunction((targetHash) => window.location.hash === targetHash, hash, { timeout: 4_000 });
+    return true;
+  } catch {
+    return isAlreadyAt(page, hash);
+  }
+}
+
+export async function ensureAuthenticated(page: Page): Promise<void> {
+  await page.waitForSelector('body', { state: 'visible', timeout: 15_000 });
+
+  const needsLogin = await page
+    .locator('#username.login-page__input, .login-page__form, form.login-page__form')
+    .first()
+    .isVisible()
+    .catch(() => false);
+
+  if (!needsLogin) {
+    return;
+  }
+
+  const username = page.locator('#username');
+  const password = page.locator('#password');
+  const submit = page.locator('button[type="submit"].login-page__submit');
+
+  await username.waitFor({ state: 'visible', timeout: 10_000 });
+  await username.fill(E2E_DEFAULT_USERNAME);
+  await password.fill(E2E_DEFAULT_PASSWORD);
+  await submit.click();
+
+  await page
+    .waitForFunction(() => !window.location.hash.includes('/login'), { timeout: 15_000 })
+    .catch(() => undefined);
+  await waitForSettle(page, 5_000);
+}
+
 /**
  * Navigate to a hash route via UI clicks.
  *
@@ -59,7 +116,14 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
     throw new Error('Cannot navigate: page is already closed.');
   }
 
+  await ensureAuthenticated(page);
+
   if (isAlreadyAt(page, hash)) {
+    return;
+  }
+
+  if (await tryDirectHashNavigation(page, hash)) {
+    await waitForSettle(page, 4_000);
     return;
   }
 
@@ -71,7 +135,7 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
     // Target is non-settings (guid, conversation, etc.)
     if (isOnSettings) {
       // Click the sider back button to leave settings
-      const siderBtn = page.locator('.sider-footer div').first();
+      const siderBtn = page.locator('.sider-footer [class*="cursor-pointer"]').first();
       await siderBtn.waitFor({ state: 'visible', timeout: 10_000 });
       await siderBtn.click();
       // Wait for hash to change away from settings
@@ -82,7 +146,9 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
     // Programmatic navigation for non-settings targets.
     // Always navigate when not already at the target (e.g. conversation → guid).
     if (!isAlreadyAt(page, hash)) {
-      await page.evaluate((h) => window.location.assign(h), hash);
+      await page.evaluate((h) => {
+        window.location.hash = h;
+      }, hash);
       try {
         await page.waitForFunction((h) => window.location.hash === h, hash, { timeout: 10_000 });
       } catch {
@@ -93,7 +159,7 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
     // Target is a settings sub-page
     if (!isOnSettings) {
       // Click sider settings button to enter settings
-      const siderBtn = page.locator('.sider-footer div').first();
+      const siderBtn = page.locator('.sider-footer [class*="cursor-pointer"]').first();
       await siderBtn.waitFor({ state: 'visible', timeout: 10_000 });
       await siderBtn.click();
       await page

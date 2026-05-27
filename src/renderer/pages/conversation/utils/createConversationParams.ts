@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage } from '@/common/config/storage';
+import { providerService } from '@/common/config/providerService';
+import { configService } from '@/common/config/configService';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend } from '@/common/types/acpTypes';
@@ -44,9 +45,9 @@ async function resolvePreferredMode(backend: string): Promise<string | undefined
   let preference: ModePreference | undefined;
 
   if (normalizedBackend === 'aionrs') {
-    preference = await ConfigStorage.get('aionrs.config');
+    preference = await configService.get('aionrs.config');
   } else {
-    const acpConfig = await ConfigStorage.get('acp.config');
+    const acpConfig = await configService.get('acp.config');
     preference = acpConfig?.[normalizedBackend as AcpBackend];
   }
 
@@ -66,14 +67,14 @@ async function resolvePreferredMode(backend: string): Promise<string | undefined
 }
 
 async function resolvePreferredAcpModelId(backend: string): Promise<string | undefined> {
-  const acpConfig = await ConfigStorage.get('acp.config');
+  const acpConfig = await configService.get('acp.config');
   const backendConfig = acpConfig?.[backend as AcpBackend] as { preferredModelId?: string } | undefined;
   const preferredModelId = backendConfig?.preferredModelId;
   if (typeof preferredModelId === 'string' && preferredModelId.trim().length > 0) {
     return preferredModelId;
   }
 
-  const cachedModels = await ConfigStorage.get('acp.cachedModels');
+  const cachedModels = await configService.get('acp.cachedModels');
   const cachedModelId = cachedModels?.[backend]?.currentModelId;
   if (typeof cachedModelId === 'string' && cachedModelId.trim().length > 0) {
     return cachedModelId;
@@ -92,7 +93,7 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
  * Throws if no compatible provider is configured.
  */
 export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
-  const providers = await ConfigStorage.get('model.config');
+  const providers = await providerService.list();
 
   if (!providers || providers.length === 0) {
     throw new Error('No model provider configured');

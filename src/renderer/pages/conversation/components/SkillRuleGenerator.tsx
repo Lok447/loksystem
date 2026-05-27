@@ -16,7 +16,7 @@ import { Magic, FolderOpen, Lightning } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import { getRendererCoreClient } from '@/common/coreClient';
-import { ConfigStorage } from '@/common/config/storage';
+import { assistantService } from '@/common/config/assistantService';
 import { uuid } from '@/common/utils';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
@@ -269,7 +269,6 @@ Requirements:
 
   const registerPreset = async (name: string, content: string) => {
     try {
-      const customAgents = ((await ConfigStorage.get('assistants')) ?? []) as AcpBackendConfig[];
       const presetAgent: AcpBackendConfig = {
         id: uuid(),
         name,
@@ -277,8 +276,7 @@ Requirements:
         isPreset: true,
         context: content,
       };
-      customAgents.push(presetAgent);
-      await ConfigStorage.set('assistants', customAgents);
+      await assistantService.upsertAssistant(presetAgent);
       await getRendererCoreClient().acp.refreshCustomAgents();
       Message.success(
         t('conversation.skill_generator.preset_registered', { defaultValue: 'Agent preset registered successfully!' })

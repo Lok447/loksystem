@@ -18,7 +18,7 @@ import dayjs from 'dayjs';
 import AcpConfigSelector from '@renderer/components/agent/AcpConfigSelector';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { AcpBackendAll, AcpModelInfo, AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
@@ -225,7 +225,8 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       return;
     }
 
-    ConfigStorage.get('acp.cachedConfigOptions')
+    configService
+      .get('acp.cachedConfigOptions')
       .then((cached) => {
         if (cached && cached[resolvedBackend]) {
           // Filter out model/mode categories — those are handled by dedicated selectors
@@ -276,7 +277,8 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setAcpCachedModelInfo(null);
       return;
     }
-    ConfigStorage.get('acp.cachedModels')
+    configService
+      .get('acp.cachedModels')
       .then((cached) => {
         const info = cached?.[resolvedBackend];
         setAcpCachedModelInfo(info?.availableModels?.length ? info : null);
@@ -288,14 +290,16 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   useEffect(() => {
     if (!resolvedBackend || modelId) return;
     if (resolvedBackend === 'gemini') {
-      ConfigStorage.get('gemini.defaultModel')
+      configService
+        .get('gemini.defaultModel')
         .then((saved) => {
           const preferred = typeof saved === 'string' ? saved : saved?.useModel;
           if (preferred) setModelId(preferred);
         })
         .catch(() => {});
     } else if (resolvedBackend === 'aionrs') {
-      ConfigStorage.get('aionrs.defaultModel')
+      configService
+        .get('aionrs.defaultModel')
         .then((saved) => {
           if (saved?.useModel) setModelId(saved.useModel);
         })

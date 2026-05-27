@@ -166,9 +166,11 @@ const AionrsConversationPanel: React.FC<{
     title: conversation.name,
     siderTitle: sliderTitle,
     sider: <ChatSider conversation={conversation} />,
-    headerLeft: <AionrsModelSelector selection={modelSelection} />,
     headerExtra: (
       <div className='flex items-center gap-8px'>
+        <div className='chat-layout-header__selector shrink-0'>
+          <AionrsModelSelector selection={modelSelection} />
+        </div>
         <ConversationSkillsIndicator conversation={conversation} />
         <CronJobManager
           conversationId={conversation.id}
@@ -342,6 +344,7 @@ const ChatConversation: React.FC<{
 
   const headerExtraNode = (
     <div className='flex items-center gap-8px'>
+      {modelSelector && <div className='chat-layout-header__selector shrink-0'>{modelSelector}</div>}
       {conversation && <_AssociatedConversation conversation_id={conversation.id} />}
       {conversation && <_AddNewConversation conversation={conversation} />}
       {conversation?.type === 'openclaw-gateway' && (
@@ -371,7 +374,6 @@ const ChatConversation: React.FC<{
     <ChatLayout
       title={conversation?.name}
       {...chatLayoutProps}
-      headerLeft={modelSelector}
       headerExtra={headerExtraNode}
       siderTitle={sliderTitle}
       sider={<ChatSider conversation={conversation} />}

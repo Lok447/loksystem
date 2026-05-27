@@ -16,8 +16,8 @@ vi.mock('@/renderer/services/SpeechToTextService', () => ({
   transcribeAudioBlob: (...args: unknown[]) => mockTranscribeAudioBlob(...args),
 }));
 
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: {
+vi.mock('@/common/config/configService', () => ({
+  configService: {
     get: (...args: unknown[]) => mockConfigGet(...args),
   },
 }));

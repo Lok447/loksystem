@@ -26,6 +26,11 @@ export const providerService = {
     return normalizeProviderList(providers);
   },
 
+  async getById(providerId: string): Promise<IProvider | undefined> {
+    const providers = await this.list();
+    return providers.find((provider: IProvider) => provider.id === providerId);
+  },
+
   async replaceAll(providers: IProvider[]): Promise<IProvider[]> {
     const normalized = normalizeProviderList(providers);
     await configService.set(PROVIDER_KEY, normalized);
@@ -43,5 +48,40 @@ export const providerService = {
   async remove(providerId: string): Promise<IProvider[]> {
     const current = await this.list();
     return this.replaceAll(current.filter((item: IProvider) => item.id !== providerId));
+  },
+
+  async updateModelHealth(
+    providerId: string,
+    modelName: string,
+    health: NonNullable<IProvider['modelHealth']>[string]
+  ): Promise<IProvider[]> {
+    const current = await this.list();
+    const next = current.map((item: IProvider) => {
+      if (item.id !== providerId) {
+        return item;
+      }
+      const nextModelHealth = {
+        ...(item.modelHealth || {}),
+        [modelName]: health,
+      } as NonNullable<IProvider['modelHealth']>;
+      const nextItem: IProvider = {
+        ...item,
+        modelHealth: nextModelHealth,
+      };
+      return nextItem;
+    });
+    return this.replaceAll(next);
+  },
+
+  async clearAllModelHealth(): Promise<IProvider[]> {
+    const current = await this.list();
+    const next = current.map((item: IProvider) => {
+      const nextItem: IProvider = {
+        ...item,
+        modelHealth: undefined,
+      };
+      return nextItem;
+    });
+    return this.replaceAll(next);
   },
 };

@@ -2,8 +2,8 @@ import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mcpService } from '@/common/adapter/ipcBridge';
 import { getRendererCoreClient } from '@/common/coreClient';
-import { ConfigStorage } from '@/common/config/storage';
 import type { IMcpServer } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { globalMessageQueue } from './messageQueue';
 import { filterVisibleMcpAgents } from './mcpAgentFilter';
 
@@ -79,7 +79,7 @@ export const useMcpOperations = (
 
         // 然后更新UI状态
         if (!skipRecheck) {
-          void ConfigStorage.get('mcp.config')
+          void configService.get('mcp.config')
             .then((latestServers) => {
               if (latestServers) {
                 // 这里可以触发状态检查，但需要在使用的地方提供回调

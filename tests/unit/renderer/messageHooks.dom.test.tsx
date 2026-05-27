@@ -64,6 +64,24 @@ const MutationProbe = () => {
       >
         add-message
       </button>
+      <button
+        type='button'
+        onClick={() =>
+          addOrUpdateMessage(
+            {
+              id: 'msg-empty',
+              msg_id: 'msg-empty',
+              conversation_id: 'conv-1',
+              type: 'text',
+              position: 'left',
+              content: { content: '   ' },
+            } as never,
+            true
+          )
+        }
+      >
+        add-empty-message
+      </button>
       <button type='button' onClick={() => removeMessageByMsgId('msg-1')}>
         remove-message
       </button>
@@ -143,6 +161,22 @@ describe('message hooks cache merge', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('mutated-messages').textContent).not.toContain('msg-1');
+    });
+  });
+
+  it('ignores non-renderable optimistic messages', async () => {
+    mockGetConversationMessagesInvoke.mockResolvedValue([]);
+
+    render(
+      <MessageListProvider value={[]}>
+        <MutationProbe />
+      </MessageListProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'add-empty-message' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('mutated-messages').textContent).not.toContain('msg-empty');
     });
   });
 });

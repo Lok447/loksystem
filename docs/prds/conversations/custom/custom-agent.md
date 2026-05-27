@@ -86,12 +86,12 @@
 
 **异常情况**：
 
-- ConfigStorage 返回 null/undefined：使用空数组，不显示「自定义 Agents」区域
+- 配置层返回 null/undefined：使用空数组，不显示「自定义 Agents」区域
 - 无 custom agent 且编辑器未打开：不渲染区域标题
 
 **技术说明**：
 
-- 数据来源：`ConfigStorage.get('acp.customAgents')` — 渲染进程本地读取
+- 数据来源：`configService.get('acp.customAgents')` — 渲染进程本地读取
 - SWR key：`acp.customAgents.settings`
 - 类型：`AcpBackendConfig[]`
 
@@ -123,13 +123,13 @@
    - 底部：取消 + 保存（disabled，需填入名称和命令才启用）
 4. 用户填写表单并点击"保存"
 5. 系统生成 uuid 作为 agent id，构建 `AcpBackendConfig` 对象
-6. 写入 `ConfigStorage('acp.customAgents')`，追加到列表末尾
+6. 写入 `acp.customAgents` 配置，追加到列表末尾
 7. 弹窗关闭，列表刷新显示新 agent
 
 **异常情况**：
 
 - 用户可通过右上角关闭按钮、编辑器内取消按钮、或点击遮罩层（LokModal 默认行为）关闭弹窗，均不保存数据
-- ConfigStorage 写入失败：无 try-catch，异常 bubble up，弹窗可能未关闭（已知局限）
+- 配置层写入失败：无 try-catch，异常 bubble up，弹窗可能未关闭（已知局限）
 
 **验收标准**：
 
@@ -159,7 +159,7 @@
 4. 高级 JSON 编辑器默认收起（`InlineAgentEditor.tsx:131`——`setShowAdvanced(false)` 在 agent effect 中执行）
 5. 测试状态重置为 idle
 6. 用户修改字段后点击"保存"
-7. 系统按 id 查找并替换原有配置，写回 ConfigStorage
+7. 系统按 id 查找并替换原有配置，写回配置层
 8. 弹窗关闭，列表刷新
 
 **异常情况**：
@@ -405,15 +405,15 @@
    - `enabled`：新建时固定为 `true`；编辑时保留 props 传入的原值（`agent?.enabled !== false`）
    - `acpArgs`：解析参数字符串，为空则 `undefined`
    - `env`：转换 key-value 列表，为空则 `undefined`
-3. 从 ConfigStorage 读取最新列表（非 SWR 缓存，避免并发问题）
+3. 从配置层读取最新列表（非 SWR 缓存，避免并发问题）
 4. 按 id 查找：存在则替换（更新），不存在则追加（创建）
-5. 写回 ConfigStorage
+5. 写回配置层
 6. 触发 SWR mutate 刷新列表
 7. 弹窗关闭，表单状态清空
 
 **异常情况**：
 
-- ConfigStorage 读写失败：无 try-catch，异常 bubble up（弹窗可能不关闭）
+- 配置层读写失败：无 try-catch，异常 bubble up（弹窗可能不关闭）
 - 无重名校验（允许多个同名 agent）
 - 无命令重复校验
 
@@ -438,13 +438,13 @@
 
 1. 用户点击 custom agent 行卡片右侧的删除按钮（红色 Delete 图标）
 2. **无确认对话框** — 直接执行删除
-3. 从 ConfigStorage 读取列表，按 id 过滤掉目标 agent，写回
+3. 从配置层读取列表，按 id 过滤掉目标 agent，再写回配置层
 4. SWR 刷新，列表中该 agent 立即消失
 
 **异常情况**：
 
 - 操作不可撤销，无 undo 机制
-- ConfigStorage 读写失败：无 try-catch
+- 配置层读写失败：无 try-catch
 - 删除正在对话中使用的 agent：可能导致该对话异常（需进一步验证）
 
 **已知局限**：
@@ -454,7 +454,7 @@
 **验收标准**：
 
 - [ ] 点击删除按钮后 agent 立即从列表消失（无确认弹窗）
-- [ ] 删除后 ConfigStorage 中不再包含该 agent
+- [ ] 删除后配置层中不再包含该 agent
 - [ ] 删除是不可恢复操作
 
 ---
@@ -468,9 +468,9 @@
 1. 每个 custom agent 行卡片右侧有 Switch 开关（size=small）
 2. 默认为开启状态（`enabled !== false`）
 3. 用户切换 Switch：
-   - Switch `onChange` 回调传入切换后的目标 `enabled` 值（非取反逻辑），直接写入 ConfigStorage
-   - 从 ConfigStorage 读取最新列表，按 id 更新目标 agent 的 `enabled` 字段
-   - 写回 ConfigStorage，SWR 刷新
+   - Switch `onChange` 回调传入切换后的目标 `enabled` 值（非取反逻辑），直接写入配置层
+   - 从配置层读取最新列表，按 id 更新目标 agent 的 `enabled` 字段
+   - 写回配置层，SWR 刷新
 4. 禁用后 agent 仍在列表中显示，仅 Switch 为关闭态
 
 **异常情况**：
@@ -519,7 +519,7 @@
 **技术说明**：
 
 - `POTENTIAL_ACP_CLIS` 使用 Proxy 延迟初始化，从 `ACP_BACKENDS_ALL` 自动生成，避免数据冗余和循环依赖
-- Custom agent 走不同的数据通路（ConfigStorage），不参与自动检测
+- Custom agent 走不同的数据通路（配置层），不参与自动检测
 
 **验收标准**：
 
@@ -531,7 +531,7 @@
 
 ## (F-CAGENT-16) Custom Agent 数据加载（GuidPage 场景）[已实现]
 
-> 建议验证策略：合并逻辑通过 React Testing Library mock ConfigStorage 和 IPC 覆盖；E2E 仅验证最终显示结果
+> 建议验证策略：合并逻辑通过 React Testing Library mock 配置层存储和 IPC 覆盖；E2E 仅验证最终显示结果
 
 **用户故事**：作为用户，我希望在新建对话选择 Agent 时看到所有可用的 custom agent，包括预设助手和扩展贡献的 agent。
 
@@ -539,8 +539,8 @@
 
 1. 用户进入 GuidPage（引导页/对话选择页）
 2. 系统加载并合并三个数据源：
-   - 预设助手（`ConfigStorage('assistants')` 中 `isPreset === true`）
-   - 用户自定义 agent（`ConfigStorage('acp.customAgents')` 中被 `availableCustomAgentIds` 过滤的条目）
+   - 预设助手（`assistants` 预设助手配置中 `isPreset === true`）
+   - 用户自定义 agent（`acp.customAgents` 配置中被 `availableCustomAgentIds` 过滤的条目）
    - 扩展贡献的助手（`ipcBridge.extensions.getAssistants.invoke()`，去重——已有 id 跳过）
 3. 返回合并后的列表及 `customAgentAvatarMap`（id → avatar 映射）
 
@@ -553,8 +553,8 @@
 
 `useCustomAgentsLoader` 内部有两个独立的 useEffect：
 
-1. **Initial load**（`useCustomAgentsLoader.ts:73-75`）：仅读 ConfigStorage + extensions，触发条件为 `loadCustomAgents` 引用变化
-2. **Refresh**（`useCustomAgentsLoader.ts:88-90`）：调用 IPC `refreshCustomAgents.invoke()` → SWR mutate(`DETECTED_AGENTS_SWR_KEY`) → 重新读 ConfigStorage。触发条件为 `refreshCustomAgents` 引用变化
+1. **Initial load**（`useCustomAgentsLoader.ts:73-75`）：仅读配置层 + extensions，触发条件为 `loadCustomAgents` 引用变化
+2. **Refresh**（`useCustomAgentsLoader.ts:88-90`）：调用 IPC `refreshCustomAgents.invoke()` → SWR mutate(`DETECTED_AGENTS_SWR_KEY`) → 重新读配置层。触发条件为 `refreshCustomAgents` 引用变化
 
 两次加载可能导致列表短暂闪烁（已知局限）。
 
@@ -574,8 +574,8 @@
 │ 渲染进程 (Renderer)                                               │
 │                                                                   │
 │  LocalAgents                                                      │
-│    ├─ ConfigStorage.get('acp.customAgents')      → 本地读取       │
-│    ├─ ConfigStorage.set('acp.customAgents', [...])→ 本地写入       │
+│    ├─ configService.get('acp.customAgents')      → 本地读取       │
+│    ├─ configService.set('acp.customAgents', [...])→ 本地写入       │
 │    └─ ipcBridge.acpConversation                                   │
 │         .getAvailableAgents.invoke()             → IPC invoke     │
 │                                                                   │
@@ -588,8 +588,8 @@
 │    └─ acpConversation.refreshCustomAgents.invoke()→ IPC invoke    │
 │                                                                   │
 │  useCustomAgentsLoader                                            │
-│    ├─ ConfigStorage.get('assistants')             → 本地读取      │
-│    ├─ ConfigStorage.get('acp.customAgents')       → 本地读取      │
+│    ├─ configService.get('assistants')             → 本地读取      │
+│    ├─ configService.get('acp.customAgents')       → 本地读取      │
 │    ├─ extensions.getAssistants.invoke()           → IPC invoke    │
 │    └─ acpConversation.refreshCustomAgents.invoke()→ IPC invoke    │
 └────────────────────────┬─────────────────────────────────────────┘
@@ -602,7 +602,7 @@
 │    └─ Step 2: ProcessAcpClient.start() → spawn + ACP init        │
 │                                                                   │
 │  AgentRegistry (getAvailableAgents provider)                      │
-│    └─ 扫描 POTENTIAL_ACP_CLIS + ConfigStorage custom agents       │
+│    └─ 扫描 POTENTIAL_ACP_CLIS + configuration-layer custom agents │
 │                                                                   │
 │  refreshCustomAgents provider                                     │
 │    └─ 重新扫描并更新 agent 可用性                                  │
@@ -633,7 +633,7 @@
 | 3   | F-CAGENT-11 | 测试进行中关闭弹窗，后台进程不会被取消（设计约束，非 bug）            |
 | 4   | F-CAGENT-10 | "Invalid JSON" 错误信息未 i18n                                        |
 | 5   | F-CAGENT-10 | handleSubmit 重建对象时丢弃 JSON 高级编辑器中的额外字段（详见附录 D） |
-| 6   | F-CAGENT-12 | ConfigStorage 读写操作无 try-catch，失败时弹窗可能异常                |
+| 6   | F-CAGENT-12 | 配置层读写操作无 try-catch，失败时弹窗可能异常                        |
 | 7   | F-CAGENT-07 | 名称和命令字段无最大长度限制                                          |
 | 8   | F-CAGENT-09 | 环境变量无数量限制，无 Key/Value 格式校验                             |
 | 9   | F-CAGENT-08 | 未闭合引号静默处理，可能导致参数解析不符合用户预期                    |
