@@ -7,8 +7,20 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// ── IPC bridge mock ──────────────────────────────────────────────────────────
+const assistantServiceMock = vi.hoisted(() => ({
+  listAssistants: vi.fn().mockResolvedValue([]),
+}));
 
+const configServiceMock = vi.hoisted(() => ({
+  subscribe: vi.fn(() => vi.fn()),
+}));
+
+const coreClientMock = vi.hoisted(() => ({
+  getAvailableAgents: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  refreshCustomAgents: vi.fn().mockResolvedValue(undefined),
+}));
+
+// IPC bridge mocks
 const getAssistantsInvoke = vi.fn().mockResolvedValue([]);
 const getAcpAdaptersInvoke = vi.fn().mockResolvedValue([]);
 const getAvailableAgentsInvoke = vi.fn().mockResolvedValue({ success: true, data: [] });
@@ -33,8 +45,24 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-// ── Configuration storage mock ───────────────────────────────────────────────
+vi.mock('@/common/config/assistantService', () => ({
+  assistantService: assistantServiceMock,
+}));
 
+vi.mock('@/common/config/configService', () => ({
+  configService: configServiceMock,
+}));
+
+vi.mock('@/common/coreClient', () => ({
+  getRendererCoreClient: () => ({
+    acp: {
+      getAvailableAgents: coreClientMock.getAvailableAgents,
+      refreshCustomAgents: coreClientMock.refreshCustomAgents,
+    },
+  }),
+}));
+
+// Configuration storage mock
 const configStorageGetMock = vi.fn().mockResolvedValue([]);
 const configStorageSetMock = vi.fn().mockResolvedValue(undefined);
 
@@ -45,9 +73,7 @@ vi.mock('../../src/common/config/storage', () => ({
   },
 }));
 
-// ── SWR mock ─────────────────────────────────────────────────────────────────
-
-// Store fetcher functions so tests can trigger them
+// SWR mock
 const swrFetchers = new Map<string, () => unknown>();
 
 vi.mock('swr', () => {
@@ -62,16 +88,12 @@ vi.mock('swr', () => {
   };
 });
 
-// ── react-i18next mock ───────────────────────────────────────────────────────
-
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: Record<string, unknown>) => (opts?.defaultValue as string) ?? key,
     i18n: { language: 'en-US' },
   }),
 }));
-
-// ── Utility / preset mocks ──────────────────────────────────────────────────
 
 vi.mock('../../src/common/utils', () => ({
   resolveLocaleKey: (lang: string) => lang,
@@ -88,8 +110,6 @@ vi.mock('../../src/renderer/utils/platform', () => ({
   resolveExtensionAssetUrl: (url: string) => url,
 }));
 
-// ── Imports (after mocks) ────────────────────────────────────────────────────
-
 import { useAssistantList } from '../../src/renderer/hooks/assistant/useAssistantList';
 import { useDetectedAgents } from '../../src/renderer/hooks/assistant/useDetectedAgents';
 import { useAssistantSkills } from '../../src/renderer/hooks/assistant/useAssistantSkills';
@@ -99,20 +119,18 @@ import type {
   SkillInfo,
 } from '../../src/renderer/pages/settings/AssistantManagement/types';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// useAssistantList
-// ─────────────────────────────────────────────────────────────────────────────
-
 describe('useAssistantList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     configStorageGetMock.mockResolvedValue([]);
+    assistantServiceMock.listAssistants.mockResolvedValue([]);
+    configServiceMock.subscribe.mockReturnValue(vi.fn());
+    getAssistantsInvoke.mockResolvedValue([]);
   });
 
   it('returns empty assistants and null activeAssistantId initially', async () => {
     const { result } = renderHook(() => useAssistantList());
 
-    // Before loadAssistants resolves, state should be empty
     expect(result.current.assistants).toEqual([]);
     expect(result.current.activeAssistantId).toBeNull();
     expect(result.current.activeAssistant).toBeNull();
@@ -123,7 +141,7 @@ describe('useAssistantList', () => {
       { id: 'builtin-coder', name: 'Coder', isPreset: true, isBuiltin: true, enabled: true },
       { id: 'builtin-default', name: 'Default', isPreset: true, isBuiltin: true, enabled: true },
     ];
-    configStorageGetMock.mockResolvedValue(storedAgents);
+    assistantServiceMock.listAssistants.mockResolvedValue(storedAgents);
 
     const { result } = renderHook(() => useAssistantList());
 
@@ -131,11 +149,8 @@ describe('useAssistantList', () => {
       expect(result.current.assistants.length).toBe(2);
     });
 
-    // sortAssistants sorts by ASSISTANT_PRESETS order: default first, then coder
     expect(result.current.assistants[0].id).toBe('builtin-default');
     expect(result.current.assistants[1].id).toBe('builtin-coder');
-
-    // activeAssistantId defaults to first sorted assistant
     expect(result.current.activeAssistantId).toBe('builtin-default');
   });
 
@@ -144,7 +159,7 @@ describe('useAssistantList', () => {
       { id: 'builtin-default', name: 'Default', isPreset: true, isBuiltin: true, enabled: true },
       { id: 'custom-1', name: 'My Agent', isPreset: true, isBuiltin: false, enabled: true },
     ];
-    configStorageGetMock.mockResolvedValue(storedAgents);
+    assistantServiceMock.listAssistants.mockResolvedValue(storedAgents);
 
     const { result } = renderHook(() => useAssistantList());
 
@@ -152,7 +167,6 @@ describe('useAssistantList', () => {
       expect(result.current.assistants.length).toBe(2);
     });
 
-    // Set active to custom-1
     act(() => {
       result.current.setActiveAssistantId('custom-1');
     });
@@ -166,7 +180,7 @@ describe('useAssistantList', () => {
       { id: 'builtin-default', name: 'Default', isPreset: true, isBuiltin: true, enabled: true },
       { id: 'custom-1', name: 'My Agent', isPreset: true, isBuiltin: false, enabled: true },
     ];
-    configStorageGetMock.mockResolvedValue(storedAgents);
+    assistantServiceMock.listAssistants.mockResolvedValue(storedAgents);
 
     const { result } = renderHook(() => useAssistantList());
 
@@ -178,12 +192,10 @@ describe('useAssistantList', () => {
       result.current.setActiveAssistantId('custom-1');
     });
 
-    // Reload with same agents
     await act(async () => {
       await result.current.loadAssistants();
     });
 
-    // Should still be custom-1
     expect(result.current.activeAssistantId).toBe('custom-1');
   });
 
@@ -202,7 +214,7 @@ describe('useAssistantList', () => {
     const storedAgents = [
       { id: 'ext-buddy', name: 'Buddy', _source: 'extension', isPreset: true, isBuiltin: false, enabled: true },
     ];
-    configStorageGetMock.mockResolvedValue(storedAgents);
+    assistantServiceMock.listAssistants.mockResolvedValue(storedAgents);
 
     const { result } = renderHook(() => useAssistantList());
 
@@ -210,13 +222,12 @@ describe('useAssistantList', () => {
       expect(result.current.assistants.length).toBe(1);
     });
 
-    // Extension assistants are identified but not readonly
     expect(result.current.isExtensionAssistant(result.current.assistants[0])).toBe(true);
   });
 
   it('handles configuration storage errors gracefully', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    configStorageGetMock.mockRejectedValue(new Error('storage failure'));
+    assistantServiceMock.listAssistants.mockRejectedValue(new Error('storage failure'));
 
     const { result } = renderHook(() => useAssistantList());
 
@@ -229,20 +240,16 @@ describe('useAssistantList', () => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// useDetectedAgents
-// ─────────────────────────────────────────────────────────────────────────────
-
 describe('useDetectedAgents', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getAvailableAgentsInvoke.mockResolvedValue({ success: true, data: [] });
+    coreClientMock.getAvailableAgents.mockResolvedValue({ success: true, data: [] });
+    coreClientMock.refreshCustomAgents.mockResolvedValue(undefined);
   });
 
   it('initializes with empty availableBackends before SWR resolves', () => {
     const { result } = renderHook(() => useDetectedAgents());
 
-    // SWR mock returns data: undefined, so the default empty array is used
     expect(result.current.availableBackends).toEqual([]);
   });
 
@@ -253,22 +260,21 @@ describe('useDetectedAgents', () => {
       await result.current.refreshAgentDetection();
     });
 
-    expect(refreshCustomAgentsInvoke).toHaveBeenCalledOnce();
+    expect(coreClientMock.refreshCustomAgents).toHaveBeenCalledOnce();
   });
 
   it('refreshAgentDetection handles errors silently', async () => {
-    refreshCustomAgentsInvoke.mockRejectedValue(new Error('fail'));
+    coreClientMock.refreshCustomAgents.mockRejectedValue(new Error('fail'));
 
     const { result } = renderHook(() => useDetectedAgents());
 
-    // Should not throw
     await act(async () => {
       await result.current.refreshAgentDetection();
     });
   });
 
-  it('SWR fetcher returns raw agents and hook filters into availableBackends', async () => {
-    getAvailableAgentsInvoke.mockResolvedValue({
+  it('SWR fetcher returns normalized agents and hook filtering is based on current backend policy', async () => {
+    coreClientMock.getAvailableAgents.mockResolvedValue({
       success: true,
       data: [
         { backend: 'gemini', name: 'Gemini' },
@@ -281,25 +287,58 @@ describe('useDetectedAgents', () => {
 
     renderHook(() => useDetectedAgents());
 
-    // Retrieve the fetcher SWR received and call it directly
     const fetcher = swrFetchers.get('agents.detected');
     expect(fetcher).toBeDefined();
 
     const result = await fetcher!();
-    // Fetcher returns raw AvailableAgent[] (no filtering)
-    expect(result).toEqual([
-      { backend: 'gemini', name: 'Gemini' },
-      { backend: 'claude', name: 'Claude' },
-      { backend: 'auggie', name: 'Auggie', isExtension: true },
-      { backend: 'custom', name: 'Custom' },
-      { backend: 'remote', name: 'Remote' },
-    ]);
+    expect(result).toHaveLength(5);
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          backend: 'gemini',
+          name: 'Gemini',
+          displayName: 'Gemini',
+          available: true,
+          teamCapable: false,
+          conversationType: 'gemini',
+        }),
+        expect.objectContaining({
+          backend: 'claude',
+          name: 'Claude',
+          displayName: 'Claude',
+          available: true,
+          teamCapable: false,
+          conversationType: 'acp',
+        }),
+        expect.objectContaining({
+          backend: 'auggie',
+          name: 'Auggie',
+          isExtension: true,
+          displayName: 'Auggie',
+          available: true,
+          teamCapable: false,
+          conversationType: 'acp',
+        }),
+        expect.objectContaining({
+          backend: 'custom',
+          name: 'Custom',
+          displayName: 'Custom',
+          available: true,
+          teamCapable: false,
+          conversationType: 'acp',
+        }),
+        expect.objectContaining({
+          backend: 'remote',
+          name: 'Remote',
+          displayName: 'Remote',
+          available: true,
+          teamCapable: false,
+          conversationType: 'remote',
+        }),
+      ])
+    );
   });
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// useAssistantSkills
-// ─────────────────────────────────────────────────────────────────────────────
 
 describe('useAssistantSkills', () => {
   const mockMessage = {
@@ -369,7 +408,6 @@ describe('useAssistantSkills', () => {
       { initialProps: { visible: false } }
     );
 
-    // Modal opens
     rerender({ visible: true });
 
     await waitFor(() => {
@@ -394,20 +432,16 @@ describe('useAssistantSkills', () => {
 
     const { result } = renderHook(() => useAssistantSkills(defaultParams));
 
-    // Load sources first
     await act(async () => {
       await result.current.handleRefreshExternal();
     });
 
-    // Verify all skills are shown without filter
     expect(result.current.filteredExternalSkills.length).toBe(3);
 
-    // Set search query
     act(() => {
       result.current.setSearchExternalQuery('web');
     });
 
-    // Should filter to skills containing "web" in name or description
     expect(result.current.filteredExternalSkills.length).toBe(2);
     expect(result.current.filteredExternalSkills.map((s) => s.name)).toEqual(['web-search', 'web-scraper']);
   });
@@ -480,7 +514,6 @@ describe('useAssistantSkills', () => {
       ]);
     });
 
-    // Only the new skill should be added; existing-skill should be skipped
     expect(setPendingSkills).toHaveBeenCalledWith([
       { name: 'new-skill', description: 'A new skill', path: '/skills/new-skill' },
     ]);
