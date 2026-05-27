@@ -1246,6 +1246,57 @@ const migration_v27: IMigration = {
 };
 
 /**
+ * Migration v27 -> v28: Unify identity/auth domain persistence.
+ * Adds user-level auth invalidation metadata and durable auth session records.
+ */
+const migration_v28: IMigration = {
+  version: 28,
+  name: 'Add auth identity metadata and auth_sessions table',
+  up: (db) => {
+    const userColumns = new Set((db.pragma('table_info(users)') as Array<{ name: string }>).map((c) => c.name));
+    if (!userColumns.has('auth_version')) {
+      db.exec('ALTER TABLE users ADD COLUMN auth_version INTEGER NOT NULL DEFAULT 1');
+    }
+    if (!userColumns.has('auth_migrated_at')) {
+      db.exec('ALTER TABLE users ADD COLUMN auth_migrated_at INTEGER');
+    }
+    if (!userColumns.has('tokens_invalid_before')) {
+      db.exec('ALTER TABLE users ADD COLUMN tokens_invalid_before INTEGER');
+    }
+    db.exec(`CREATE TABLE IF NOT EXISTS auth_sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      token_id TEXT UNIQUE NOT NULL,
+      session_type TEXT NOT NULL DEFAULT 'web',
+      status TEXT NOT NULL DEFAULT 'active',
+      issued_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      last_seen_at INTEGER NOT NULL,
+      revoked_at INTEGER,
+      revoke_reason TEXT,
+      replaced_by_session_id TEXT,
+      device_id TEXT,
+      device_name TEXT,
+      metadata TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (replaced_by_session_id) REFERENCES auth_sessions(id) ON DELETE SET NULL
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_status ON auth_sessions(user_id, status)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires_at ON auth_sessions(expires_at)');
+    db.exec("UPDATE users SET auth_migrated_at = COALESCE(auth_migrated_at, updated_at, created_at)");
+    console.log('[Migration v28] Added auth identity metadata and auth_sessions table');
+  },
+  down: (db) => {
+    db.exec('DROP INDEX IF EXISTS idx_auth_sessions_expires_at');
+    db.exec('DROP INDEX IF EXISTS idx_auth_sessions_user_status');
+    db.exec('DROP TABLE IF EXISTS auth_sessions');
+    console.log(
+      '[Migration v28] Rolled back: Removed auth_sessions table (user auth metadata columns intentionally preserved)'
+    );
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1254,7 +1305,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
   migration_v19, migration_v20, migration_v21, migration_v22, migration_v23, migration_v24,
-  migration_v25, migration_v26, migration_v27,
+  migration_v25, migration_v26, migration_v27, migration_v28,
 ];
 
 /**

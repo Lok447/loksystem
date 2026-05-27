@@ -10,6 +10,7 @@ import { CoreServiceError } from '@process/core/shared/CoreServiceError';
 import { CoreAuthPolicy } from './CoreAuthPolicy';
 import { CoreAuthRepository } from './CoreAuthRepository';
 import { CoreAuthValidator } from './CoreAuthValidator';
+import type { AuthSessionContext } from '@process/webserver/auth/sessionContext';
 
 type LoginResult = {
   token: string;
@@ -38,7 +39,7 @@ type QrLoginResult = {
 };
 
 export class CoreAuthService {
-  public static async login(username: string, password: string): Promise<LoginResult> {
+  public static async login(username: string, password: string, context?: AuthSessionContext): Promise<LoginResult> {
     const user = await CoreAuthRepository.findByUsername(username);
     if (!user) {
       await CoreAuthPolicy.runMissingUserPasswordCheck();
@@ -50,7 +51,7 @@ export class CoreAuthService {
       throw new CoreServiceError('Invalid username or password', 401, 'invalid_credentials');
     }
 
-    const token = await CoreAuthPolicy.issueSessionToken(user);
+    const token = await CoreAuthPolicy.issueSessionToken(user, context);
     await CoreAuthRepository.recordLogin(user.id);
 
     coreEventBus.emit('auth', 'auth.session.updated', {
@@ -68,9 +69,9 @@ export class CoreAuthService {
     };
   }
 
-  public static logout(token: string | null): void {
+  public static async logout(token: string | null): Promise<void> {
     if (token) {
-      CoreAuthPolicy.blacklistSessionToken(token);
+      await CoreAuthPolicy.revokeSessionToken(token);
       coreEventBus.emit('auth', 'auth.session.updated', {
         action: 'logout',
       });
@@ -113,6 +114,12 @@ export class CoreAuthService {
     const newPasswordHash = await CoreAuthPolicy.hashPassword(newPassword);
     await CoreAuthRepository.updatePassword(user.id, newPasswordHash);
     await CoreAuthPolicy.invalidateAllSessions();
+    const nextTokenInvalidBefore = Date.now();
+    await CoreAuthRepository.updateAuthState(user.id, {
+      authVersion: Math.max(user.auth_version ?? 1, 2),
+      authMigratedAt: user.auth_migrated_at ?? nextTokenInvalidBefore,
+      tokensInvalidBefore: nextTokenInvalidBefore,
+    });
     coreEventBus.emit('auth', 'auth.session.updated', {
       action: 'password_changed',
       userId: user.id,
@@ -120,8 +127,8 @@ export class CoreAuthService {
     });
   }
 
-  public static async refreshToken(token: string): Promise<string> {
-    const newToken = await CoreAuthPolicy.refreshSessionToken(token);
+  public static async refreshToken(token: string, context?: AuthSessionContext): Promise<string> {
+    const newToken = await CoreAuthPolicy.refreshSessionToken(token, context);
     if (!newToken) {
       throw new CoreServiceError('Invalid or expired token', 401, 'unauthorized');
     }
@@ -148,12 +155,24 @@ export class CoreAuthService {
     };
   }
 
-  public static async loginWithQrToken(qrToken: string, clientIP: string): Promise<QrLoginResult> {
+  public static async loginWithQrToken(
+    qrToken: string,
+    clientIP: string,
+    context?: AuthSessionContext
+  ): Promise<QrLoginResult> {
     CoreAuthValidator.requireQrToken(qrToken);
 
     const result = await CoreAuthPolicy.verifyQrLoginToken(qrToken, clientIP);
     if (!result.success || !result.data) {
       throw new CoreServiceError(result.msg || 'Invalid or expired QR token', 401, 'unauthorized');
+    }
+
+    if (context?.deviceId || context?.deviceName) {
+      const verifiedToken = await CoreAuthPolicy.refreshSessionToken(result.data.sessionToken, context);
+      if (!verifiedToken) {
+        throw new CoreServiceError('Invalid or expired QR token', 401, 'unauthorized');
+      }
+      result.data.sessionToken = verifiedToken;
     }
 
     return {

@@ -24,9 +24,29 @@ export interface IUser {
   password_hash: string;
   avatar_path?: string;
   jwt_secret?: string | null;
+  auth_version?: number | null;
+  auth_migrated_at?: number | null;
+  tokens_invalid_before?: number | null;
   created_at: number;
   updated_at: number;
   last_login?: number | null;
+}
+
+export interface IAuthSession {
+  id: string;
+  user_id: string;
+  token_id: string;
+  session_type: 'web';
+  status: 'active' | 'rotated' | 'revoked' | 'expired';
+  issued_at: number;
+  expires_at: number;
+  last_seen_at: number;
+  revoked_at?: number | null;
+  revoke_reason?: string | null;
+  replaced_by_session_id?: string | null;
+  device_id?: string | null;
+  device_name?: string | null;
+  metadata?: string | null;
 }
 
 // Image metadata removed - images are stored in filesystem and referenced via message.resultDisplay

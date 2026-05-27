@@ -14,6 +14,7 @@ import { SHOW_OPEN_REQUEST_EVENT } from '@/common/adapter/constant';
 interface ClientInfo {
   token: string;
   lastPing: number;
+  deviceId?: string;
 }
 
 /**
@@ -49,6 +50,7 @@ export class WebSocketManager {
       ws.on('message', bufferMessage);
 
       const token = TokenMiddleware.extractWebSocketToken(req);
+      const sessionContext = TokenMiddleware.resolveWebSocketSessionContext(req);
 
       if (!(await this.validateConnection(ws, token))) {
         ws.off('message', bufferMessage);
@@ -56,7 +58,7 @@ export class WebSocketManager {
       }
 
       ws.off('message', bufferMessage);
-      this.addClient(ws, token!);
+      this.addClient(ws, token!, sessionContext.deviceId);
       this.setupMessageHandler(ws, onMessage);
       this.setupCloseHandler(ws);
       this.setupErrorHandler(ws);
@@ -105,10 +107,11 @@ export class WebSocketManager {
    * 添加客户端
    * Add client
    */
-  private addClient(ws: WebSocket, token: string): void {
+  private addClient(ws: WebSocket, token: string, deviceId?: string): void {
     this.clients.set(ws, {
       token,
       lastPing: Date.now(),
+      deviceId,
     });
   }
 

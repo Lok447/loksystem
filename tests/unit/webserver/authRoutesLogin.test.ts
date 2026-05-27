@@ -84,6 +84,15 @@ vi.mock('@process/webserver/config/constants', () => ({
   getCookieOptions: vi.fn(() => ({})),
 }));
 
+vi.mock('@process/webserver/auth/sessionContext', () => ({
+  AUTH_DEVICE_COOKIE_NAME: 'loksystem-device',
+  resolveRequestAuthSessionContext: vi.fn(() => ({
+    deviceId: 'device-1',
+    deviceName: 'test-browser',
+    wasGenerated: false,
+  })),
+}));
+
 vi.mock('@process/bridge/webuiQR', () => ({
   verifyQRTokenDirect: vi.fn(),
 }));
@@ -172,5 +181,51 @@ describe('registerAuthRoutes login endpoint', () => {
       true
     );
     expect((res as unknown as { status: ReturnType<typeof vi.fn> }).status).toHaveBeenCalledWith(401);
+  });
+
+  it('sets both session and device cookies after a successful login', async () => {
+    const { CoreAuthService } = await import('@process/core/auth');
+    vi.spyOn(CoreAuthService, 'login').mockResolvedValue({
+      token: 'session-token',
+      user: {
+        id: 'user-1',
+        username: 'alice',
+      },
+    });
+
+    const { registerAuthRoutes } = await import('@process/webserver/routes/authRoutes');
+    const app = express();
+    registerAuthRoutes(app);
+
+    const handler = getLoginHandler(app);
+    const req = {
+      body: {
+        username: 'alice',
+        password: 'correct-password',
+      },
+      headers: {},
+      cookies: {},
+    } as unknown as express.Request;
+    const res = createResponseMock() as unknown as express.Response;
+
+    await handler(req, res, vi.fn());
+
+    expect((res as unknown as { cookie: ReturnType<typeof vi.fn> }).cookie).toHaveBeenNthCalledWith(
+      1,
+      'auth-token',
+      'session-token',
+      {
+        maxAge: 0,
+      }
+    );
+    expect((res as unknown as { cookie: ReturnType<typeof vi.fn> }).cookie).toHaveBeenNthCalledWith(
+      2,
+      'loksystem-device',
+      'device-1',
+      {
+        httpOnly: false,
+        maxAge: 0,
+      }
+    );
   });
 });

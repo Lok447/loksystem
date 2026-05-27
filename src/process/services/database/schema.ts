@@ -32,12 +32,36 @@ export function initSchema(db: ISqliteDriver): void {
     password_hash TEXT NOT NULL,
     avatar_path TEXT,
     jwt_secret TEXT,
+    auth_version INTEGER NOT NULL DEFAULT 1,
+    auth_migrated_at INTEGER,
+    tokens_invalid_before INTEGER,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     last_login INTEGER
   )`);
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');
+
+  db.exec(`CREATE TABLE IF NOT EXISTS auth_sessions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    token_id TEXT UNIQUE NOT NULL,
+    session_type TEXT NOT NULL DEFAULT 'web',
+    status TEXT NOT NULL DEFAULT 'active',
+    issued_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    last_seen_at INTEGER NOT NULL,
+    revoked_at INTEGER,
+    revoke_reason TEXT,
+    replaced_by_session_id TEXT,
+    device_id TEXT,
+    device_name TEXT,
+    metadata TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (replaced_by_session_id) REFERENCES auth_sessions(id) ON DELETE SET NULL
+  )`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_status ON auth_sessions(user_id, status)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires_at ON auth_sessions(expires_at)');
 
   // Conversations table (会话表 - 存储TChatConversation)
   db.exec(`CREATE TABLE IF NOT EXISTS conversations (
@@ -151,4 +175,4 @@ export function setDatabaseVersion(db: ISqliteDriver, version: number): void {
  * Current database schema version
  * Update this when adding new migrations in migrations.ts
  */
-export const CURRENT_DB_VERSION = 27;
+export const CURRENT_DB_VERSION = 28;

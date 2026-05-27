@@ -10,6 +10,7 @@ import * as cookie from 'cookie';
 import { AuthService } from '../service/AuthService';
 import { UserRepository } from '../repository/UserRepository';
 import { AUTH_CONFIG } from '../../config/constants';
+import { resolveWebSocketAuthSessionContext } from '../sessionContext';
 
 /**
  * Token 负载接口
@@ -241,5 +242,9 @@ export const TokenMiddleware = {
   /** 校验 WebSocket token 是否有效 / Validate WebSocket token */
   async validateWebSocketToken(token: string | null): Promise<boolean> {
     return Boolean(token && (await AuthService.verifyWebSocketToken(token)));
+  },
+
+  resolveWebSocketSessionContext(req: IncomingMessage) {
+    return resolveWebSocketAuthSessionContext(req);
   },
 };

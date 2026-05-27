@@ -6,6 +6,7 @@
 
 import { verifyQRTokenDirect } from '@process/bridge/webuiQR';
 import { AuthService } from '@process/webserver/auth/service/AuthService';
+import type { AuthSessionContext } from '@process/webserver/auth/sessionContext';
 import type { CoreAuthUser } from './CoreAuthRepository';
 
 export interface CoreTokenPayload {
@@ -39,12 +40,15 @@ export class CoreAuthPolicy {
     return AuthService.constantTimeVerify(password, passwordHash, true);
   }
 
-  public static issueSessionToken(user: Pick<CoreAuthUser, 'id' | 'username'>): Promise<string> {
-    return AuthService.generateToken(user);
+  public static issueSessionToken(
+    user: Pick<CoreAuthUser, 'id' | 'username'>,
+    context?: AuthSessionContext
+  ): Promise<string> {
+    return AuthService.generateToken(user, context);
   }
 
-  public static blacklistSessionToken(token: string): void {
-    AuthService.blacklistToken(token);
+  public static revokeSessionToken(token: string): Promise<void> {
+    return AuthService.revokeSessionToken(token);
   }
 
   public static validatePasswordStrength(password: string): CorePasswordStrengthResult {
@@ -63,8 +67,8 @@ export class CoreAuthPolicy {
     return AuthService.invalidateAllTokens();
   }
 
-  public static refreshSessionToken(token: string): Promise<string | null> {
-    return AuthService.refreshToken(token);
+  public static refreshSessionToken(token: string, context?: AuthSessionContext): Promise<string | null> {
+    return AuthService.refreshToken(token, context);
   }
 
   public static verifySessionToken(token: string): Promise<CoreTokenPayload | null> {

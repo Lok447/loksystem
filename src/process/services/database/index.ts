@@ -12,6 +12,7 @@ import path from 'path';
 import { runMigrations as executeMigrations } from './migrations';
 import { CURRENT_DB_VERSION, getDatabaseVersion, initSchema, setDatabaseVersion } from './schema';
 import type {
+  IAuthSession,
   IConversationRow,
   IMessageRow,
   IPaginatedResult,
@@ -304,11 +305,14 @@ export class LokSystemDatabase {
       const now = Date.now();
 
       const stmt = this.db.prepare(`
-        INSERT INTO users (id, username, email, password_hash, avatar_path, created_at, updated_at, last_login)
-        VALUES (?, ?, ?, ?, NULL, ?, ?, NULL)
+        INSERT INTO users (
+          id, username, email, password_hash, avatar_path, jwt_secret, auth_version, auth_migrated_at, tokens_invalid_before,
+          created_at, updated_at, last_login
+        )
+        VALUES (?, ?, ?, ?, NULL, NULL, 1, ?, NULL, ?, ?, NULL)
       `);
 
-      stmt.run(userId, username, email ?? null, passwordHash, now, now);
+      stmt.run(userId, username, email ?? null, passwordHash, now, now, now);
 
       return {
         success: true,
@@ -526,6 +530,211 @@ export class LokSystemDatabase {
         success: false,
         error: error.message,
         data: false,
+      };
+    }
+  }
+
+  updateUserAuthState(
+    userId: string,
+    updates: Partial<Pick<IUser, 'jwt_secret' | 'auth_version' | 'auth_migrated_at' | 'tokens_invalid_before'>>
+  ): IQueryResult<boolean> {
+    try {
+      const now = Date.now();
+      const sets: string[] = [];
+      const values: Array<number | string | null> = [];
+
+      if (Object.prototype.hasOwnProperty.call(updates, 'jwt_secret')) {
+        sets.push('jwt_secret = ?');
+        values.push(updates.jwt_secret ?? null);
+      }
+      if (Object.prototype.hasOwnProperty.call(updates, 'auth_version')) {
+        sets.push('auth_version = ?');
+        values.push(updates.auth_version ?? 1);
+      }
+      if (Object.prototype.hasOwnProperty.call(updates, 'auth_migrated_at')) {
+        sets.push('auth_migrated_at = ?');
+        values.push(updates.auth_migrated_at ?? null);
+      }
+      if (Object.prototype.hasOwnProperty.call(updates, 'tokens_invalid_before')) {
+        sets.push('tokens_invalid_before = ?');
+        values.push(updates.tokens_invalid_before ?? null);
+      }
+
+      if (sets.length === 0) {
+        return {
+          success: true,
+          data: true,
+        };
+      }
+
+      sets.push('updated_at = ?');
+      values.push(now);
+      values.push(userId);
+      this.db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).run(...values);
+      return {
+        success: true,
+        data: true,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        data: false,
+      };
+    }
+  }
+
+  getAuthSessionByTokenId(tokenId: string): IQueryResult<IAuthSession | null> {
+    try {
+      const session = this.db.prepare('SELECT * FROM auth_sessions WHERE token_id = ?').get(tokenId) as
+        | IAuthSession
+        | undefined;
+      return {
+        success: true,
+        data: session ?? null,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        data: null,
+      };
+    }
+  }
+
+  createAuthSession(session: IAuthSession): IQueryResult<IAuthSession> {
+    try {
+      this.db
+        .prepare(
+          `INSERT INTO auth_sessions (
+            id, user_id, token_id, session_type, status, issued_at, expires_at, last_seen_at,
+            revoked_at, revoke_reason, replaced_by_session_id, device_id, device_name, metadata
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .run(
+          session.id,
+          session.user_id,
+          session.token_id,
+          session.session_type,
+          session.status,
+          session.issued_at,
+          session.expires_at,
+          session.last_seen_at,
+          session.revoked_at ?? null,
+          session.revoke_reason ?? null,
+          session.replaced_by_session_id ?? null,
+          session.device_id ?? null,
+          session.device_name ?? null,
+          session.metadata ?? null
+        );
+      return {
+        success: true,
+        data: session,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  updateAuthSession(sessionId: string, updates: Partial<IAuthSession>): IQueryResult<boolean> {
+    try {
+      const sets: string[] = [];
+      const values: Array<number | string | null> = [];
+      const updatableFields: Array<keyof IAuthSession> = [
+        'status',
+        'last_seen_at',
+        'revoked_at',
+        'revoke_reason',
+        'replaced_by_session_id',
+        'device_id',
+        'device_name',
+        'metadata',
+        'expires_at',
+      ];
+
+      for (const field of updatableFields) {
+        if (Object.prototype.hasOwnProperty.call(updates, field)) {
+          sets.push(`${field} = ?`);
+          values.push((updates[field] as number | string | null | undefined) ?? null);
+        }
+      }
+
+      if (sets.length === 0) {
+        return {
+          success: true,
+          data: true,
+        };
+      }
+
+      values.push(sessionId);
+      this.db.prepare(`UPDATE auth_sessions SET ${sets.join(', ')} WHERE id = ?`).run(...values);
+      return {
+        success: true,
+        data: true,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        data: false,
+      };
+    }
+  }
+
+  revokeAuthSessionsForUser(
+    userId: string,
+    revokeReason: string,
+    options?: { exceptSessionId?: string; revokedAt?: number }
+  ): IQueryResult<boolean> {
+    try {
+      const revokedAt = options?.revokedAt ?? Date.now();
+      if (options?.exceptSessionId) {
+        this.db
+          .prepare(
+            `UPDATE auth_sessions
+             SET status = 'revoked', revoked_at = ?, revoke_reason = ?
+             WHERE user_id = ? AND status = 'active' AND id != ?`
+          )
+          .run(revokedAt, revokeReason, userId, options.exceptSessionId);
+      } else {
+        this.db
+          .prepare(
+            `UPDATE auth_sessions
+             SET status = 'revoked', revoked_at = ?, revoke_reason = ?
+             WHERE user_id = ? AND status = 'active'`
+          )
+          .run(revokedAt, revokeReason, userId);
+      }
+      return {
+        success: true,
+        data: true,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        data: false,
+      };
+    }
+  }
+
+  deleteExpiredAuthSessions(now = Date.now()): IQueryResult<number> {
+    try {
+      const result = this.db
+        .prepare("DELETE FROM auth_sessions WHERE expires_at < ? AND status IN ('expired', 'revoked', 'rotated')")
+        .run(now);
+      return {
+        success: true,
+        data: result.changes,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        data: 0,
       };
     }
   }

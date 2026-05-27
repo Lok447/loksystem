@@ -144,6 +144,15 @@ export async function resetPasswordCLI(username: string): Promise<void> {
       throw new Error(updateJwtSecretResult.error || 'Failed to update JWT secret');
     }
 
+    const updateAuthStateResult = db.updateUserAuthState(user.id, {
+      auth_version: 2,
+      auth_migrated_at: Date.now(),
+      tokens_invalid_before: Date.now(),
+    });
+    if (!updateAuthStateResult.success) {
+      throw new Error(updateAuthStateResult.error || 'Failed to update auth state');
+    }
+
     // Display result
     console.log('');
     log.success('Password reset successfully!');

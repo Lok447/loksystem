@@ -6,7 +6,7 @@
 
 import { AUTH_CONFIG } from '@process/webserver/config/constants';
 import { getDatabase } from '@process/services/database/export';
-import type { IUser, IQueryResult } from '@process/services/database/types';
+import type { IAuthSession, IUser, IQueryResult } from '@process/services/database/types';
 
 /**
  * 认证用户类型，仅包含必要的认证字段
@@ -14,7 +14,16 @@ import type { IUser, IQueryResult } from '@process/services/database/types';
  */
 export type AuthUser = Pick<
   IUser,
-  'id' | 'username' | 'password_hash' | 'jwt_secret' | 'created_at' | 'updated_at' | 'last_login'
+  | 'id'
+  | 'username'
+  | 'password_hash'
+  | 'jwt_secret'
+  | 'auth_version'
+  | 'auth_migrated_at'
+  | 'tokens_invalid_before'
+  | 'created_at'
+  | 'updated_at'
+  | 'last_login'
 >;
 
 /**
@@ -43,6 +52,9 @@ function mapUser(row: IUser): AuthUser {
     username: row.username,
     password_hash: row.password_hash,
     jwt_secret: row.jwt_secret ?? null,
+    auth_version: row.auth_version ?? 1,
+    auth_migrated_at: row.auth_migrated_at ?? null,
+    tokens_invalid_before: row.tokens_invalid_before ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
     last_login: row.last_login ?? null,
@@ -225,5 +237,60 @@ export const UserRepository = {
     if (!result.success) {
       throw new Error(result.error || 'Failed to update JWT secret');
     }
+  },
+
+  async updateAuthState(
+    userId: string,
+    updates: Partial<Pick<AuthUser, 'jwt_secret' | 'auth_version' | 'auth_migrated_at' | 'tokens_invalid_before'>>
+  ): Promise<void> {
+    const db = await getDatabase();
+    const result = db.updateUserAuthState(userId, updates);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update user auth state');
+    }
+  },
+
+  async createAuthSession(session: IAuthSession): Promise<IAuthSession> {
+    const db = await getDatabase();
+    const result = db.createAuthSession(session);
+    return unwrap(result, 'Failed to create auth session');
+  },
+
+  async findAuthSessionByTokenId(tokenId: string): Promise<IAuthSession | null> {
+    const db = await getDatabase();
+    const result = db.getAuthSessionByTokenId(tokenId);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to get auth session');
+    }
+    return result.data ?? null;
+  },
+
+  async updateAuthSession(sessionId: string, updates: Partial<IAuthSession>): Promise<void> {
+    const db = await getDatabase();
+    const result = db.updateAuthSession(sessionId, updates);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update auth session');
+    }
+  },
+
+  async revokeAuthSessionsForUser(
+    userId: string,
+    revokeReason: string,
+    options?: { exceptSessionId?: string; revokedAt?: number }
+  ): Promise<void> {
+    const db = await getDatabase();
+    const result = db.revokeAuthSessionsForUser(userId, revokeReason, options);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to revoke auth sessions');
+    }
+  },
+
+  async deleteExpiredAuthSessions(now = Date.now()): Promise<number> {
+    const db = await getDatabase();
+    const result = db.deleteExpiredAuthSessions(now);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to delete expired auth sessions');
+    }
+    return result.data ?? 0;
   },
 };

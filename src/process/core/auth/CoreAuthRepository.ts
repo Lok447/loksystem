@@ -34,4 +34,21 @@ export class CoreAuthRepository {
   public static updatePassword(userId: string, passwordHash: string): Promise<void> {
     return UserRepository.updatePassword(userId, passwordHash);
   }
+
+  public static updateAuthState(
+    userId: string,
+    updates: {
+      jwtSecret?: string | null;
+      authVersion?: number | null;
+      authMigratedAt?: number | null;
+      tokensInvalidBefore?: number | null;
+    }
+  ): Promise<void> {
+    return UserRepository.updateAuthState(userId, {
+      jwt_secret: updates.jwtSecret,
+      auth_version: updates.authVersion,
+      auth_migrated_at: updates.authMigratedAt,
+      tokens_invalid_before: updates.tokensInvalidBefore,
+    });
+  }
 }

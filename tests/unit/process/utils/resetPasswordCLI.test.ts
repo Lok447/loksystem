@@ -52,6 +52,7 @@ describe('resetPasswordCLI helpers', () => {
       getAllUsers: vi.fn(() => ({ success: true, data: [] })),
       updateUserPassword: vi.fn(() => ({ success: true, data: true })),
       updateUserJwtSecret: vi.fn(() => ({ success: true, data: true })),
+      updateUserAuthState: vi.fn(() => ({ success: true, data: true })),
     };
     const closeDatabase = vi.fn();
 

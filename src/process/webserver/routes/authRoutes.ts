@@ -13,6 +13,7 @@ import { AUTH_CONFIG, getCookieOptions } from '../config/constants';
 import { TokenUtils } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { createAppError } from '../middleware/errorHandler';
 import { authRateLimiter, authenticatedActionLimiter, apiRateLimiter } from '../middleware/security';
+import { AUTH_DEVICE_COOKIE_NAME, resolveRequestAuthSessionContext } from '@process/webserver/auth/sessionContext';
 
 /**
  * QR 登录页面 HTML（静态，不包含用户输入）
@@ -97,10 +98,16 @@ export function registerAuthRoutes(app: Express): void {
   app.post('/login', authRateLimiter, AuthMiddleware.validateLoginInput, async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
-      const result = await CoreAuthService.login(username, password);
+      const sessionContext = resolveRequestAuthSessionContext(req);
+      const result = await CoreAuthService.login(username, password, sessionContext);
 
       res.cookie(AUTH_CONFIG.COOKIE.NAME, result.token, {
         ...getCookieOptions(req),
+        maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
+      });
+      res.cookie(AUTH_DEVICE_COOKIE_NAME, sessionContext.deviceId, {
+        ...getCookieOptions(req),
+        httpOnly: false,
         maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
       });
 
@@ -121,11 +128,12 @@ export function registerAuthRoutes(app: Express): void {
     apiRateLimiter,
     AuthMiddleware.authenticateToken,
     authenticatedActionLimiter,
-    (req: Request, res: Response) => {
+    async (req: Request, res: Response) => {
       const token = TokenUtils.extractFromRequest(req);
-      CoreAuthService.logout(token);
+      await CoreAuthService.logout(token);
 
       res.clearCookie(AUTH_CONFIG.COOKIE.NAME);
+      res.clearCookie(AUTH_DEVICE_COOKIE_NAME);
       res.json({ success: true, message: 'Logged out successfully' });
     }
   );
@@ -182,38 +190,42 @@ export function registerAuthRoutes(app: Express): void {
     }
   );
 
-  app.post('/api/auth/refresh', apiRateLimiter, authenticatedActionLimiter, (req: Request, res: Response) => {
-    void (async () => {
-      try {
-        const bodyToken = typeof req.body?.token === 'string' ? req.body.token : null;
-        const token = bodyToken ?? TokenUtils.extractFromRequest(req);
+  app.post('/api/auth/refresh', apiRateLimiter, authenticatedActionLimiter, async (req: Request, res: Response) => {
+    try {
+      const bodyToken = typeof req.body?.token === 'string' ? req.body.token : null;
+      const token = bodyToken ?? TokenUtils.extractFromRequest(req);
 
-        if (!token) {
-          res.status(400).json({
-            success: false,
-            error: 'Token is required',
-          });
-          return;
-        }
-
-        const newToken = await CoreAuthService.refreshToken(token);
-
-        if (!bodyToken && typeof req.cookies?.[AUTH_CONFIG.COOKIE.NAME] === 'string') {
-          res.cookie(AUTH_CONFIG.COOKIE.NAME, newToken, {
-            ...getCookieOptions(req),
-            maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
-          });
-        }
-
-        res.json({
-          success: true,
-          token: newToken,
+      if (!token) {
+        res.status(400).json({
+          success: false,
+          error: 'Token is required',
         });
-      } catch (error) {
-        console.error('Token refresh error:', error);
-        sendCoreHttpErrorResponse(res, error);
+        return;
       }
-    })();
+
+      const sessionContext = resolveRequestAuthSessionContext(req);
+      const newToken = await CoreAuthService.refreshToken(token, sessionContext);
+
+      if (!bodyToken && typeof req.cookies?.[AUTH_CONFIG.COOKIE.NAME] === 'string') {
+        res.cookie(AUTH_CONFIG.COOKIE.NAME, newToken, {
+          ...getCookieOptions(req),
+          maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
+        });
+      }
+      res.cookie(AUTH_DEVICE_COOKIE_NAME, sessionContext.deviceId, {
+        ...getCookieOptions(req),
+        httpOnly: false,
+        maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
+      });
+
+      res.json({
+        success: true,
+        token: newToken,
+      });
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      sendCoreHttpErrorResponse(res, error);
+    }
   });
 
   app.get('/api/ws-token', apiRateLimiter, authenticatedActionLimiter, async (req: Request, res: Response, next) => {
@@ -243,10 +255,16 @@ export function registerAuthRoutes(app: Express): void {
     try {
       const { qrToken } = req.body;
       const clientIP = req.ip || req.socket.remoteAddress || '';
-      const result = await CoreAuthService.loginWithQrToken(qrToken, clientIP);
+      const sessionContext = resolveRequestAuthSessionContext(req);
+      const result = await CoreAuthService.loginWithQrToken(qrToken, clientIP, sessionContext);
 
       res.cookie(AUTH_CONFIG.COOKIE.NAME, result.token, {
         ...getCookieOptions(req),
+        maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
+      });
+      res.cookie(AUTH_DEVICE_COOKIE_NAME, sessionContext.deviceId, {
+        ...getCookieOptions(req),
+        httpOnly: false,
         maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
       });
 

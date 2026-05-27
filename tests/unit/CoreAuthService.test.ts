@@ -7,11 +7,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
-  mockBlacklistToken,
   mockConstantTimeVerify,
   mockConstantTimeVerifyMissingUser,
   mockCountUsers,
   mockEmit,
+  mockUpdateAuthState,
   mockFindById,
   mockFindByUsername,
   mockGenerateToken,
@@ -19,6 +19,7 @@ const {
   mockHasUsers,
   mockInvalidateAllTokens,
   mockRefreshToken,
+  mockRevokeSessionToken,
   mockUpdateLastLogin,
   mockUpdatePassword,
   mockValidatePasswordStrength,
@@ -26,11 +27,11 @@ const {
   mockVerifyQrTokenDirect,
   mockVerifyToken,
 } = vi.hoisted(() => ({
-  mockBlacklistToken: vi.fn(),
   mockConstantTimeVerify: vi.fn(),
   mockConstantTimeVerifyMissingUser: vi.fn(),
   mockCountUsers: vi.fn(),
   mockEmit: vi.fn(),
+  mockUpdateAuthState: vi.fn(),
   mockFindById: vi.fn(),
   mockFindByUsername: vi.fn(),
   mockGenerateToken: vi.fn(),
@@ -38,6 +39,7 @@ const {
   mockHasUsers: vi.fn(),
   mockInvalidateAllTokens: vi.fn(),
   mockRefreshToken: vi.fn(),
+  mockRevokeSessionToken: vi.fn(),
   mockUpdateLastLogin: vi.fn(),
   mockUpdatePassword: vi.fn(),
   mockValidatePasswordStrength: vi.fn(),
@@ -53,19 +55,20 @@ vi.mock('@process/webserver/auth/repository/UserRepository', () => ({
     findByUsername: mockFindByUsername,
     hasUsers: mockHasUsers,
     updateLastLogin: mockUpdateLastLogin,
+    updateAuthState: mockUpdateAuthState,
     updatePassword: mockUpdatePassword,
   },
 }));
 
 vi.mock('@process/webserver/auth/service/AuthService', () => ({
   AuthService: {
-    blacklistToken: mockBlacklistToken,
     constantTimeVerify: mockConstantTimeVerify,
     constantTimeVerifyMissingUser: mockConstantTimeVerifyMissingUser,
     generateToken: mockGenerateToken,
     hashPassword: mockHashPassword,
     invalidateAllTokens: mockInvalidateAllTokens,
     refreshToken: mockRefreshToken,
+    revokeSessionToken: mockRevokeSessionToken,
     validatePasswordStrength: mockValidatePasswordStrength,
     verifyPassword: mockVerifyPassword,
     verifyToken: mockVerifyToken,
@@ -98,6 +101,8 @@ describe('CoreAuthService', () => {
     mockCountUsers.mockResolvedValue(1);
     mockHasUsers.mockResolvedValue(true);
     mockValidatePasswordStrength.mockReturnValue({ isValid: true, errors: [] });
+    mockUpdateAuthState.mockResolvedValue(undefined);
+    mockRevokeSessionToken.mockResolvedValue(undefined);
   });
 
   it('uses the constant-time missing-user path and throws invalid credentials', async () => {
@@ -162,6 +167,8 @@ describe('CoreAuthService', () => {
       id: 'user-1',
       username: 'lok',
       password_hash: 'old-hash',
+      auth_version: 1,
+      auth_migrated_at: null,
     });
     mockVerifyPassword.mockResolvedValue(true);
     mockHashPassword.mockResolvedValue('new-hash');
@@ -176,6 +183,12 @@ describe('CoreAuthService', () => {
 
     expect(mockUpdatePassword).toHaveBeenCalledWith('user-1', 'new-hash');
     expect(mockInvalidateAllTokens).toHaveBeenCalledOnce();
+    expect(mockUpdateAuthState).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        auth_version: 2,
+      })
+    );
     expect(mockEmit).toHaveBeenCalledWith('auth', 'auth.session.updated', {
       action: 'password_changed',
       userId: 'user-1',
@@ -217,10 +230,10 @@ describe('CoreAuthService', () => {
     });
   });
 
-  it('blacklists tokens and emits logout events through core logout', () => {
-    CoreAuthService.logout('session-token');
+  it('revokes tokens and emits logout events through core logout', async () => {
+    await CoreAuthService.logout('session-token');
 
-    expect(mockBlacklistToken).toHaveBeenCalledWith('session-token');
+    expect(mockRevokeSessionToken).toHaveBeenCalledWith('session-token');
     expect(mockEmit).toHaveBeenCalledWith('auth', 'auth.session.updated', {
       action: 'logout',
     });

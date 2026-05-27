@@ -48,6 +48,15 @@ vi.mock('@process/webserver/config/constants', () => ({
   getCookieOptions: vi.fn(() => ({ httpOnly: true })),
 }));
 
+vi.mock('@process/webserver/auth/sessionContext', () => ({
+  AUTH_DEVICE_COOKIE_NAME: 'loksystem-device',
+  resolveRequestAuthSessionContext: vi.fn(() => ({
+    deviceId: 'device-2',
+    deviceName: 'refresh-browser',
+    wasGenerated: false,
+  })),
+}));
+
 vi.mock('@process/webserver/auth/middleware/TokenMiddleware', () => ({
   TokenUtils: {
     extractFromRequest: mockExtractFromRequest,
@@ -112,7 +121,11 @@ describe('registerAuthRoutes refresh endpoint', () => {
 
     await handler(req, res, vi.fn());
 
-    expect(mockRefreshToken).toHaveBeenCalledWith('expired-token');
+    expect(mockRefreshToken).toHaveBeenCalledWith('expired-token', {
+      deviceId: 'device-2',
+      deviceName: 'refresh-browser',
+      wasGenerated: false,
+    });
     expect((res as unknown as { status: ReturnType<typeof vi.fn> }).status).toHaveBeenCalledWith(401);
     expect((res as unknown as { json: ReturnType<typeof vi.fn> }).json).toHaveBeenCalledWith({
       success: false,
@@ -137,13 +150,24 @@ describe('registerAuthRoutes refresh endpoint', () => {
 
     await handler(req, res, vi.fn());
 
-    expect(mockRefreshToken).toHaveBeenCalledWith('current-token');
+    expect(mockRefreshToken).toHaveBeenCalledWith('current-token', {
+      deviceId: 'device-2',
+      deviceName: 'refresh-browser',
+      wasGenerated: false,
+    });
     expect((res as unknown as { status: ReturnType<typeof vi.fn> }).status).not.toHaveBeenCalled();
     expect((res as unknown as { json: ReturnType<typeof vi.fn> }).json).toHaveBeenCalledWith({
       success: true,
       token: 'new-token',
     });
-    expect((res as unknown as { cookie: ReturnType<typeof vi.fn> }).cookie).not.toHaveBeenCalled();
+    expect((res as unknown as { cookie: ReturnType<typeof vi.fn> }).cookie).toHaveBeenCalledWith(
+      'loksystem-device',
+      'device-2',
+      {
+        httpOnly: false,
+        maxAge: 0,
+      }
+    );
   });
 
   it('falls back to request credentials when body token is missing', async () => {
@@ -161,7 +185,11 @@ describe('registerAuthRoutes refresh endpoint', () => {
     await handler(req, res, vi.fn());
 
     expect(mockExtractFromRequest).toHaveBeenCalledWith(req);
-    expect(mockRefreshToken).toHaveBeenCalledWith('cookie-token');
+    expect(mockRefreshToken).toHaveBeenCalledWith('cookie-token', {
+      deviceId: 'device-2',
+      deviceName: 'refresh-browser',
+      wasGenerated: false,
+    });
     expect((res as unknown as { json: ReturnType<typeof vi.fn> }).json).toHaveBeenCalledWith({
       success: true,
       token: 'new-token',
@@ -187,11 +215,21 @@ describe('registerAuthRoutes refresh endpoint', () => {
 
     await handler(req, res, vi.fn());
 
-    expect((res as unknown as { cookie: ReturnType<typeof vi.fn> }).cookie).toHaveBeenCalledWith(
+    expect((res as unknown as { cookie: ReturnType<typeof vi.fn> }).cookie).toHaveBeenNthCalledWith(
+      1,
       'auth-token',
       'new-token',
       {
         httpOnly: true,
+        maxAge: 0,
+      }
+    );
+    expect((res as unknown as { cookie: ReturnType<typeof vi.fn> }).cookie).toHaveBeenNthCalledWith(
+      2,
+      'loksystem-device',
+      'device-2',
+      {
+        httpOnly: false,
         maxAge: 0,
       }
     );
@@ -229,7 +267,11 @@ describe('registerAuthRoutes refresh endpoint', () => {
 
     await handler(req, res, vi.fn());
 
-    expect(mockRefreshToken).toHaveBeenCalledWith('some-token');
+    expect(mockRefreshToken).toHaveBeenCalledWith('some-token', {
+      deviceId: 'device-2',
+      deviceName: 'refresh-browser',
+      wasGenerated: false,
+    });
     expect((res as unknown as { status: ReturnType<typeof vi.fn> }).status).toHaveBeenCalledWith(500);
     expect((res as unknown as { json: ReturnType<typeof vi.fn> }).json).toHaveBeenCalledWith({
       success: false,
