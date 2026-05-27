@@ -10,7 +10,14 @@ import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../../process/services/mcpServices/McpProtocol';
 import type { AgentBackend, AcpModelInfo } from '../types/acpTypes';
 import type { SlashCommandItem } from '../chat/slash/types';
-import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from '../config/storage';
+import type {
+  IMcpServer,
+  IProvider,
+  TChatConversation,
+  TProviderWithModel,
+  ICssTheme,
+  IConfigStorageRefer,
+} from '../config/storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/preview';
 import type {
   UpdateCheckRequest,
@@ -539,6 +546,22 @@ export const mode = {
   /** 协议检测接�?- 自动检�?API 端点使用的协议类�?/ Protocol detection - auto-detect API protocol type */
   detectProtocol: bridge.buildProvider<IBridgeResponse<ProtocolDetectionResponse>, ProtocolDetectionRequest>(
     'mode.detect-protocol'
+  ),
+  providerListChanged: bridge.buildEmitter<{ providers: IProvider[] }>('mode.provider-list-changed'),
+};
+
+export const config = {
+  changed: bridge.buildEmitter<{ key: keyof IConfigStorageRefer; value: unknown }>('config.changed'),
+};
+
+export const assistant = {
+  list: bridge.buildProvider<import('@/common/types/acpTypes').AcpBackendConfig[], void>('assistant.list'),
+  save: bridge.buildProvider<
+    IBridgeResponse<{ assistants: import('@/common/types/acpTypes').AcpBackendConfig[] }>,
+    import('@/common/types/acpTypes').AcpBackendConfig[]
+  >('assistant.save'),
+  changed: bridge.buildEmitter<{ assistants: import('@/common/types/acpTypes').AcpBackendConfig[] }>(
+    'assistant.changed'
   ),
 };
 

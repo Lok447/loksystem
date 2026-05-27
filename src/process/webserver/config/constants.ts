@@ -46,6 +46,7 @@ export const AUTH_CONFIG = {
   DEFAULT_USER: {
     // 默认管理员用户名（Default admin username）
     USERNAME: 'admin' as const,
+    PASSWORD: 'Admin@123' as const,
   },
 
   // Cookie 配置（Cookie configuration）

@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
+import MobileActionSheet, { useAttachEntry, type MobileActionSheetEntry } from '@/renderer/components/chat/MobileActionSheet';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwCommand';
@@ -14,6 +15,7 @@ import { useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommand
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { iconColors } from '@/renderer/styles/colors';
 import { buildAtFileInsertion, getActiveAtFileQuery, getAllAtFileQueries } from '@/renderer/utils/chat/atFileQuery';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
 import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
@@ -23,7 +25,7 @@ import { filterWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMent
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
-import { ArrowUp, CloseSmall, Quote } from '@icon-park/react';
+import { ArrowUp, CloseSmall, MoreOne, Quote } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { theme } from '@office-ai/platform';
 import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -175,6 +177,7 @@ const SendBox: React.FC<{
   defaultMultiLine?: boolean;
   lockMultiLine?: boolean;
   sendButtonPrefix?: React.ReactNode;
+  mobileActionEntries?: MobileActionSheetEntry[];
   slashCommands?: SlashCommandItem[];
   onSlashBuiltinCommand?: (name: string) => void;
   hasPendingAttachments?: boolean;
@@ -199,6 +202,7 @@ const SendBox: React.FC<{
   defaultMultiLine = false,
   lockMultiLine = false,
   sendButtonPrefix,
+  mobileActionEntries: externalMobileActionEntries = [],
   slashCommands = [],
   onSlashBuiltinCommand,
   hasPendingAttachments = false,
@@ -214,6 +218,7 @@ const SendBox: React.FC<{
   const conversationEventPrefix = normalizeConversationEventPrefix(conversationContext?.type);
   const { t, i18n } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
+  const [mobileActionSheetOpen, setMobileActionSheetOpen] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!defaultMultiLine);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const isInputActive = isInputFocused;
@@ -369,6 +374,11 @@ const SendBox: React.FC<{
 
   const { isUploading } = useUploadState('sendbox');
   const [message, context] = Message.useMessage();
+  const { entries: attachEntries, hiddenFileInput } = useAttachEntry({
+    openFileSelector: () => onSlashBuiltinCommand?.('open'),
+    onLocalFilesAdded: onFilesAdded,
+    dividerBefore: false,
+  });
   const conversationExport = useConversationExport({
     conversationId: conversationContext?.conversationId,
     workspace: conversationContext?.workspace,
@@ -1280,6 +1290,30 @@ const SendBox: React.FC<{
     ></Button>
   );
 
+  const mobileActionEntries = useMemo<MobileActionSheetEntry[]>(() => {
+    const entries: MobileActionSheetEntry[] = [...externalMobileActionEntries, ...attachEntries];
+    if (slashCommands.length > 0) {
+      entries.push({
+        key: 'slash-command-hint',
+        icon: <MoreOne theme='outline' size='16' />,
+        label: t('messages.slash.title', { defaultValue: 'Commands' }),
+        description: t('messages.slash.hint', { defaultValue: 'Type / to open command menu' }),
+        variant: 'muted',
+        disabled: true,
+      });
+    }
+    return entries;
+  }, [attachEntries, externalMobileActionEntries, slashCommands.length, t]);
+
+  const mobileMoreButton = isMobile ? (
+    <Button
+      type='secondary'
+      shape='circle'
+      icon={<MoreOne theme='outline' size='14' fill={iconColors.primary} />}
+      onClick={() => setMobileActionSheetOpen(true)}
+    />
+  ) : null;
+
   const renderActionButtons = () => {
     if (allowSendWhileLoading && (isLoading || loading)) {
       // Keep a single action slot while processing: show stop when the draft is empty,
@@ -1571,6 +1605,7 @@ const SendBox: React.FC<{
           </div>
           {isSingleLine && (
             <div className='flex items-center gap-2'>
+              {mobileMoreButton}
               <SpeechInputButton
                 disabled={disabled || isLoading || loading || isUploading}
                 locale={speechLocale}
@@ -1584,10 +1619,11 @@ const SendBox: React.FC<{
         {!isSingleLine && (
           <div className='flex items-center justify-between gap-2 w-full'>
             <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>{tools}</div>
-            <div className='flex items-center gap-2'>
-              <SpeechInputButton
-                disabled={disabled || isLoading || loading || isUploading}
-                locale={speechLocale}
+          <div className='flex items-center gap-2'>
+            {mobileMoreButton}
+            <SpeechInputButton
+              disabled={disabled || isLoading || loading || isUploading}
+              locale={speechLocale}
                 onTranscript={handleSpeechTranscript}
               />
               {sendButtonPrefix}
@@ -1595,6 +1631,13 @@ const SendBox: React.FC<{
             </div>
           </div>
         )}
+        {hiddenFileInput}
+        <MobileActionSheet
+          open={mobileActionSheetOpen}
+          onClose={() => setMobileActionSheetOpen(false)}
+          title={t('common.more', { defaultValue: 'More' })}
+          entries={mobileActionEntries}
+        />
       </div>
     </div>
   );

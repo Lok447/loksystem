@@ -1,7 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
 import i18nConfig from '@/common/config/i18n-config.json';
 import {
@@ -121,7 +121,7 @@ i18n
 // Load initial language from ConfigStorage (single source of truth)
 async function initLanguage(): Promise<void> {
   try {
-    const savedLanguage = await ConfigStorage.get('language');
+    const savedLanguage = await configService.get('language');
     const shouldForceWebChinese = isBrowserWebRuntime && !hasExplicitLanguageSelection();
     const language = shouldForceWebChinese ? DEFAULT_WEB_LANGUAGE : savedLanguage || initialRendererLanguage;
     await ensureAndSwitch(i18n, language, loadLocaleModules);
@@ -163,13 +163,23 @@ ipcBridge.systemSettings.languageChanged.on(async ({ language }) => {
   }
 });
 
+configService.subscribe('language', ({ value }) => {
+  const normalized = normalizeLanguageCode(typeof value === 'string' ? value : initialRendererLanguage);
+  if (i18n.language === normalized) return;
+  void ensureAndSwitch(i18n, normalized, loadLocaleModules).then(() => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('i18nextLng', normalized);
+    }
+  });
+});
+
 /**
  * Change language with lazy loading.
  */
 export async function changeLanguage(lang: string): Promise<void> {
   await ensureAndSwitch(i18n, lang, loadLocaleModules);
   const normalized = normalizeLanguageCode(lang);
-  await ConfigStorage.set('language', normalized);
+  await configService.set('language', normalized);
   // Keep localStorage in sync so WebUI can use it as a fast hint on next load
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem('i18nextLng', normalized);

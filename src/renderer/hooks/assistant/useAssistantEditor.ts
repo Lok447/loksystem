@@ -1,5 +1,6 @@
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/config/storage';
+import { assistantService } from '@/common/config/assistantService';
+import { configService } from '@/common/config/configService';
 import type { Message } from '@arco-design/web-react';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import {
@@ -41,11 +42,11 @@ export const useAssistantEditor = ({
   const { t } = useTranslation();
 
   const persistDeletedBuiltinAssistant = useCallback(async (assistantId: string) => {
-    const deletedIds = ((await ConfigStorage.get('assistants.deletedBuiltinIds')) || []) as string[];
+    const deletedIds = ((await configService.get('assistants.deletedBuiltinIds')) || []) as string[];
     if (deletedIds.includes(assistantId)) {
       return;
     }
-    await ConfigStorage.set('assistants.deletedBuiltinIds', [...deletedIds, assistantId]);
+    await configService.set('assistants.deletedBuiltinIds', [...deletedIds, assistantId]);
   }, []);
 
   // Edit drawer state
@@ -276,7 +277,7 @@ export const useAssistantEditor = ({
         }
       }
 
-      const agents = (await ConfigStorage.get('assistants')) || [];
+      const agents = await assistantService.listAssistants();
 
       // Calculate final customSkills: merge existing + pending
       const pendingSkillNames = pendingSkills.map((s) => s.name);
@@ -309,7 +310,7 @@ export const useAssistantEditor = ({
         }
 
         const updatedAgents = [...agents, newAssistant];
-        await ConfigStorage.set('assistants', updatedAgents);
+        await assistantService.saveAssistants(updatedAgents);
         setActiveAssistantId(newId);
         await loadAssistants();
         message.success(t('common.createSuccess', { defaultValue: 'Created successfully' }));
@@ -338,7 +339,7 @@ export const useAssistantEditor = ({
         }
 
         const updatedAgents = agents.map((agent) => (agent.id === activeAssistant.id ? updatedAgent : agent));
-        await ConfigStorage.set('assistants', updatedAgents);
+        await assistantService.saveAssistants(updatedAgents);
         await loadAssistants();
         message.success(t('common.saveSuccess', { defaultValue: 'Saved successfully' }));
       }
@@ -381,9 +382,9 @@ export const useAssistantEditor = ({
       ]);
 
       // Remove assistant from config
-      const agents = (await ConfigStorage.get('assistants')) || [];
+      const agents = await assistantService.listAssistants();
       const updatedAgents = agents.filter((agent) => agent.id !== activeAssistant.id);
-      await ConfigStorage.set('assistants', updatedAgents);
+      await assistantService.saveAssistants(updatedAgents);
 
       // Reload merged assistant list (local + extensions)
       await loadAssistants();
@@ -409,13 +410,13 @@ export const useAssistantEditor = ({
     }
 
     try {
-      const agents = (await ConfigStorage.get('assistants')) || [];
+      const agents = await assistantService.listAssistants();
       const updatedAgents = agents.map((agent) => (agent.id === assistant.id ? { ...agent, enabled } : agent));
-      await ConfigStorage.set('assistants', updatedAgents);
+      await assistantService.saveAssistants(updatedAgents);
       if (assistant.isBuiltin && enabled) {
-        const deletedIds = ((await ConfigStorage.get('assistants.deletedBuiltinIds')) || []) as string[];
+        const deletedIds = ((await configService.get('assistants.deletedBuiltinIds')) || []) as string[];
         if (deletedIds.includes(assistant.id)) {
-          await ConfigStorage.set(
+          await configService.set(
             'assistants.deletedBuiltinIds',
             deletedIds.filter((id) => id !== assistant.id)
           );

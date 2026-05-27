@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { withCsrfToken, hasValidCsrfToken, clearCookie } from '@process/webserver/middleware/csrfClient';
 import { CSRF_COOKIE_NAME } from '@process/webserver/config/constants';
 import { resolveWebRuntimeServerPath } from '@/common/utils/webRuntimeOrigin';
+import type { DesktopAuthUser } from '@/common/types/electron';
 
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 
@@ -46,6 +47,16 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const AUTH_USER_ENDPOINT = '/api/auth/user';
 
 const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electronAPI);
+
+const mapDesktopUser = (user: DesktopAuthUser | null | undefined): AuthUser | null => {
+  if (!user) {
+    return null;
+  }
+  return {
+    id: user.id,
+    username: user.username,
+  };
+};
 
 // Clear expired auth cache including cookies and localStorage
 // 清除过期的认证缓存，包括 Cookie 和 localStorage
@@ -108,8 +119,16 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   const refresh = useCallback(async () => {
     if (isDesktopRuntime) {
-      setStatus('authenticated');
-      setUser(null);
+      try {
+        const result = await window.electronAPI?.desktopAuthGetCurrentUser?.();
+        const currentUser = mapDesktopUser(result?.user);
+        setUser(currentUser);
+        setStatus(currentUser ? 'authenticated' : 'unauthenticated');
+      } catch (error) {
+        console.error('Failed to fetch desktop auth user:', error);
+        setUser(null);
+        setStatus('unauthenticated');
+      }
       setReady(true);
       return;
     }
@@ -140,6 +159,17 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const login = useCallback(async ({ username, password, remember }: LoginParams): Promise<LoginResult> => {
     try {
       if (isDesktopRuntime) {
+        const result = await window.electronAPI?.desktopAuthLogin?.({ username, password, remember });
+        if (!result?.success || !result.user) {
+          return {
+            success: false,
+            message: result?.msg ?? 'Login failed',
+            code: result?.code ?? 'unknown',
+          };
+        }
+
+        setUser(mapDesktopUser(result.user));
+        setStatus('authenticated');
         setReady(true);
         return { success: true };
       }
@@ -242,8 +272,11 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const logout = useCallback(async () => {
     if (isDesktopRuntime) {
       setUser(null);
-      setStatus('authenticated');
+      setStatus('unauthenticated');
       setReady(true);
+      await window.electronAPI?.desktopAuthLogout?.().catch((error) => {
+        console.error('Desktop logout request failed:', error);
+      });
       return;
     }
 

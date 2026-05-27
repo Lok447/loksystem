@@ -46,6 +46,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   collectFeedbackLogs: () => ipcRenderer.invoke('feedback:collect-logs'),
   // 生��二维码 token / Generate QR token
   webuiGenerateQRToken: () => ipcRenderer.invoke('webui-direct-generate-qr-token'),
+  desktopAuthGetCurrentUser: () => ipcRenderer.invoke('desktop-auth:get-current-user'),
+  desktopAuthLogin: (params: { username: string; password: string; remember?: boolean }) =>
+    ipcRenderer.invoke('desktop-auth:login', params),
+  desktopAuthLogout: () => ipcRenderer.invoke('desktop-auth:logout'),
   // WeChat login IPC
   weixinLoginStart: () => ipcRenderer.invoke('weixin:login:start'),
   weixinLoginOnQR: (callback: (data: { qrcodeUrl: string }) => void) => {

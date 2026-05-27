@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { getRendererCoreClient } from '@/common/coreClient';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { IProvider } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
@@ -71,7 +71,7 @@ const AcpModelSelector: React.FC<{
   const loadCachedModelInfo = useCallback(
     async (backendKey: string, options?: { preserveInitialModel?: boolean }) => {
       try {
-        const cached = await ConfigStorage.get('acp.cachedModels');
+        const cached = await configService.get('acp.cachedModels');
         const cachedInfo = cached?.[backendKey];
         if (!cachedInfo?.availableModels?.length) return;
 

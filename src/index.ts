@@ -347,8 +347,11 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
 
   // Set window size to 80% (4/5) of screen size for better visibility on high-resolution displays
-  const windowWidth = Math.floor(screenWidth * 0.8);
-  const windowHeight = Math.floor(screenHeight * 0.8);
+  const defaultWidth = Math.floor(screenWidth * 0.8);
+  const defaultHeight = Math.floor(screenHeight * 0.8);
+  const savedBounds = ProcessConfig.getSync('ui.windowBounds');
+  const windowWidth = savedBounds?.width || defaultWidth;
+  const windowHeight = savedBounds?.height || defaultHeight;
 
   // Get app icon for development mode (Windows/Linux need icon in BrowserWindow)
   // In production, icons are set via forge.config.ts packagerConfig
@@ -371,6 +374,9 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   mainWindow = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
+    ...(typeof savedBounds?.x === 'number' && typeof savedBounds?.y === 'number'
+      ? { x: savedBounds.x, y: savedBounds.y }
+      : {}),
     show: false, // Hide until CSS is loaded to prevent FOUC
     backgroundColor: '#ffffff',
     autoHideMenuBar: true,
@@ -426,7 +432,25 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   setupApplicationMenu();
 
   setupZoomForWindow(mainWindow);
+  if (savedBounds?.isMaximized) {
+    mainWindow.maximize();
+  }
   registerWindowMaximizeListeners(mainWindow);
+
+  const persistWindowBounds = () => {
+    if (mainWindow.isDestroyed()) return;
+    const bounds = mainWindow.getBounds();
+    void ProcessConfig.set('ui.windowBounds', {
+      ...bounds,
+      isMaximized: mainWindow.isMaximized(),
+    }).catch((error) => {
+      console.error('[LokSystem] Failed to persist window bounds:', error);
+    });
+  };
+  mainWindow.on('resize', persistWindowBounds);
+  mainWindow.on('move', persistWindowBounds);
+  mainWindow.on('maximize', persistWindowBounds);
+  mainWindow.on('unmaximize', persistWindowBounds);
 
   // Initialize auto-updater service (skip when disabled via env, e.g. E2E / CI)
   // 初始化自动更新服务（通过环境变量禁用时跳过，例如 E2E / CI 场景）

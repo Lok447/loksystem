@@ -8,6 +8,7 @@ import { theme } from '@office-ai/platform';
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { addImportantToAll } from '@renderer/utils/theme/customCssProcessor';
+import { configService } from '@/common/config/configService';
 
 /**
  * Create the base style element for Shadow DOM with CSS variables, theme styles, and optional custom CSS.
@@ -90,21 +91,36 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   img {
     max-width: 100%;
     height: auto;
+    border-radius: 12px;
   }
-   /* Table border styles */
+  blockquote {
+    margin: 12px 0;
+    padding: 10px 14px;
+    border-left: 3px solid ${theme.Color.PrimaryColor};
+    background: color-mix(in srgb, var(--bg-2) 82%, transparent);
+    border-radius: 0 12px 12px 0;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid var(--bg-3);
+    margin: 18px 0;
+  }
+  /* Table border styles */
   table {
     border-collapse: collapse;
-    th{
-      padding: 8px;
-      border: 1px solid var(--bg-3);
-      background-color: var(--bg-1);
-      font-weight: bold;
-    }
-    td{
-        padding: 8px;
-        border: 1px solid var(--bg-3);
-        min-width: 120px;
-    }
+    width: 100%;
+  }
+  table th {
+    padding: 8px;
+    border: 1px solid var(--bg-3);
+    background-color: var(--bg-1);
+    font-weight: bold;
+    text-align: left;
+  }
+  table td {
+    padding: 8px;
+    border: 1px solid var(--bg-3);
+    min-width: 120px;
   }
   /* Inline code should wrap on small screens to avoid horizontal overflow */
   .markdown-shadow-body code {
@@ -202,21 +218,19 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
 
   // Load custom CSS from ConfigStorage
   React.useEffect(() => {
-    void import('@/common/config/storage').then(({ ConfigStorage }) => {
-      ConfigStorage.get('customCss')
-        .then((css) => {
-          if (css) {
-            // Use unified utility to auto-add !important
-            const processedCss = addImportantToAll(css);
-            setCustomCss(processedCss);
-          } else {
-            setCustomCss('');
-          }
-        })
-        .catch((error: unknown) => {
-          console.error('Failed to load custom CSS:', error);
-        });
-    });
+    configService
+      .get('customCss')
+      .then((css) => {
+        if (css) {
+          const processedCss = addImportantToAll(css);
+          setCustomCss(processedCss);
+        } else {
+          setCustomCss('');
+        }
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to load custom CSS:', error);
+      });
 
     // Listen to custom CSS update events
     const handleCustomCssUpdate = (e: CustomEvent) => {
@@ -229,9 +243,14 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
     };
 
     window.addEventListener('custom-css-updated', handleCustomCssUpdate as EventListener);
+    const unsubscribe = configService.subscribe('customCss', ({ value }) => {
+      const processedCss = value ? addImportantToAll(value) : '';
+      setCustomCss(processedCss);
+    });
 
     return () => {
       window.removeEventListener('custom-css-updated', handleCustomCssUpdate as EventListener);
+      unsubscribe();
     };
   }, []);
 

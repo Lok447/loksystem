@@ -5,6 +5,7 @@
  */
 
 import { ipcMain } from 'electron';
+import { ipcBridge } from '@/common';
 import { webui } from '@/common/adapter/ipcBridge';
 import { SERVER_CONFIG } from '@process/webserver/config/constants';
 import { WebuiService } from './services/WebuiService';
@@ -191,6 +192,7 @@ export function initWebuiBridge(): void {
       webui.statusChanged.emit({
         running: false,
       });
+      ipcBridge.config.changed.emit({ key: 'webui.desktop.enabled', value: false });
 
       return { success: true };
     } catch (error) {

@@ -5,7 +5,7 @@
  */
 
 // hooks/useColorScheme.ts - Color Scheme Management Hook 配色方案管理
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { useCallback, useEffect, useState } from 'react';
 
 // Supported color schemes 支持的配色方案类型
@@ -20,7 +20,7 @@ const COLOR_SCHEME_CACHE_KEY = '__loksystem_colorScheme';
  */
 const initColorScheme = async () => {
   try {
-    const scheme = (await ConfigStorage.get('colorScheme')) as ColorScheme;
+    const scheme = (await configService.get('colorScheme')) as ColorScheme | undefined;
     const initialScheme = scheme || DEFAULT_COLOR_SCHEME;
     document.documentElement.setAttribute('data-color-scheme', initialScheme);
     try {
@@ -71,7 +71,7 @@ const useColorScheme = (): [ColorScheme, (scheme: ColorScheme) => Promise<void>]
       try {
         setColorSchemeState(newScheme);
         applyColorScheme(newScheme);
-        await ConfigStorage.set('colorScheme', newScheme);
+        await configService.set('colorScheme', newScheme);
       } catch (error) {
         console.error('Failed to save color scheme:', error);
         // Revert on error 保存失败时回滚
@@ -96,7 +96,13 @@ const useColorScheme = (): [ColorScheme, (scheme: ColorScheme) => Promise<void>]
           console.error('Failed to initialize color scheme:', error);
         });
     }
-  }, []);
+
+    return configService.subscribe('colorScheme', ({ value }) => {
+      const nextScheme = (value as ColorScheme | undefined) || DEFAULT_COLOR_SCHEME;
+      setColorSchemeState(nextScheme);
+      applyColorScheme(nextScheme);
+    });
+  }, [applyColorScheme]);
 
   return [colorScheme, setColorScheme];
 };

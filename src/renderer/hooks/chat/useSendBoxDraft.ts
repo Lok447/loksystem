@@ -77,8 +77,9 @@ const setDraft = (
 ) => {
   const normalizedType = normalizeDraftType(type);
   if (draft) {
+    const draftType = (draft as { _type?: string })._type;
     const normalizedDraft =
-      normalizedType === 'aionrs' && draft._type === 'gemini' ? { ...draft, _type: 'aionrs' } : draft;
+      normalizedType === 'aionrs' && draftType === 'gemini' ? ({ ...draft, _type: 'aionrs' } as Draft) : (draft as Draft);
     store[normalizedType].set(conversation_id, normalizedDraft as Draft);
   } else {
     store[normalizedType].delete(conversation_id);

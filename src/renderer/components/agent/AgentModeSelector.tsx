@@ -5,7 +5,8 @@
  */
 
 import { getRendererCoreClient } from '@/common/coreClient';
-import { ConfigStorage } from '@/common/config/storage';
+import { ipcBridge } from '@/common';
+import { configService } from '@/common/config/configService';
 import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -105,7 +106,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     let cancelled = false;
 
     // Try top-level modes cache first
-    ConfigStorage.get('acp.cachedModes')
+    configService.get('acp.cachedModes')
       .then((cachedModes) => {
         if (cancelled) return;
         const sessionModes = cachedModes?.[backend];
@@ -119,7 +120,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
           return;
         }
         // Fall back to configOptions with category === 'mode'
-        return ConfigStorage.get('acp.cachedConfigOptions').then((cached) => {
+        return configService.get('acp.cachedConfigOptions').then((cached) => {
           if (cancelled) return;
           const options = cached?.[backend];
           if (Array.isArray(options)) {

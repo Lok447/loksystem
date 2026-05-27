@@ -33,6 +33,10 @@ type TeamPageContentProps = {
 
 const isLokCliConversationType = (type: string | undefined): boolean => type === 'aionrs' || type === 'gemini';
 
+const getConversationModel = (conversation: TChatConversation | undefined): TProviderWithModel | undefined => {
+  return (conversation as Partial<{ model: TProviderWithModel }> | undefined)?.model;
+};
+
 /** Compact aionrs model selector for the agent header */
 const AionrsHeaderModelSelector: React.FC<{ conversationId: string; initialModel?: TProviderWithModel }> = ({
   conversationId,
@@ -66,6 +70,7 @@ const AgentChatSlot: React.FC<{
   const isAionrs = conversation?.type === 'aionrs';
   const isLokCli = isLokCliConversationType(conversation?.type) || isLokCliConversationType(agent.conversationType);
   const initialModelId = (conversation?.extra as { currentModelId?: string })?.currentModelId;
+  const conversationModel = getConversationModel(conversation);
   const isAcpLike = agent.conversationType === 'acp' || agent.conversationType === 'codex';
 
   return (
@@ -112,7 +117,7 @@ const AgentChatSlot: React.FC<{
               <AionrsHeaderModelSelector
                 key={agent.conversationId}
                 conversationId={agent.conversationId}
-                initialModel={conversation && 'model' in conversation ? (conversation.model as TProviderWithModel) : undefined}
+                initialModel={conversationModel}
               />
             </div>
           )}

@@ -1,5 +1,5 @@
 // hooks/useTheme.ts
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { useCallback, useEffect, useState } from 'react';
 
 export type Theme = 'light' | 'dark';
@@ -10,7 +10,7 @@ const THEME_CACHE_KEY = '__loksystem_theme';
 // Initialize theme immediately when module loads
 const initTheme = async () => {
   try {
-    const theme = (await ConfigStorage.get('theme')) as Theme;
+    const theme = (await configService.get('theme')) as Theme | undefined;
     const initialTheme = theme || DEFAULT_THEME;
     document.documentElement.setAttribute('data-theme', initialTheme);
     document.body.setAttribute('arco-theme', initialTheme);
@@ -54,7 +54,7 @@ const useTheme = (): [Theme, (theme: Theme) => Promise<void>] => {
       try {
         setThemeState(newTheme);
         applyTheme(newTheme);
-        await ConfigStorage.set('theme', newTheme);
+        await configService.set('theme', newTheme);
       } catch (error) {
         console.error('Failed to save theme:', error);
         // Revert on error
@@ -76,6 +76,12 @@ const useTheme = (): [Theme, (theme: Theme) => Promise<void>] => {
           console.error('Failed to initialize theme:', error);
         });
     }
+
+    return configService.subscribe('theme', ({ value }) => {
+      const nextTheme = (value as Theme | undefined) || DEFAULT_THEME;
+      setThemeState(nextTheme);
+      applyTheme(nextTheme);
+    });
   }, []);
 
   return [theme, setTheme];

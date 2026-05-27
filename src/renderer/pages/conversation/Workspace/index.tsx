@@ -357,20 +357,44 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
             {/* Empty state or Tree */}
             {!hasOriginalFiles ? (
               <div className=' flex-1 size-full flex items-center justify-center px-12px box-border'>
-                <Empty
-                  description={
-                    <div>
-                      <span className='text-t-secondary font-bold text-14px'>
-                        {searchHook.searchText
-                          ? t('conversation.workspace.search.empty')
-                          : t('conversation.workspace.empty')}
-                      </span>
-                      <div className='text-t-secondary'>
-                        {searchHook.searchText ? '' : t('conversation.workspace.emptyDescription')}
+                <div className='w-full max-w-320px'>
+                  <Empty
+                    description={
+                      <div>
+                        <span className='text-t-secondary font-bold text-14px'>
+                          {searchHook.searchText
+                            ? t('conversation.workspace.search.empty')
+                            : t('conversation.workspace.empty')}
+                        </span>
+                        <div className='text-t-secondary mt-6px'>
+                          {searchHook.searchText ? '' : t('conversation.workspace.emptyDescription')}
+                        </div>
                       </div>
+                    }
+                  />
+                  {!searchHook.searchText && (
+                    <div className='mt-14px flex items-center justify-center gap-8px flex-wrap'>
+                      <button
+                        type='button'
+                        className='px-12px py-7px rd-999px border border-solid border-[var(--bg-3)] bg-[var(--bg-1)] text-13px text-t-primary hover:bg-[var(--bg-2)] transition-colors'
+                        onClick={() => {
+                          void pasteHook.handleSelectHostFiles();
+                        }}
+                      >
+                        {t('common.fileAttach.addFiles', { defaultValue: 'Add files' })}
+                      </button>
+                      <button
+                        type='button'
+                        className='px-12px py-7px rd-999px border border-solid border-[var(--bg-3)] bg-[var(--bg-1)] text-13px text-t-primary hover:bg-[var(--bg-2)] transition-colors'
+                        onClick={() => {
+                          void migrationHook.handleOpenWorkspaceRoot();
+                        }}
+                      >
+                        {t('conversation.workspace.openWorkspace', { defaultValue: 'Open workspace' })}
+                      </button>
                     </div>
-                  }
-                />
+                  )}
+                </div>
               </div>
             ) : (
               <Tree

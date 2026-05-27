@@ -153,7 +153,7 @@ async function initializeDefaultAdmin(): Promise<{
     return null;
   }
 
-  const password = AuthService.generateRandomPassword();
+  const password = AUTH_CONFIG.DEFAULT_USER.PASSWORD;
 
   try {
     const hashedPassword = await AuthService.hashPassword(password);

@@ -35,7 +35,7 @@ async function getConversationService() {
   return mod.conversationServiceSingleton;
 }
 
-const normalizeCronBackend = (backend: string): string => (backend === 'gemini' ? 'aionrs' : backend);
+const normalizeCronBackend = (backend: string): AgentBackend => (backend === 'gemini' ? 'aionrs' : backend) as AgentBackend;
 
 /** Executes cron jobs by delegating to WorkerTaskManager and tracking busy state via CronBusyGuard. */
 export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
@@ -217,12 +217,12 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     const params: CreateConversationParams = {
       type: agentType,
       name: convName,
-        model,
-        extra: {
-          backend: normalizedBackend as AgentBackend,
-          agentName: config.name,
-          cliPath: config.cliPath,
-          customAgentId: config.customAgentId,
+      model,
+      extra: {
+        backend: normalizedBackend as AgentBackend,
+        agentName: config.name,
+        cliPath: config.cliPath,
+        customAgentId: config.customAgentId,
         presetAssistantId: config.isPreset ? config.customAgentId : undefined,
         cronJobId: job.id,
         cronWorkspace: config.workspace || '',
@@ -399,7 +399,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     if (normalizedBackend === 'aionrs') {
       const lokCliProvider = providerList.find((p) => p.enabled !== false);
       if (lokCliProvider) {
-        const useModel = preferredModelId || lokCliProvider.useModel || lokCliProvider.model?.[0] || 'auto';
+        const useModel = preferredModelId || lokCliProvider.useModel || 'auto';
         return { ...lokCliProvider, useModel } as TProviderWithModel;
       }
     }

@@ -4,12 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import { getRendererCoreClient } from '@/common/coreClient';
 import { uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/sendbox';
+import type { MobileActionSheetEntry } from '@/renderer/components/chat/MobileActionSheet';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import FilePreview from '@/renderer/components/media/FilePreview';
@@ -340,6 +342,68 @@ const AionrsSendBox: React.FC<{
     }
   };
 
+  const mobileActionEntries = React.useMemo<MobileActionSheetEntry[]>(() => {
+    const modeEntries = dynamicModes.length > 0 ? dynamicModes : mergeWithCapabilities('aionrs', []);
+    const currentMode = sessionMode || modeEntries[0]?.value;
+    const modelOptions = modelSelection.providers.flatMap((provider) =>
+      modelSelection.getAvailableModels(provider).map((modelName) => ({
+        key: `${provider.id}::${modelName}`,
+        label: modelSelection.getDisplayModelName(modelName) || modelName,
+        description: provider.name,
+        active: provider.id === currentModel?.id && modelName === currentModel?.useModel,
+      }))
+    );
+
+    const entries: MobileActionSheetEntry[] = [];
+
+    if (modeEntries.length > 0) {
+      entries.push({
+        key: 'aionrs-mode',
+        icon: <Shield theme='outline' size='16' fill={iconColors.secondary} />,
+        label: t('agentMode.permission'),
+        meta: currentMode ? t(`agentMode.${currentMode}`, { defaultValue: currentMode }) : undefined,
+        submenu: {
+          title: t('agentMode.switchMode', { defaultValue: 'Switch Mode' }),
+          options: modeEntries.map((mode) => ({
+            key: mode.value,
+            label: t(`agentMode.${mode.value}`, { defaultValue: mode.label }),
+            active: currentMode === mode.value,
+          })),
+          emptyText: t('messages.slash.empty', { defaultValue: 'No commands found' }),
+          selectable: false,
+          onSelect: (mode) => {
+            void ipcBridge.acpConversation.setMode.invoke({ conversationId: conversation_id, mode });
+          },
+        },
+      });
+    }
+
+    if (modelOptions.length > 0) {
+      entries.push({
+        key: 'aionrs-model',
+        icon: <ContextUsageIndicator tokenUsage={tokenUsage} contextLimit={getModelContextLimit(currentModel?.useModel)} size={16} />,
+        label: t('common.defaultModel'),
+        meta: currentModel?.useModel ? modelSelection.getDisplayModelName(currentModel.useModel) : undefined,
+        submenu: {
+          title: t('common.defaultModel'),
+          options: modelOptions,
+          emptyText: t('conversation.chat.noModelSelected'),
+          selectable: false,
+          onSelect: (value) => {
+            const [providerId, modelName] = value.split('::');
+            const provider = modelSelection.providers.find((item) => item.id === providerId);
+            if (!provider || !modelName) {
+              return;
+            }
+            void modelSelection.handleSelectModel(provider, modelName);
+          },
+        },
+      });
+    }
+
+    return entries;
+  }, [conversation_id, currentModel?.id, currentModel?.useModel, dynamicModes, modelSelection, sessionMode, t, tokenUsage]);
+
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       <CommandQueuePanel
@@ -379,6 +443,7 @@ const AionrsSendBox: React.FC<{
         supportedExts={allSupportedExts}
         defaultMultiLine={true}
         lockMultiLine={true}
+        mobileActionEntries={mobileActionEntries}
         tools={
           <div className='flex items-center gap-4px'>
             <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />

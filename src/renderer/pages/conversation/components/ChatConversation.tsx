@@ -330,18 +330,20 @@ const ChatConversation: React.FC<{
               ? conversation?.extra?.backend
               : conversation?.type === 'codex'
                 ? 'codex'
-                : conversation?.type === 'openclaw-gateway'
-                  ? 'openclaw-gateway'
-                  : conversation?.type === 'nanobot'
-                    ? 'nanobot'
-                    : conversation?.type === 'remote'
-                      ? 'remote'
-                      : undefined,
+                  : conversation?.type === 'openclaw-gateway'
+                    ? 'openclaw-gateway'
+                    : conversation?.type === 'nanobot'
+                      ? 'nanobot'
+                      : conversation?.type === 'remote'
+                        ? 'remote'
+                        : undefined,
           agentName: conversationAgentName,
         };
 
   const headerExtraNode = (
     <div className='flex items-center gap-8px'>
+      {conversation && <_AssociatedConversation conversation_id={conversation.id} />}
+      {conversation && <_AddNewConversation conversation={conversation} />}
       {conversation?.type === 'openclaw-gateway' && (
         <div className='shrink-0'>
           <StarOfficeMonitorCard

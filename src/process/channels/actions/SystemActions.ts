@@ -108,9 +108,8 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
     name: 'Channel Default',
     baseUrl: '',
     apiKey: '',
-    model: ['default'],
     useModel: 'default',
-  };
+  } as TProviderWithModel;
 }
 
 /**

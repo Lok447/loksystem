@@ -17,6 +17,8 @@ import './utils/ui/runtimePatches';
 
 // Browser adapter setup
 import '@/common/adapter/browser';
+import { ipcBridge } from '@/common';
+import { configService } from '@/common/config/configService';
 
 // React and core dependencies
 import type { PropsWithChildren } from 'react';
@@ -127,6 +129,10 @@ const Main = () => {
 const App = HOC.Wrapper(Config)(Main);
 
 void registerPwa();
+
+ipcBridge.config.changed.on(({ key, value }) => {
+  configService.notify(key as keyof import('@/common/config/storage').IConfigStorageRefer, value as never);
+});
 
 const root = createRoot(document.getElementById('root')!);
 root.render(React.createElement(AppProviders, null, React.createElement(App)));

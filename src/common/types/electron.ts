@@ -47,6 +47,29 @@ export interface WebUIGenerateQRTokenResult {
   msg?: string;
 }
 
+export interface DesktopAuthUser {
+  id: string;
+  username: string;
+}
+
+export interface DesktopAuthCurrentUserResult {
+  success: boolean;
+  user?: DesktopAuthUser | null;
+  msg?: string;
+}
+
+export interface DesktopAuthLoginResult {
+  success: boolean;
+  user?: DesktopAuthUser;
+  code?: 'invalidCredentials' | 'tooManyAttempts' | 'serverError' | 'networkError' | 'unknown';
+  msg?: string;
+}
+
+export interface DesktopAuthLogoutResult {
+  success: boolean;
+  msg?: string;
+}
+
 export interface ElectronBridgeAPI {
   emit: (name: string, data: unknown) => Promise<unknown> | void;
   on: (callback: (event: { value: string }) => void) => void;
@@ -60,6 +83,13 @@ export interface ElectronBridgeAPI {
   webuiChangeUsername?: (newUsername: string) => Promise<WebUIChangeUsernameResult>;
   // 生成二维��� token / Generate QR token
   webuiGenerateQRToken?: () => Promise<WebUIGenerateQRTokenResult>;
+  desktopAuthGetCurrentUser?: () => Promise<DesktopAuthCurrentUserResult>;
+  desktopAuthLogin?: (params: {
+    username: string;
+    password: string;
+    remember?: boolean;
+  }) => Promise<DesktopAuthLoginResult>;
+  desktopAuthLogout?: () => Promise<DesktopAuthLogoutResult>;
   // WeChat QR-code login / 微信二维码登录
   weixinLoginStart?: () => Promise<{ accountId: string; botToken: string }>;
   weixinLoginOnQR?: (callback: (data: { qrcodeUrl: string }) => void) => () => void;

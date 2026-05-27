@@ -1,13 +1,16 @@
 import { ipcBridge } from '@/common';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { getRendererCoreClient } from '@/common/coreClient';
-import type { AcpBackend } from '@/common/types/acpTypes';
+import { configService } from '@/common/config/configService';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { AcpBackend, AcpModelInfo, AcpSessionModes } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
 import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/sendbox';
+import type { MobileActionSheetEntry } from '@/renderer/components/chat/MobileActionSheet';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import FilePreview from '@/renderer/components/media/FilePreview';
@@ -32,9 +35,10 @@ import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
+import { getAgentModes, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
 import { useAcpMessage } from './useAcpMessage';
@@ -120,6 +124,8 @@ const AcpSendBox: React.FC<{
   const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus, deferUntilReady: true });
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
+  const [mobileModeOptions, setMobileModeOptions] = useState<AgentModeOption[]>([]);
+  const [mobileModelInfo, setMobileModelInfo] = useState<import('@/common/types/acpTypes').AcpModelInfo | null>(null);
 
   // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
@@ -155,6 +161,56 @@ const AcpSendBox: React.FC<{
     },
     []
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCachedModes = async (): Promise<void> => {
+      const cachedModes = await configService.get('acp.cachedModes').catch((): undefined => undefined);
+      const sessionModes = cachedModes?.[backend];
+      if (!cancelled && sessionModes?.availableModes?.length) {
+        setMobileModeOptions(
+          (sessionModes as AcpSessionModes).availableModes!.map((mode): AgentModeOption => ({
+            value: mode.id,
+            label: mode.name ?? mode.id,
+          }))
+        );
+      } else if (!cancelled) {
+        setMobileModeOptions(getAgentModes(backend));
+      }
+    };
+
+    const loadModelInfo = async (): Promise<void> => {
+      try {
+        const result = await ipcBridge.acpConversation.getModelInfo.invoke({ conversationId: conversation_id });
+        if (!cancelled && result.success && result.data?.modelInfo) {
+          setMobileModelInfo(result.data.modelInfo);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+
+      const cachedModels = await configService.get('acp.cachedModels').catch((): undefined => undefined);
+      if (!cancelled) {
+        setMobileModelInfo((cachedModels?.[backend] as AcpModelInfo | undefined) ?? null);
+      }
+    };
+
+    void Promise.all([loadCachedModes(), loadModelInfo()]);
+
+    const unsubscribe = ipcBridge.acpConversation.responseStream.on((message: IResponseMessage) => {
+      if (message.conversation_id !== conversation_id || message.type !== 'acp_model_info' || !message.data) {
+        return;
+      }
+      setMobileModelInfo(message.data as import('@/common/types/acpTypes').AcpModelInfo);
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [backend, conversation_id]);
 
   // Check for and send initial message from guid page
   useAcpInitialMessage({
@@ -318,6 +374,58 @@ Please check your local CLI tool authentication status`,
     }
   };
 
+  const mobileActionEntries = React.useMemo<MobileActionSheetEntry[]>(() => {
+    const entries: MobileActionSheetEntry[] = [];
+    const modeOptions = mobileModeOptions.length > 0 ? mobileModeOptions : getAgentModes(backend);
+    const currentMode = sessionMode || modeOptions[0]?.value;
+
+    if (modeOptions.length > 0) {
+      entries.push({
+        key: 'acp-mode',
+        icon: <Shield theme='outline' size='16' fill={iconColors.secondary} />,
+        label: t('agentMode.permission'),
+        meta: currentMode ? t(`agentMode.${currentMode}`, { defaultValue: currentMode }) : undefined,
+        submenu: {
+          title: t('agentMode.switchMode', { defaultValue: 'Switch Mode' }),
+          options: modeOptions.map((mode) => ({
+            key: mode.value,
+            label: t(`agentMode.${mode.value}`, { defaultValue: mode.label }),
+            active: currentMode === mode.value,
+          })),
+          emptyText: t('messages.slash.empty', { defaultValue: 'No commands found' }),
+          selectable: false,
+          onSelect: (mode) => {
+            void ipcBridge.acpConversation.setMode.invoke({ conversationId: conversation_id, mode });
+          },
+        },
+      });
+    }
+
+    if (mobileModelInfo?.availableModels?.length) {
+      entries.push({
+        key: 'acp-model',
+        icon: <ContextUsageIndicator tokenUsage={tokenUsage} contextLimit={contextLimit > 0 ? contextLimit : undefined} size={16} />,
+        label: t('common.defaultModel'),
+        meta: mobileModelInfo.currentModelLabel || mobileModelInfo.currentModelId || undefined,
+        submenu: {
+          title: t('common.defaultModel'),
+          options: mobileModelInfo.availableModels.map((model) => ({
+            key: model.id,
+            label: model.label,
+            active: model.id === mobileModelInfo.currentModelId,
+          })),
+          emptyText: t('conversation.chat.noModelSelected'),
+          selectable: false,
+          onSelect: (modelId) => {
+            void ipcBridge.acpConversation.setModel.invoke({ conversationId: conversation_id, modelId });
+          },
+        },
+      });
+    }
+
+    return entries;
+  }, [backend, contextLimit, conversation_id, mobileModeOptions, mobileModelInfo, sessionMode, t, tokenUsage]);
+
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       <CommandQueuePanel
@@ -357,6 +465,7 @@ Please check your local CLI tool authentication status`,
         supportedExts={allSupportedExts}
         defaultMultiLine={true}
         lockMultiLine={true}
+        mobileActionEntries={mobileActionEntries}
         tools={
           <div className='flex items-center gap-4px'>
             <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />

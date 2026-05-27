@@ -14,11 +14,13 @@ import { createInProcessCoreClient, registerCoreClient } from '@process/adapters
 import { initCoreElectronClientAdapter } from '@process/adapters/electron';
 import { initAcpConversationBridge } from './acpConversationBridge';
 import { initApplicationBridge } from './applicationBridge';
+import { initAssistantBridge } from './assistantBridge';
 import { initBedrockBridge } from './bedrockBridge';
 import { initChannelBridge } from './channelBridge';
 import { initConversationBridge } from './conversationBridge';
 import { initCronBridge } from './cronBridge';
 import { initDatabaseBridge } from './databaseBridge';
+import { initDesktopAuthBridge } from './desktopAuthBridge';
 import { initDialogBridge } from './dialogBridge';
 import { initDocumentBridge } from './documentBridge';
 import { initFileWatchBridge } from './fileWatchBridge';
@@ -71,6 +73,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initFileWatchBridge();
   initConversationBridge(deps.conversationService, deps.workerTaskManager, deps.teamSessionService, coreServices);
   initApplicationBridge(deps.workerTaskManager);
+  initAssistantBridge();
   initBedrockBridge();
   initAcpConversationBridge(deps.workerTaskManager, coreServices);
   initModelBridge();
@@ -84,6 +87,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initWebuiBridge();
   initChannelBridge(deps.channelRepo);
   initDatabaseBridge(deps.conversationRepo);
+  initDesktopAuthBridge();
   initExtensionsBridge(deps.conversationRepo, deps.workerTaskManager);
   initCronBridge();
   initSystemSettingsBridge();
@@ -115,11 +119,13 @@ export async function initializeAcpDetector(): Promise<void> {
 export {
   initAcpConversationBridge,
   initApplicationBridge,
+  initAssistantBridge,
   initBedrockBridge,
   initChannelBridge,
   initConversationBridge,
   initCronBridge,
   initDatabaseBridge,
+  initDesktopAuthBridge,
   initDialogBridge,
   initDocumentBridge,
   initExtensionsBridge,

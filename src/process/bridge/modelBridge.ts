@@ -5,6 +5,7 @@
  */
 
 import type { IProvider } from '@/common/config/storage';
+import { providerService } from '@/common/config/providerService';
 import { uuid } from '@/common/utils';
 import {
   type ProtocolDetectionRequest,
@@ -556,8 +557,11 @@ export function initModelBridge(): void {
   });
 
   ipcBridge.mode.saveModelConfig.provider((models) => {
-    return ProcessConfig.set('model.config', models)
+    return providerService
+      .replaceAll(models)
       .then(() => {
+        void ipcBridge.mode.providerListChanged.emit({ providers: models });
+        void ipcBridge.config.changed.emit({ key: 'model.config', value: models });
         return { success: true };
       })
       .catch((e) => {
