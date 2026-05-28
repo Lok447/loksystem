@@ -6,27 +6,44 @@
 
 import React from 'react';
 import { Tooltip } from '@arco-design/web-react';
-import { AlarmClock } from '@icon-park/react';
 import classNames from 'classnames';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
-import { MANAGEMENT_LABELS } from '@renderer/constants/managementUi';
 
-interface SiderScheduledEntryProps {
+interface SiderQuickAccessEntryProps {
   isMobile: boolean;
   isActive: boolean;
   collapsed: boolean;
   siderTooltipProps: SiderTooltipProps;
   onClick: () => void;
+  label: string;
+  icon: React.ReactElement;
 }
 
-const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
+const SiderQuickAccessEntry: React.FC<SiderQuickAccessEntryProps> = ({
   isMobile,
   isActive,
   collapsed,
   siderTooltipProps,
   onClick,
+  label,
+  icon,
 }) => {
-  const label = MANAGEMENT_LABELS.scheduled;
+  const renderedIcon = React.cloneElement(
+    icon as React.ReactElement<{
+      theme?: string;
+      size?: string | number;
+      fill?: string;
+      className?: string;
+      style?: React.CSSProperties;
+    }>,
+    {
+      theme: 'outline',
+      size: '20',
+      fill: 'currentColor',
+      className: 'block leading-none shrink-0',
+      style: { lineHeight: 0 },
+    }
+  );
 
   if (collapsed) {
     return (
@@ -38,13 +55,7 @@ const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
           )}
           onClick={onClick}
         >
-          <AlarmClock
-            theme='outline'
-            size='20'
-            fill='currentColor'
-            className='block leading-none shrink-0'
-            style={{ lineHeight: 0 }}
-          />
+          {renderedIcon}
         </div>
       </Tooltip>
     );
@@ -60,19 +71,11 @@ const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
         )}
         onClick={onClick}
       >
-        <span className='w-28px h-28px flex items-center justify-center shrink-0'>
-          <AlarmClock
-            theme='outline'
-            size='20'
-            fill='currentColor'
-            className='block leading-none'
-            style={{ lineHeight: 0 }}
-          />
-        </span>
+        <span className='w-28px h-28px flex items-center justify-center shrink-0'>{renderedIcon}</span>
         <span className='collapsed-hidden text-t-primary text-14px font-medium leading-24px'>{label}</span>
       </div>
     </Tooltip>
   );
 };
 
-export default SiderScheduledEntry;
+export default SiderQuickAccessEntry;

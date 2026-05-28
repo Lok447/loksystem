@@ -4,7 +4,6 @@ import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/commo
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import {
   Communication,
-  Computer,
   Earth,
   Info,
   Lightning,
@@ -20,14 +19,14 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Tooltip } from '@arco-design/web-react';
 import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
+import { SETTINGS_PAGE_LABELS } from '@/renderer/constants/managementUi';
 
 /** Builtin settings tab IDs in display order (must match router paths). */
 export const BUILTIN_TAB_IDS = [
   'agent',
   'model',
-  'assistants',
   'capabilities',
-  'display',
+  'assistants',
   'webui',
   'system',
   'about',
@@ -50,7 +49,7 @@ export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
  */
 const GROUP_HEADER_BEFORE: Record<string, string> = {
   agent: 'settings.groupAiCore',
-  display: 'settings.groupApp',
+  webui: 'settings.groupApp',
   about: 'settings.groupAbout',
 };
 
@@ -133,33 +132,32 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
   const { menus, groupHeaderAt } = useMemo(() => {
     // Build builtin items
     const builtinMap: Record<string, SiderItem> = {
-      model: { id: 'model', label: t('settings.model'), icon: <LinkCloud />, path: 'model' },
+      model: { id: 'model', label: SETTINGS_PAGE_LABELS.model, icon: <LinkCloud />, path: 'model' },
       assistants: {
         id: 'assistants',
-        label: t('settings.assistants', { defaultValue: 'Assistants' }),
+        label: SETTINGS_PAGE_LABELS.assistants,
         icon: <Robot />,
         path: 'assistants',
       },
       agent: {
         id: 'agent',
-        label: t('settings.agents', { defaultValue: 'Agents' }),
+        label: SETTINGS_PAGE_LABELS.agent,
         icon: <Speed />,
         path: 'agent',
       },
       capabilities: {
         id: 'capabilities',
-        label: t('settings.capabilities', { defaultValue: 'Capabilities' }),
+        label: SETTINGS_PAGE_LABELS.capabilities,
         icon: <Lightning />,
         path: 'capabilities',
       },
-      display: { id: 'display', label: t('settings.display'), icon: <Computer />, path: 'display' },
       webui: {
         id: 'webui',
-        label: t('settings.webui'),
+        label: SETTINGS_PAGE_LABELS.webui,
         icon: isDesktop ? <Earth /> : <Communication />,
         path: 'webui',
       },
-      system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },
+      system: { id: 'system', label: SETTINGS_PAGE_LABELS.system, icon: <System />, path: 'system' },
       about: { id: 'about', label: t('settings.about'), icon: <Info />, path: 'about' },
     };
 

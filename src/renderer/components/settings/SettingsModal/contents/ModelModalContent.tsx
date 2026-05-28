@@ -20,6 +20,7 @@ import LokScrollArea from '@/renderer/components/base/LokScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
 import { classifyHealthCheckMessage } from './healthCheckUtils';
+import { SETTINGS_PAGE_LABELS } from '@/renderer/constants/managementUi';
 import '../model-provider.css';
 
 
@@ -431,7 +432,7 @@ const ModelModalContent: React.FC = () => {
       {/* Header with Add Button */}
       <div className='flex-shrink-0 border-b border-[var(--color-border-2)] pb-12px mb-14px flex flex-col gap-10px'>
         <div className='flex items-center justify-between gap-8px flex-wrap'>
-          <div className='text-20px font-600 text-t-primary leading-34px'>{t('settings.model')}</div>
+          <div className='text-20px font-600 text-t-primary leading-34px'>{SETTINGS_PAGE_LABELS.model}</div>
           <div className='flex items-center gap-8px flex-wrap'>
             <Button
               type='outline'

@@ -146,13 +146,16 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
         )
       ) : (
         <div className='shrink-0 flex flex-col gap-2px mb-8px'>
-          <div className='flex items-center justify-between px-12px py-8px'>
-            <span className='text-13px text-t-secondary font-bold leading-20px'>{t('team.sider.title')}</span>
+          <div className='box-border h-40px w-full flex items-center justify-start gap-8px px-10px rd-8px shrink-0 text-t-primary'>
+            <span className='w-28px h-28px flex items-center justify-center shrink-0'>
+              <Peoples theme='outline' size='20' fill='currentColor' style={{ lineHeight: 0 }} />
+            </span>
+            <span className='text-14px font-medium leading-24px text-t-primary'>{t('team.sider.title')}</span>
             <div
-              className='h-20px w-20px rd-4px flex items-center justify-center cursor-pointer hover:bg-fill-3 transition-all shrink-0'
+              className='ml-auto h-28px w-28px rd-8px flex items-center justify-center cursor-pointer transition-colors shrink-0 text-t-primary hover:bg-fill-3 active:bg-fill-4'
               onClick={() => setCreateTeamVisible(true)}
             >
-              <Plus theme='outline' size='14' fill='var(--color-text-2)' style={{ lineHeight: 0 }} />
+              <Plus theme='outline' size='18' fill='currentColor' style={{ lineHeight: 0 }} />
             </div>
           </div>
           {sortedTeams.length > 0 &&

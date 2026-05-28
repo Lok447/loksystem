@@ -8,7 +8,9 @@ import { ipcBridge } from '@/common';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import LokScrollArea from '@/renderer/components/base/LokScrollArea';
+import FontSizeControl from '@/renderer/components/settings/FontSizeControl';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
+import { ThemeSwitcher } from '@/renderer/components/settings/ThemeSwitcher';
 import { AUTO_PREVIEW_OFFICE_FILES_SWR_KEY } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
@@ -220,6 +222,8 @@ const SystemModalContent: React.FC = () => {
   }, [systemInfo, form]);
 
   const preferenceItems = [
+    { key: 'theme', label: t('settings.theme'), component: <ThemeSwitcher /> },
+    { key: 'fontSize', label: t('settings.fontSize'), component: <FontSizeControl /> },
     { key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> },
     {
       key: 'startOnBoot',

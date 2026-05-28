@@ -61,14 +61,19 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           />
           <Route path='/settings/gemini' element={<Navigate to='/settings/agent' replace />} />
           <Route path='/settings/model' element={withRouteFallback(ModeSettings)} />
+          <Route path='/manage/model' element={withRouteFallback(ModeSettings)} />
           <Route path='/settings/assistants' element={withRouteFallback(AssistantSettings)} />
+          <Route path='/manage/assistants' element={withRouteFallback(AssistantSettings)} />
           <Route path='/settings/agent' element={withRouteFallback(AgentSettings)} />
+          <Route path='/manage/agent' element={withRouteFallback(AgentSettings)} />
           <Route path='/settings/capabilities' element={withRouteFallback(CapabilitiesSettings)} />
+          <Route path='/manage/capabilities' element={withRouteFallback(CapabilitiesSettings)} />
           {/* Legacy routes — redirect to the merged /settings/capabilities page */}
           <Route path='/settings/skills-hub' element={<Navigate to='/settings/capabilities?tab=skills' replace />} />
           <Route path='/settings/tools' element={<Navigate to='/settings/capabilities?tab=tools' replace />} />
-          <Route path='/settings/display' element={withRouteFallback(DisplaySettings)} />
+          <Route path='/settings/display' element={<Navigate to='/settings/system' replace />} />
           <Route path='/settings/webui' element={withRouteFallback(WebuiSettings)} />
+          <Route path='/manage/webui' element={withRouteFallback(WebuiSettings)} />
           <Route path='/settings/pet' element={<Navigate to='/settings/system' replace />} />
           <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/about' element={withRouteFallback(SystemSettings)} />

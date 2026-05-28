@@ -14,21 +14,21 @@ vi.mock('@arco-design/web-react', () => ({
 }));
 
 vi.mock('@icon-park/react', () => ({
-  AlarmClock: () => <span data-testid='alarm-clock-icon' />,
+  LinkCloud: () => <span data-testid='link-cloud-icon' />,
 }));
 
-import SiderScheduledEntry from '@/renderer/components/layout/Sider/SiderNav/SiderScheduledEntry';
+import SiderModelEntry from '@/renderer/components/layout/Sider/SiderNav/SiderModelEntry';
 
 const siderTooltipProps: SiderTooltipProps = {
   disabled: true,
 };
 
-describe('SiderScheduledEntry', () => {
-  it('uses border-box sizing for the full-width desktop row so rounded corners are not clipped', () => {
+describe('SiderModelEntry', () => {
+  it('uses border-box sizing for the full-width desktop row and triggers navigation click', () => {
     const onClick = vi.fn();
 
     render(
-      <SiderScheduledEntry
+      <SiderModelEntry
         isMobile={false}
         isActive={false}
         collapsed={false}
@@ -37,7 +37,7 @@ describe('SiderScheduledEntry', () => {
       />
     );
 
-    const entry = screen.getByText('定时任务').closest('div');
+    const entry = screen.getByText('模型管理').closest('div');
     expect(entry).not.toBeNull();
     expect(entry?.className).toContain('box-border');
 

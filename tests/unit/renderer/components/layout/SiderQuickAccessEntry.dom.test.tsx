@@ -3,41 +3,38 @@ import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { SiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-  }),
-}));
-
 vi.mock('@arco-design/web-react', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('@icon-park/react', () => ({
-  AlarmClock: () => <span data-testid='alarm-clock-icon' />,
+  Lightning: (props: Record<string, unknown>) => <span data-testid='quick-access-icon' {...props} />,
 }));
 
-import SiderScheduledEntry from '@/renderer/components/layout/Sider/SiderNav/SiderScheduledEntry';
+import { Lightning } from '@icon-park/react';
+import SiderQuickAccessEntry from '@/renderer/components/layout/Sider/SiderNav/SiderQuickAccessEntry';
 
 const siderTooltipProps: SiderTooltipProps = {
   disabled: true,
 };
 
-describe('SiderScheduledEntry', () => {
-  it('uses border-box sizing for the full-width desktop row so rounded corners are not clipped', () => {
+describe('SiderQuickAccessEntry', () => {
+  it('renders a consistent desktop quick entry row and forwards click events', () => {
     const onClick = vi.fn();
 
     render(
-      <SiderScheduledEntry
+      <SiderQuickAccessEntry
         isMobile={false}
         isActive={false}
         collapsed={false}
         siderTooltipProps={siderTooltipProps}
         onClick={onClick}
+        label='Quick Link'
+        icon={<Lightning />}
       />
     );
 
-    const entry = screen.getByText('定时任务').closest('div');
+    const entry = screen.getByText('Quick Link').closest('div');
     expect(entry).not.toBeNull();
     expect(entry?.className).toContain('box-border');
 

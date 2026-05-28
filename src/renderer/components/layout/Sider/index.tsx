@@ -8,11 +8,22 @@ import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
-import { SiderToolbar, SiderSearchEntry, SiderScheduledEntry } from './SiderNav';
+import { TEAM_MODE_ENABLED } from '@/common/config/constants';
+import {
+  SiderToolbar,
+  SiderSearchEntry,
+  SiderModelEntry,
+  SiderAgentEntry,
+  SiderCapabilitiesEntry,
+  SiderAssistantsEntry,
+  SiderScheduledEntry,
+  SiderWebuiEntry,
+} from './SiderNav';
 import SiderFooter from './SiderFooter';
 import CronJobSiderSection from './CronJobSiderSection';
 import TeamSiderSection from './TeamSiderSection';
 import siderStyles from './Sider.module.css';
+import { MANAGEMENT_ROUTES } from '@renderer/constants/managementUi';
 
 const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/GroupedHistory'));
 const SettingsSider = React.lazy(() => import('@renderer/pages/settings/components/SettingsSider'));
@@ -27,6 +38,13 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const isMobile = layout?.isMobile ?? false;
   const location = useLocation();
   const { pathname, search, hash } = location;
+  const isWorkspaceRoute = pathname.startsWith('/conversation/') || pathname.startsWith('/guid');
+  const isTeamRoute = TEAM_MODE_ENABLED && pathname.startsWith('/team/');
+  const isScheduledRoute = pathname === '/scheduled' || pathname.startsWith('/scheduled/');
+  const isSettings = pathname.startsWith('/settings');
+  const isManagementRoute = pathname.startsWith('/manage/');
+  const useSettingsSider = isSettings;
+  const showSidebarContentSections = isWorkspaceRoute || isTeamRoute || isScheduledRoute;
 
   const navigate = useNavigate();
   const { closePreview } = usePreviewContext();
@@ -34,15 +52,14 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
   const { jobs: cronJobs } = useAllCronJobs();
-  const isSettings = pathname.startsWith('/settings');
   const lastNonSettingsPathRef = useRef('/guid');
   const showLogout = status === 'authenticated';
 
   useEffect(() => {
-    if (!pathname.startsWith('/settings')) {
+    if (!isSettings) {
       lastNonSettingsPathRef.current = `${pathname}${search}${hash}`;
     }
-  }, [pathname, search, hash]);
+  }, [isSettings, pathname, search, hash]);
 
   const handleNewChat = () => {
     cleanupSiderTooltips();
@@ -88,6 +105,71 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     closePreview();
     setIsBatchMode(false);
     Promise.resolve(navigate('/scheduled')).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
+    if (onSessionClick) {
+      onSessionClick();
+    }
+  };
+
+  const handleModelClick = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    closePreview();
+    setIsBatchMode(false);
+    Promise.resolve(navigate(MANAGEMENT_ROUTES.model)).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
+    if (onSessionClick) {
+      onSessionClick();
+    }
+  };
+
+  const handleAgentClick = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    closePreview();
+    setIsBatchMode(false);
+    Promise.resolve(navigate(MANAGEMENT_ROUTES.agent)).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
+    if (onSessionClick) {
+      onSessionClick();
+    }
+  };
+
+  const handleCapabilitiesClick = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    closePreview();
+    setIsBatchMode(false);
+    Promise.resolve(navigate(MANAGEMENT_ROUTES.capabilities)).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
+    if (onSessionClick) {
+      onSessionClick();
+    }
+  };
+
+  const handleAssistantsClick = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    closePreview();
+    setIsBatchMode(false);
+    Promise.resolve(navigate(MANAGEMENT_ROUTES.assistants)).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
+    if (onSessionClick) {
+      onSessionClick();
+    }
+  };
+
+  const handleWebuiClick = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    closePreview();
+    setIsBatchMode(false);
+    Promise.resolve(navigate(MANAGEMENT_ROUTES.webui)).catch((error) => {
       console.error('Navigation failed:', error);
     });
     if (onSessionClick) {
@@ -153,7 +235,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     <div className='size-full flex flex-col'>
       {/* Main content area */}
       <div className='flex-1 min-h-0 overflow-hidden'>
-        {isSettings ? (
+        {useSettingsSider ? (
           <Suspense fallback={<div className='size-full' />}>
             <SettingsSider collapsed={collapsed} tooltipEnabled={tooltipEnabled} />
           </Suspense>
@@ -175,6 +257,27 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               onConversationSelect={handleConversationSelect}
               onSessionClick={onSessionClick}
             />
+            <SiderModelEntry
+              isMobile={isMobile}
+              isActive={pathname.startsWith('/settings/model') || pathname.startsWith('/manage/model')}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handleModelClick}
+            />
+            <SiderAgentEntry
+              isMobile={isMobile}
+              isActive={pathname.startsWith('/settings/agent') || pathname.startsWith('/manage/agent')}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handleAgentClick}
+            />
+            <SiderCapabilitiesEntry
+              isMobile={isMobile}
+              isActive={pathname.startsWith('/settings/capabilities') || pathname.startsWith('/manage/capabilities')}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handleCapabilitiesClick}
+            />
             {/* Scheduled tasks nav entry - fixed above scroll */}
             <SiderScheduledEntry
               isMobile={isMobile}
@@ -183,30 +286,48 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               siderTooltipProps={siderTooltipProps}
               onClick={handleScheduledClick}
             />
-            {/* Divider between fixed top nav and scrollable content area */}
-            <div
-              className={classNames(
-                'shrink-0 mt-4px mb-4px h-1px bg-[var(--color-border-2)]',
-                collapsed ? 'mx-6px' : 'mx-10px'
-              )}
+            <SiderWebuiEntry
+              isMobile={isMobile}
+              isActive={pathname.startsWith('/settings/webui') || pathname.startsWith('/manage/webui')}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handleWebuiClick}
             />
-            {/* Scrollable content: team + scheduled tasks + conversation history */}
-            <div className={classNames('flex-1 min-h-0 overflow-y-auto', siderStyles.scrollArea)}>
-              {/* Team section */}
-              <TeamSiderSection
-                collapsed={collapsed}
-                pathname={pathname}
-                siderTooltipProps={siderTooltipProps}
-                onSessionClick={onSessionClick}
-              />
-              {/* Scheduled section */}
-              {!collapsed && (
-                <CronJobSiderSection jobs={cronJobs} pathname={pathname} onNavigate={handleCronNavigate} />
-              )}
-              <Suspense fallback={<div className='min-h-200px' />}>
-                <WorkspaceGroupedHistory {...workspaceHistoryProps} />
-              </Suspense>
-            </div>
+            <SiderAssistantsEntry
+              isMobile={isMobile}
+              isActive={pathname.startsWith('/settings/assistants') || pathname.startsWith('/manage/assistants')}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handleAssistantsClick}
+            />
+            {showSidebarContentSections && (
+              <>
+                {/* Divider between fixed top nav and scrollable content area */}
+                <div
+                  className={classNames(
+                    'shrink-0 mt-4px mb-4px h-1px bg-[var(--color-border-2)]',
+                    collapsed ? 'mx-6px' : 'mx-10px'
+                  )}
+                />
+                {/* Scrollable content: team + scheduled tasks + conversation history */}
+                <div className={classNames('flex-1 min-h-0 overflow-y-auto', siderStyles.scrollArea)}>
+                  {/* Team section */}
+                  <TeamSiderSection
+                    collapsed={collapsed}
+                    pathname={pathname}
+                    siderTooltipProps={siderTooltipProps}
+                    onSessionClick={onSessionClick}
+                  />
+                  {/* Scheduled section */}
+                  {!collapsed && !isManagementRoute ? (
+                    <CronJobSiderSection jobs={cronJobs} pathname={pathname} onNavigate={handleCronNavigate} />
+                  ) : null}
+                  <Suspense fallback={<div className='min-h-200px' />}>
+                    <WorkspaceGroupedHistory {...workspaceHistoryProps} />
+                  </Suspense>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

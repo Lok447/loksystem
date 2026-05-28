@@ -18,6 +18,7 @@ import { CheckOne, Communication, Copy, Earth, EditTwo, Refresh } from '@icon-pa
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsViewMode } from '../settingsViewContext';
+import { SETTINGS_PAGE_LABELS } from '@/renderer/constants/managementUi';
 
 /**
  * 偏好设置行组件
@@ -642,7 +643,7 @@ const WebuiModalContent: React.FC = () => {
     <LokScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
       <div className='space-y-12px px-[12px] md:px-[28px]'>
         {/* 标题 / Title */}
-        <h2 className='text-20px font-500 text-t-primary m-0'>WebUI</h2>
+        <h2 className='text-20px font-500 text-t-primary m-0'>{SETTINGS_PAGE_LABELS.webui}</h2>
 
         {/* 描述说明 / Description */}
         <div className='space-y-6px'>
@@ -882,7 +883,7 @@ const WebuiModalContent: React.FC = () => {
               className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'webui' ? 'text-t-primary font-600' : 'text-t-secondary'}`}
             >
               <Earth theme='outline' size='15' />
-              <span>WebUI</span>
+              <span>{SETTINGS_PAGE_LABELS.webui}</span>
             </span>
           }
         />

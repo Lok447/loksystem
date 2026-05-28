@@ -56,6 +56,14 @@ vi.mock('@/renderer/components/settings/LanguageSwitcher', () => ({
   default: () => <div data-testid='language-switcher' />,
 }));
 
+vi.mock('@/renderer/components/settings/ThemeSwitcher', () => ({
+  ThemeSwitcher: () => <div data-testid='theme-switcher' />,
+}));
+
+vi.mock('@/renderer/components/settings/FontSizeControl', () => ({
+  default: () => <div data-testid='font-size-control' />,
+}));
+
 vi.mock('@/renderer/components/base/LokScrollArea', () => ({
   default: ({ children }: any) => <div data-testid='scroll-area'>{children}</div>,
 }));
@@ -256,6 +264,8 @@ describe('SystemModalContent', () => {
       expect(screen.getByTestId('language-switcher')).toBeInTheDocument();
     });
 
+    expect(screen.getByTestId('theme-switcher')).toBeInTheDocument();
+    expect(screen.getByTestId('font-size-control')).toBeInTheDocument();
     expect(screen.getByText('settings.language')).toBeInTheDocument();
     expect(screen.getByText('settings.startOnBoot')).toBeInTheDocument();
     expect(screen.getByText('settings.closeToTray')).toBeInTheDocument();

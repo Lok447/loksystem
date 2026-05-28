@@ -3,14 +3,14 @@ import { getBuiltinSettingsNavItems } from '@/renderer/pages/settings/components
 
 const t = (key: string, options?: { defaultValue?: string }) => {
   const labels: Record<string, string> = {
-    'settings.model': 'Models',
-    'settings.assistants': 'Assistants',
-    'settings.agents': 'Agents',
-    'settings.capabilities': 'Capabilities',
-    'settings.display': 'Display',
-    'settings.webui': 'WebUI',
-    'settings.system': 'System',
-    'settings.about': 'About',
+    'settings.model': '模型管理',
+    'settings.assistants': '助手中心',
+    'settings.agents': '智能体管理',
+    'settings.capabilities': '技能管理',
+    'settings.display': '显示',
+    'settings.webui': '远程管理',
+    'settings.system': '系统管理',
+    'settings.about': '关于',
   };
 
   return labels[key] ?? options?.defaultValue ?? key;
@@ -23,23 +23,21 @@ describe('getBuiltinSettingsNavItems', () => {
     expect(items.map((item) => item.id)).toEqual([
       'agent',
       'model',
-      'assistants',
       'capabilities',
-      'display',
+      'assistants',
       'webui',
       'system',
       'about',
     ]);
 
     expect(items.map((item) => item.label)).toEqual([
-      'Agents',
-      'Models',
-      'Assistants',
-      'Capabilities',
-      'Display',
-      'WebUI',
-      'System',
-      'About',
+      '智能体管理',
+      '模型管理',
+      '技能管理',
+      '助手中心',
+      '远程管理',
+      '系统管理',
+      '关于',
     ]);
   });
 

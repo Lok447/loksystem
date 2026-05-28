@@ -23,6 +23,7 @@ import SystemModalContent from './contents/SystemModalContent';
 import ToolsModalContent from './contents/ToolsModalContent';
 import WebuiModalContent from './contents/WebuiModalContent';
 import { SettingsViewModeProvider } from './settingsViewContext';
+import { SETTINGS_PAGE_LABELS } from '@/renderer/constants/managementUi';
 
 // ==================== 常量定义 / Constants ====================
 
@@ -203,17 +204,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
     const builtinItems: MenuItem[] = [
       {
         key: 'agent',
-        label: t('settings.agents', { defaultValue: 'Agents' }),
+        label: SETTINGS_PAGE_LABELS.agent,
         icon: <Robot theme='outline' size='20' fill={iconColors.secondary} />,
       },
       {
         key: 'model',
-        label: t('settings.model'),
+        label: SETTINGS_PAGE_LABELS.model,
         icon: <LinkCloud theme='outline' size='20' fill={iconColors.secondary} />,
       },
       {
         key: 'tools',
-        label: t('settings.tools'),
+        label: SETTINGS_PAGE_LABELS.tools,
         icon: <Toolkit theme='outline' size='20' fill={iconColors.secondary} />,
       },
     ];
@@ -221,7 +222,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
     if (isDesktop) {
       builtinItems.push({
         key: 'webui',
-        label: t('settings.webui'),
+        label: SETTINGS_PAGE_LABELS.webui,
         icon: <Earth theme='outline' size='20' fill={iconColors.secondary} />,
       });
     }
@@ -229,7 +230,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
     builtinItems.push(
       {
         key: 'system',
-        label: t('settings.system'),
+        label: SETTINGS_PAGE_LABELS.system,
         icon: <Computer theme='outline' size='20' fill={iconColors.secondary} />,
       },
       { key: 'about', label: t('settings.about'), icon: <Info theme='outline' size='20' fill={iconColors.secondary} /> }

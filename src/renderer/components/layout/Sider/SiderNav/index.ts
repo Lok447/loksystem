@@ -1,3 +1,9 @@
+export { default as SiderAgentEntry } from './SiderAgentEntry';
+export { default as SiderAssistantsEntry } from './SiderAssistantsEntry';
+export { default as SiderCapabilitiesEntry } from './SiderCapabilitiesEntry';
+export { default as SiderModelEntry } from './SiderModelEntry';
+export { default as SiderQuickAccessEntry } from './SiderQuickAccessEntry';
 export { default as SiderScheduledEntry } from './SiderScheduledEntry';
 export { default as SiderSearchEntry } from './SiderSearchEntry';
 export { default as SiderToolbar } from './SiderToolbar';
+export { default as SiderWebuiEntry } from './SiderWebuiEntry';

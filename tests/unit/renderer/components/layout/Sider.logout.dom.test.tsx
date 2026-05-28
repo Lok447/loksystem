@@ -48,6 +48,26 @@ vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderSearchEntry', () => ({
   default: () => <div data-testid='sider-search-entry' />,
 }));
 
+vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderModelEntry', () => ({
+  default: () => <div data-testid='sider-model-entry' />,
+}));
+
+vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderAgentEntry', () => ({
+  default: () => <div data-testid='sider-agent-entry' />,
+}));
+
+vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderCapabilitiesEntry', () => ({
+  default: () => <div data-testid='sider-capabilities-entry' />,
+}));
+
+vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderAssistantsEntry', () => ({
+  default: () => <div data-testid='sider-assistants-entry' />,
+}));
+
+vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderWebuiEntry', () => ({
+  default: () => <div data-testid='sider-webui-entry' />,
+}));
+
 vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderScheduledEntry', () => ({
   default: () => <div data-testid='sider-scheduled-entry' />,
 }));

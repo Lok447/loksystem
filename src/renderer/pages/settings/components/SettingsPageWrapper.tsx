@@ -6,7 +6,6 @@ import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/pl
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import {
   Communication,
-  Computer,
   Earth,
   Info,
   Lightning,
@@ -19,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { BUILTIN_TAB_IDS, LEGACY_ANCHOR_REMAP } from './SettingsSider';
+import { SETTINGS_PAGE_LABELS } from '@/renderer/constants/managementUi';
 import './settings.css';
 
 interface SettingsPageWrapperProps {
@@ -30,41 +30,41 @@ interface SettingsPageWrapperProps {
 type NavItem = { label: string; icon: React.ReactElement; path: string; id: string };
 
 type TranslateFn = (key: string, options?: { defaultValue?: string }) => string;
+const MANAGE_NAV_ITEM_IDS = ['model', 'agent', 'capabilities', 'webui', 'assistants'] as const;
 
 export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): NavItem[] {
   const builtinMap: Record<string, NavItem> = {
-    model: { id: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
+    model: { id: 'model', label: SETTINGS_PAGE_LABELS.model, icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
     assistants: {
       id: 'assistants',
-      label: t('settings.assistants', { defaultValue: 'Assistants' }),
+      label: SETTINGS_PAGE_LABELS.assistants,
       icon: <Robot theme='outline' size='16' />,
       path: 'assistants',
     },
     agent: {
       id: 'agent',
-      label: t('settings.agents', { defaultValue: 'Agents' }),
+      label: SETTINGS_PAGE_LABELS.agent,
       icon: <Robot theme='outline' size='16' />,
       path: 'agent',
     },
     capabilities: {
       id: 'capabilities',
-      label: t('settings.capabilities', { defaultValue: 'Capabilities' }),
+      label: SETTINGS_PAGE_LABELS.capabilities,
       icon: <Lightning theme='outline' size='16' />,
       path: 'capabilities',
     },
-    display: {
-      id: 'display',
-      label: t('settings.display'),
-      icon: <Computer theme='outline' size='16' />,
-      path: 'display',
-    },
     webui: {
       id: 'webui',
-      label: t('settings.webui'),
+      label: SETTINGS_PAGE_LABELS.webui,
       icon: isDesktop ? <Earth theme='outline' size='16' /> : <Communication theme='outline' size='16' />,
       path: 'webui',
     },
-    system: { id: 'system', label: t('settings.system'), icon: <System theme='outline' size='16' />, path: 'system' },
+    system: {
+      id: 'system',
+      label: SETTINGS_PAGE_LABELS.system,
+      icon: <System theme='outline' size='16' />,
+      path: 'system',
+    },
     about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
   };
 
@@ -145,6 +145,22 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
 
     return result;
   }, [isDesktop, t, extensionTabs, resolveExtTabName]);
+  const isManagePage = pathname.startsWith('/manage/');
+  const navBasePath = isManagePage ? '/manage' : '/settings';
+  const visibleMenuItems = React.useMemo(() => {
+    if (!isManagePage) {
+      return menuItems;
+    }
+
+    const order = new Map(MANAGE_NAV_ITEM_IDS.map((id, index) => [id, index]));
+    return menuItems
+      .filter((item) => order.has(item.id as (typeof MANAGE_NAV_ITEM_IDS)[number]))
+      .sort(
+        (a, b) =>
+          (order.get(a.id as (typeof MANAGE_NAV_ITEM_IDS)[number]) ?? 0) -
+          (order.get(b.id as (typeof MANAGE_NAV_ITEM_IDS)[number]) ?? 0)
+      );
+  }, [isManagePage, menuItems]);
 
   const containerClass = classNames(
     'settings-page-wrapper w-full min-h-full box-border overflow-y-auto',
@@ -159,8 +175,8 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
       <div className={containerClass}>
         {isMobile && (
           <div className='settings-mobile-top-nav'>
-            {menuItems.map((item) => {
-              const active = pathname.includes(`/settings/${item.path}`);
+            {visibleMenuItems.map((item) => {
+              const active = pathname.includes(`${navBasePath}/${item.path}`);
               return (
                 <button
                   key={item.path}
@@ -169,7 +185,7 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
                     'settings-mobile-top-nav__item--active': active,
                   })}
                   onClick={() => {
-                    void navigate(`/settings/${item.path}`, { replace: true });
+                    void navigate(`${navBasePath}/${item.path}`, { replace: true });
                   }}
                 >
                   <span className='settings-mobile-top-nav__icon'>{item.icon}</span>

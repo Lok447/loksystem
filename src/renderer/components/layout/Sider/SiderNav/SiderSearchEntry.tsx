@@ -6,10 +6,10 @@
 
 import React from 'react';
 import { Tooltip } from '@arco-design/web-react';
-import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import ConversationSearchPopover from '@renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
+import { MANAGEMENT_LABELS } from '@renderer/constants/managementUi';
 
 interface SiderSearchEntryProps {
   isMobile: boolean;
@@ -26,16 +26,14 @@ const SiderSearchEntry: React.FC<SiderSearchEntryProps> = ({
   onConversationSelect,
   onSessionClick,
 }) => {
-  const { t } = useTranslation();
-
   if (collapsed) {
     return (
-      <Tooltip {...siderTooltipProps} content={t('conversation.historySearch.tooltip')} position='right'>
+      <Tooltip {...siderTooltipProps} content={MANAGEMENT_LABELS.search} position='right'>
         <div className='w-full'>
           <ConversationSearchPopover
             onSessionClick={onSessionClick}
             onConversationSelect={onConversationSelect}
-            label={t('conversation.historySearch.shortTitle')}
+            label={MANAGEMENT_LABELS.search}
             buttonClassName='!w-full !h-40px !py-0 !px-0 !justify-center !rd-8px !hover:bg-fill-3 !active:bg-fill-4'
           />
         </div>
@@ -44,12 +42,12 @@ const SiderSearchEntry: React.FC<SiderSearchEntryProps> = ({
   }
 
   return (
-    <Tooltip {...siderTooltipProps} content={t('conversation.historySearch.tooltip')} position='right'>
+    <Tooltip {...siderTooltipProps} content={MANAGEMENT_LABELS.search} position='right'>
       <div className='w-full'>
         <ConversationSearchPopover
           onSessionClick={onSessionClick}
           onConversationSelect={onConversationSelect}
-          label={t('conversation.historySearch.shortTitle')}
+          label={MANAGEMENT_LABELS.search}
           fullWidth
           buttonClassName={classNames(isMobile && 'sider-action-btn-mobile')}
         />

@@ -15,6 +15,7 @@ import { Button, Input, Switch, Tabs, Tag } from '@arco-design/web-react';
 import { Plus, Search, SettingOne, CloseSmall } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SETTINGS_PAGE_LABELS } from '@/renderer/constants/managementUi';
 
 type AssistantListPanelProps = {
   assistants: AssistantListItem[];
@@ -200,7 +201,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
           <div className={`flex gap-12px ${isMobile ? 'flex-col' : 'items-start justify-between'}`}>
             <div className='min-w-0'>
               <h2 className='m-0 text-28px font-700 leading-[1.1] text-t-primary'>
-                {t('settings.assistants', { defaultValue: 'Assistants' })}
+                {SETTINGS_PAGE_LABELS.assistants}
               </h2>
             </div>
             <div className={`${isMobile ? 'w-full' : 'flex-shrink-0'}`}>

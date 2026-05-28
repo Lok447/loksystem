@@ -49,6 +49,26 @@ vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderSearchEntry', () => ({
   default: () => <div data-testid='sider-search-entry' />,
 }));
 
+vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderModelEntry', () => ({
+  default: () => <div data-testid='sider-model-entry' />,
+}));
+
+vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderAgentEntry', () => ({
+  default: () => <div data-testid='sider-agent-entry' />,
+}));
+
+vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderCapabilitiesEntry', () => ({
+  default: () => <div data-testid='sider-capabilities-entry' />,
+}));
+
+vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderAssistantsEntry', () => ({
+  default: () => <div data-testid='sider-assistants-entry' />,
+}));
+
+vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderWebuiEntry', () => ({
+  default: () => <div data-testid='sider-webui-entry' />,
+}));
+
 vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderScheduledEntry', () => ({
   default: () => <div data-testid='sider-scheduled-entry' />,
 }));
@@ -125,10 +145,43 @@ describe('Sider team entry visibility', () => {
 
     expect(screen.getByTestId('sider-toolbar')).toBeInTheDocument();
     expect(screen.getByTestId('sider-search-entry')).toBeInTheDocument();
+    expect(screen.getByTestId('sider-model-entry')).toBeInTheDocument();
+    expect(screen.getByTestId('sider-agent-entry')).toBeInTheDocument();
+    expect(screen.getByTestId('sider-capabilities-entry')).toBeInTheDocument();
+    expect(screen.getByTestId('sider-assistants-entry')).toBeInTheDocument();
+    expect(screen.getByTestId('sider-webui-entry')).toBeInTheDocument();
     expect(screen.getByTestId('sider-scheduled-entry')).toBeInTheDocument();
     expect(screen.getByTestId('cron-job-section')).toBeInTheDocument();
     expect(await screen.findByTestId('workspace-grouped-history')).toBeInTheDocument();
     expect(screen.getByTestId('sider-footer')).toBeInTheDocument();
     expect(screen.getByText('team.sider.title')).toBeInTheDocument();
+  });
+
+  it('uses quick-entry-like styling for the team create button in expanded mode', async () => {
+    const teams: TTeam[] = [
+      {
+        id: 'team-1',
+        userId: 'user-1',
+        name: 'Alpha Team',
+        workspace: '',
+        workspaceMode: 'shared',
+        leaderAgentId: 'lead-1',
+        agents: [],
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ];
+    mockUseTeamList.mockReturnValue({ teams, mutate: vi.fn(), removeTeam: vi.fn() });
+
+    render(
+      <MemoryRouter initialEntries={['/guid']}>
+        <Sider />
+      </MemoryRouter>
+    );
+
+    const createButton = screen.getByText('team.sider.title').nextElementSibling as HTMLElement;
+    expect(createButton.className).toContain('h-28px');
+    expect(createButton.className).toContain('w-28px');
+    expect(createButton.className).toContain('rd-8px');
   });
 });
