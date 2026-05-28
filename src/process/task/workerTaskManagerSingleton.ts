@@ -17,7 +17,6 @@ import OpenClawAgentManager from './OpenClawAgentManager';
 import NanoBotAgentManager from './NanoBotAgentManager';
 import RemoteAgentManager from './RemoteAgentManager';
 import { LokCliManager } from './LokCliManager';
-import { LokCliAcpManager } from './LokCliAcpManager';
 
 const agentFactory = new AgentFactory();
 
@@ -25,13 +24,16 @@ const agentFactory = new AgentFactory();
 // Older aionrs/lokcli records still resolve through the compatibility manager.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const createHermesAcpManager = (conv: any, opts?: { yoloMode?: boolean }) =>
-  new LokCliAcpManager({
-    ...conv.extra,
-    backend: 'hermes',
-    conversation_id: conv.id,
-    yoloMode: opts?.yoloMode,
-    currentModelId: conv.extra?.currentModelId ?? conv.model?.useModel,
-  }) as unknown as ReturnType<typeof agentFactory.create>;
+  new AcpAgentManager(
+    {
+      ...conv.extra,
+      backend: 'hermes',
+      conversation_id: conv.id,
+      yoloMode: opts?.yoloMode,
+      currentModelId: conv.extra?.currentModelId ?? conv.model?.useModel,
+    },
+    'lokcli'
+  ) as unknown as ReturnType<typeof agentFactory.create>;
 
 // Legacy gemini conversations now reuse the Lok CLI runtime.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
