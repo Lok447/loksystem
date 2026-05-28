@@ -46,14 +46,6 @@ export class CoreAcpGatewayService {
       };
     }
 
-    if (agent.backend === 'aionrs') {
-      return {
-        productKey: 'lokcli',
-        runtimeKey: 'aionrs',
-        isBuiltinRuntime: false,
-      };
-    }
-
     return {
       productKey: agent.backend,
       runtimeKey: agent.backend,
@@ -113,7 +105,7 @@ export class CoreAcpGatewayService {
           ...agent,
           ...this.resolveRuntimeMetadata(agent),
           displayName: agent.name,
-          teamCapable: ['acp', 'aionrs', 'remote', 'openclaw-gateway', 'nanobot'].includes(agent.kind),
+          teamCapable: ['acp', 'remote', 'openclaw-gateway', 'nanobot'].includes(agent.kind),
           conversationType: getConversationTypeForBackend(agent.backend),
           supportedModes: agent.backend === 'codex' ? ['default', 'workspace-write', 'bypassPermissions'] : ['default'],
           logos: {},

@@ -112,9 +112,6 @@ extraResources:
   # Hermes runtime directory (default LokCLI runtime)
   - from: resources/bundled-hermes
     to: bundled-hermes
-  # aionrs binary (pre-compiled per platform/arch)
-  - from: resources/bundled-aionrs
-    to: bundled-aionrs
   - from: resources/hub
     to: hub
 win:

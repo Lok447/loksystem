@@ -3,28 +3,764 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LokSystem 官方站点</title>
-    <meta name="description" content="LokSystem 是 AI 原生协作工作台，覆盖本地 Agent、团队协作、WebUI 远程触达与 Office 级交付。" />
+    <title>LokSystem 官方网站</title>
+    <meta
+      name="description"
+      content="LokSystem 是面向真实交付场景的 AI 协作工作台，统一本地 Agent、团队协作、WebUI 触达、工作区沉淀与 Office 级输出。"
+    />
     <style>
-      :root { --bg:#f4f7fb; --surface:rgba(255,255,255,.92); --surface-dark:#10203a; --text:#10203a; --text-secondary:#4e5d78; --text-light:rgba(255,255,255,.82); --primary:#1f6feb; --accent:#0e8b74; --line:rgba(116,139,176,.18); --shadow:0 24px 64px rgba(16,32,58,.1); --radius:22px; --max-width:1160px; }
-      * { box-sizing:border-box; } html { scroll-behavior:smooth; } body { margin:0; font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; color:var(--text); background:radial-gradient(circle at top left,rgba(31,111,235,.16),transparent 26%), radial-gradient(circle at 85% 18%,rgba(14,139,116,.12),transparent 20%), linear-gradient(180deg,#fbfdff 0%,#f6f8fc 40%,var(--bg) 100%); }
-      body::before { content:""; position:fixed; inset:0; pointer-events:none; background-image:linear-gradient(rgba(116,139,176,.06) 1px,transparent 1px), linear-gradient(90deg,rgba(116,139,176,.06) 1px,transparent 1px); background-size:34px 34px; mask-image:linear-gradient(180deg,rgba(0,0,0,.32),transparent 78%); }
-      a { color:inherit; text-decoration:none; } img { display:block; max-width:100%; } .wrap { width:min(calc(100% - 36px),var(--max-width)); margin:0 auto; } .header { position:sticky; top:0; z-index:20; backdrop-filter:blur(18px); background:rgba(244,247,251,.82); border-bottom:1px solid rgba(116,139,176,.16); } .header-inner { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:16px 0; } .brand { display:inline-flex; align-items:center; gap:12px; } .brand-mark { width:44px; height:44px; border-radius:14px; overflow:hidden; background:#fff; box-shadow:0 12px 28px rgba(16,32,58,.1); } .brand-copy strong { display:block; font-size:18px; } .brand-copy span { display:block; font-size:12px; color:var(--text-secondary); margin-top:2px; } .nav { display:flex; flex-wrap:wrap; gap:10px; } .nav a { padding:8px 12px; border-radius:999px; font-size:13px; color:var(--text-secondary); } .nav a:hover { background:rgba(255,255,255,.86); color:var(--text); }
-      .hero { padding:34px 0 20px; } .hero-card { padding:42px; border-radius:28px; background:linear-gradient(150deg,rgba(255,255,255,.97),rgba(247,251,255,.92)); border:1px solid rgba(255,255,255,.92); box-shadow:0 32px 80px rgba(16,32,58,.12); } .eyebrow { display:inline-flex; align-items:center; min-height:34px; padding:0 14px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--primary); background:rgba(255,255,255,.84); border:1px solid rgba(31,111,235,.16); } .hero-grid { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr); gap:28px; margin-top:22px; } .hero-copy h1 { margin:18px 0 16px; font-size:clamp(38px,4.4vw,64px); line-height:1.02; letter-spacing:-.05em; } .hero-copy p { margin:0; max-width:700px; font-size:16px; line-height:1.9; color:var(--text-secondary); } .actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; } .button { display:inline-flex; align-items:center; justify-content:center; min-height:46px; padding:0 20px; border-radius:999px; font-size:14px; font-weight:600; } .button-primary { background:linear-gradient(135deg,var(--primary),#3f8cff); color:#fff; } .button-secondary { background:rgba(255,255,255,.84); border:1px solid rgba(116,139,176,.22); } .stats,.cards,.steps,.faq,.footer-grid { display:grid; gap:18px; } .stats { grid-template-columns:repeat(3,minmax(0,1fr)); margin-top:26px; } .panel,.stat,.footer-card { padding:22px; border-radius:var(--radius); background:var(--surface); border:1px solid rgba(255,255,255,.92); box-shadow:var(--shadow); } .panel.dark { color:#fff; background:linear-gradient(180deg,var(--surface-dark),#162846); } .panel.dark p,.panel.dark li { color:var(--text-light); } .section { padding:18px 0 10px; } .section-header { margin-bottom:18px; } .section-header p { margin:0; color:var(--text-secondary); line-height:1.8; } .cards { grid-template-columns:repeat(3,minmax(0,1fr)); } .steps { grid-template-columns:repeat(4,minmax(0,1fr)); } .faq { grid-template-columns:repeat(2,minmax(0,1fr)); } .faq details { padding:18px 20px; border-radius:16px; background:var(--surface); border:1px solid var(--line); } .faq p { margin:10px 0 0; color:var(--text-secondary); line-height:1.8; } .footer { padding:28px 0 36px; } .footer-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .footer-card { background:linear-gradient(180deg,rgba(16,32,58,.96),rgba(21,38,67,.96)); color:#fff; } .footer-card p,.footer-card li { color:var(--text-light); line-height:1.8; } .footer-card ul { padding-left:18px; margin:0; } .note { margin-top:18px; font-size:12px; text-align:center; color:var(--text-secondary); }
-      @media (max-width:980px) { .hero-grid,.cards,.steps,.stats,.faq,.footer-grid { grid-template-columns:1fr; } .hero-card { padding:30px; } }
-      @media (max-width:640px) { .header-inner { flex-direction:column; align-items:flex-start; } .hero-card { padding:24px; } }
+      :root {
+        --bg: #f5f7fb;
+        --bg-soft: #eef3fb;
+        --surface: rgba(255, 255, 255, 0.9);
+        --surface-strong: rgba(255, 255, 255, 0.97);
+        --ink: #162033;
+        --ink-soft: #5f6b80;
+        --ink-inverse: rgba(255, 255, 255, 0.86);
+        --line: rgba(79, 98, 136, 0.14);
+        --primary: #2458d3;
+        --accent: #0d7a67;
+        --shadow-soft: 0 24px 60px rgba(17, 24, 39, 0.08);
+        --shadow-card: 0 18px 40px rgba(17, 24, 39, 0.05);
+        --radius-xl: 32px;
+        --radius-lg: 24px;
+        --radius-md: 18px;
+        --max-width: 1160px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(36, 88, 211, 0.12), transparent 24%),
+          radial-gradient(circle at 88% 10%, rgba(13, 122, 103, 0.1), transparent 16%),
+          linear-gradient(180deg, #fbfcfe 0%, var(--bg) 45%, var(--bg-soft) 100%);
+        font-family: "Avenir Next", "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(96, 116, 156, 0.045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(96, 116, 156, 0.045) 1px, transparent 1px);
+        background-size: 40px 40px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.25), transparent 76%);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      img {
+        display: block;
+        max-width: 100%;
+      }
+
+      .wrap {
+        width: min(calc(100% - 40px), var(--max-width));
+        margin: 0 auto;
+      }
+
+      .header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        backdrop-filter: blur(18px);
+        background: rgba(245, 247, 251, 0.8);
+        border-bottom: 1px solid rgba(79, 98, 136, 0.08);
+      }
+
+      .header-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 16px 0;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand-mark {
+        width: 46px;
+        height: 46px;
+        overflow: hidden;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(17, 24, 39, 0.1);
+      }
+
+      .brand-copy strong {
+        display: block;
+        font-size: 17px;
+        font-weight: 600;
+      }
+
+      .brand-copy span {
+        display: block;
+        margin-top: 2px;
+        font-size: 12px;
+        color: var(--ink-soft);
+      }
+
+      .nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .nav a {
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        color: var(--ink-soft);
+        transition: background 160ms ease, color 160ms ease;
+      }
+
+      .nav a:hover {
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.78);
+      }
+
+      .hero {
+        padding: 38px 0 20px;
+      }
+
+      .hero-card {
+        position: relative;
+        overflow: hidden;
+        padding: 52px;
+        border: 1px solid rgba(255, 255, 255, 0.92);
+        border-radius: var(--radius-xl);
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 255, 0.9));
+        box-shadow: var(--shadow-soft);
+      }
+
+      .hero-card::after {
+        content: "";
+        position: absolute;
+        inset: auto -20% -40% 35%;
+        height: 280px;
+        background: radial-gradient(circle, rgba(36, 88, 211, 0.1), transparent 70%);
+        pointer-events: none;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 14px;
+        border: 1px solid rgba(36, 88, 211, 0.14);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hero-grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.12fr) minmax(280px, 0.88fr);
+        gap: 32px;
+        margin-top: 22px;
+      }
+
+      .hero-copy h1,
+      .section-header h2,
+      .showcase-title {
+        font-family: "Iowan Old Style", "Palatino Linotype", "Noto Serif SC", "Source Han Serif SC", serif;
+      }
+
+      .hero-copy h1 {
+        max-width: 760px;
+        margin: 18px 0 16px;
+        font-size: clamp(42px, 4.8vw, 74px);
+        line-height: 0.98;
+        letter-spacing: -0.055em;
+      }
+
+      .hero-copy p {
+        max-width: 700px;
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 16px;
+        line-height: 1.95;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 30px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 0 20px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 600;
+        transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+      }
+
+      .button-primary {
+        color: #fff;
+        background: linear-gradient(135deg, var(--primary), #447df0);
+        box-shadow: 0 14px 32px rgba(36, 88, 211, 0.22);
+      }
+
+      .button-secondary {
+        border: 1px solid rgba(79, 98, 136, 0.18);
+        background: rgba(255, 255, 255, 0.84);
+      }
+
+      .hero-aside,
+      .stat,
+      .card,
+      .showcase-panel,
+      .footer-card {
+        border: 1px solid rgba(255, 255, 255, 0.92);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+        box-shadow: var(--shadow-card);
+      }
+
+      .hero-aside {
+        padding: 26px;
+        color: #fff;
+        background: linear-gradient(180deg, rgba(15, 27, 49, 0.98), rgba(22, 37, 66, 0.98));
+      }
+
+      .hero-aside h3,
+      .footer-card h3 {
+        margin: 0 0 12px;
+        font-size: 20px;
+      }
+
+      .hero-aside p,
+      .hero-aside li,
+      .footer-card p,
+      .footer-card li {
+        color: var(--ink-inverse);
+        line-height: 1.85;
+      }
+
+      .hero-aside ul,
+      .footer-card ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 32px;
+      }
+
+      .stat {
+        padding: 20px;
+      }
+
+      .stat strong,
+      .card h3,
+      .showcase-panel h3 {
+        display: block;
+        margin: 0 0 10px;
+        font-size: 18px;
+      }
+
+      .stat p,
+      .card p,
+      .showcase-panel p {
+        margin: 0;
+        color: var(--ink-soft);
+        line-height: 1.82;
+      }
+
+      .section {
+        padding: 22px 0 8px;
+      }
+
+      .section-header {
+        max-width: 760px;
+        margin-bottom: 18px;
+      }
+
+      .section-header h2 {
+        margin: 0 0 8px;
+        font-size: 34px;
+        letter-spacing: -0.045em;
+      }
+
+      .section-header p {
+        margin: 0;
+        color: var(--ink-soft);
+        line-height: 1.84;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .card {
+        padding: 24px;
+      }
+
+      .card-index {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        margin-bottom: 12px;
+        border-radius: 999px;
+        background: rgba(36, 88, 211, 0.08);
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+
+      .showcase {
+        padding: 34px 0 12px;
+      }
+
+      .showcase-shell {
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.94);
+        border-radius: var(--radius-xl);
+        background: linear-gradient(180deg, rgba(19, 28, 46, 0.98), rgba(24, 36, 58, 0.98));
+        box-shadow: 0 30px 80px rgba(17, 24, 39, 0.14);
+      }
+
+      .showcase-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 30px 32px 0;
+      }
+
+      .showcase-title {
+        margin: 0;
+        color: #fff;
+        font-size: clamp(32px, 3.8vw, 54px);
+        line-height: 1.02;
+        letter-spacing: -0.05em;
+      }
+
+      .showcase-subtitle {
+        max-width: 620px;
+        margin: 12px 0 0;
+        color: rgba(229, 236, 247, 0.76);
+        line-height: 1.9;
+      }
+
+      .showcase-badge {
+        padding: 10px 14px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 999px;
+        color: rgba(233, 240, 250, 0.88);
+        background: rgba(255, 255, 255, 0.06);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .showcase-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+        gap: 18px;
+        padding: 28px 32px 32px;
+      }
+
+      .showcase-panel {
+        padding: 24px;
+        background: rgba(248, 250, 255, 0.96);
+      }
+
+      .showcase-panel-dark {
+        color: #fff;
+        background: linear-gradient(180deg, rgba(39, 60, 98, 0.92), rgba(24, 41, 72, 0.92));
+      }
+
+      .showcase-panel-dark p {
+        color: rgba(233, 240, 250, 0.78);
+      }
+
+      .showcase-list {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .showcase-item {
+        padding: 14px 16px;
+        border: 1px solid rgba(79, 98, 136, 0.12);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.9);
+      }
+
+      .showcase-item strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 15px;
+      }
+
+      .showcase-item span {
+        color: var(--ink-soft);
+        font-size: 14px;
+        line-height: 1.75;
+      }
+
+      .pillars {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .pillar {
+        padding: 14px 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .pillar strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 15px;
+      }
+
+      .pillar span {
+        color: rgba(233, 240, 250, 0.74);
+        font-size: 14px;
+        line-height: 1.75;
+      }
+
+      .footer {
+        padding: 34px 0 40px;
+      }
+
+      .footer-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .footer-card {
+        padding: 24px;
+        color: #fff;
+        background: linear-gradient(180deg, rgba(15, 27, 49, 0.98), rgba(21, 38, 67, 0.98));
+      }
+
+      .note {
+        margin-top: 18px;
+        color: var(--ink-soft);
+        font-size: 12px;
+        text-align: center;
+      }
+
+      .fade-up {
+        opacity: 0;
+        transform: translateY(18px);
+        animation: fade-up 700ms ease forwards;
+      }
+
+      .delay-1 {
+        animation-delay: 80ms;
+      }
+
+      .delay-2 {
+        animation-delay: 160ms;
+      }
+
+      @keyframes fade-up {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 980px) {
+        .hero-grid,
+        .showcase-grid,
+        .cards,
+        .stats,
+        .footer-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-card,
+        .showcase-head,
+        .showcase-grid {
+          padding-left: 24px;
+          padding-right: 24px;
+        }
+
+        .hero-card {
+          padding-top: 30px;
+          padding-bottom: 30px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .wrap {
+          width: min(calc(100% - 28px), var(--max-width));
+        }
+
+        .header-inner,
+        .showcase-head {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .hero-card {
+          padding: 22px;
+        }
+      }
     </style>
   </head>
   <body>
-    <header class="header"><div class="wrap header-inner"><a class="brand" href="#top"><span class="brand-mark"><img src="./lok.png" alt="LokSystem Logo" loading="eager" /></span><span class="brand-copy"><strong>LokSystem</strong><span>AI-native collaboration workspace</span></span></a><nav class="nav"><a href="#overview">整体介绍</a><a href="#features">核心能力</a><a href="#scenarios">使用场景</a><a href="#quickstart">快速开始</a><a href="#faq">常见问题</a></nav></div></header>
+    <header class="header">
+      <div class="wrap header-inner">
+        <a class="brand" href="#top">
+          <span class="brand-mark"><img src="./lok.png" alt="LokSystem Logo" loading="eager" /></span>
+          <span class="brand-copy">
+            <strong>LokSystem</strong>
+            <span>AI-native collaboration workspace</span>
+          </span>
+        </a>
+        <nav class="nav">
+          <a href="#overview">整体介绍</a>
+          <a href="#capabilities">核心能力</a>
+          <a href="#showcase">产品方式</a>
+          <a href="#delivery">交付价值</a>
+        </nav>
+      </div>
+    </header>
+
     <main class="wrap" id="top">
-      <section class="hero"><div class="hero-card"><span class="eyebrow">Bundled Offline Page</span><div class="hero-grid"><div class="hero-copy"><h1>把本地 Agent、团队协作与交付结果放进同一个工作台。</h1><p>LokSystem 面向真实工作流而设计：你可以在桌面端组织本地 Agent、同步 WebUI、管理多成员 Team Mode，并把代码、文档、表格、PPT、PDF 等交付结果沉淀到统一 workspace。</p><div class="actions"><a class="button button-primary" href="#features">查看核心能力</a><a class="button button-secondary" href="#quickstart">快速开始</a><a class="button button-secondary" href="https://github.com/iOfficeAI/LokSystem" target="_blank" rel="noreferrer">GitHub 仓库</a></div><div class="stats"><div class="stat"><strong>本地工作区可见</strong><p>统一查看 Agent 读写文件、附件与交付产物。</p></div><div class="stat"><strong>Leader 编排协作</strong><p>成员状态、任务转派、失败兜底都在同一条主链路里。</p></div><div class="stat"><strong>Office 级输出</strong><p>覆盖 Word、Excel、PPT、PDF 等真实业务产出。</p></div></div></div><aside class="panel dark"><h3>离线也能读懂产品定位</h3><ul><li>本页随桌面端一起分发，断网也能正常打开。</li><li>按钮分成站内锚点和外部跳转，站内内容离线可读。</li><li>如需最新安装包与版本记录，请访问 GitHub Releases。</li></ul></aside></div></div></section>
-      <section class="section" id="overview"><div class="section-header"><h2>整体介绍</h2><p>LokSystem 不是单纯的聊天窗口，而是围绕“真实任务推进”设计的 AI 协作工作台。</p></div><div class="cards"><article class="panel"><h3>本地 Agent 工作台</h3><p>直接接入 Lok CLI、Hermes、Codex 等后端，在桌面端完成会话、文件读写和产物沉淀。</p></article><article class="panel"><h3>多成员 Team Mode</h3><p>Leader 可以派发任务、回收结果、处理失败成员，并把未完成任务重新收回主线。</p></article><article class="panel"><h3>WebUI 与远程触达</h3><p>同一 workspace 既能在桌面端查看，也能通过 WebUI 远程同步，让跨端验收更顺手。</p></article></div></section>
-      <section class="section" id="features"><div class="section-header"><h2>核心能力</h2><p>围绕发版、交付、回归这类高频场景，LokSystem 提供稳定的主链路能力组合。</p></div><div class="cards"><article class="panel"><h3>桌面端打包与发布</h3><p>支持 Windows x64 打包验证、安装包命名复查、About 页与静态官网页联动验收。</p></article><article class="panel"><h3>附件与文件链路</h3><p>支持“新建会话 → 上传附件 → Lok CLI 读取 → 生成 workspace 文件 → 桌面端和 WebUI 可见”的主链路闭环。</p></article><article class="panel"><h3>回归与验收脚本</h3><p>支持发版 smoke checklist、Team Mode 用户验收脚本和固定回归清单，减少临门一脚返工。</p></article></div></section>
-      <section class="section" id="scenarios"><div class="section-header"><h2>使用场景</h2><p>当任务需要跨文件、跨 Agent、跨终端推进时，LokSystem 的优势会更明显。</p></div><div class="cards"><article class="panel"><h3>稳定发版链路</h3><p>从构建、打包、安装包验证，到静态官网页、版本号和升级说明，一次性收口。</p></article><article class="panel"><h3>Leader 协同推进</h3><p>让 Leader 管理多名成员、重新分派失败任务、追踪主线结果并汇总输出。</p></article><article class="panel"><h3>Office 原生产出</h3><p>把模型输出直接变成可交付的 Word、Excel、PPT、PDF，而不是停留在对话记录里。</p></article></div></section>
-      <section class="section" id="quickstart"><div class="section-header"><h2>快速开始</h2><p>第一次使用 LokSystem 时，建议先跑通下面 4 步，确认桌面端、Agent、workspace 与远程页都工作正常。</p></div><div class="steps"><article class="panel"><h3>Step 01 安装并启动</h3><p>确认桌面端可启动，About 页品牌、图标、启动页与默认语言正常。</p></article><article class="panel"><h3>Step 02 连通主 Agent</h3><p>使用 Lok CLI 或其他 ACP 后端创建会话，验证附件上传和 workspace 文件生成。</p></article><article class="panel"><h3>Step 03 验证 Team Mode</h3><p>让 Leader 分配任务给两个成员，观察一个完成、一个失败时的任务回收与结果汇总。</p></article><article class="panel"><h3>Step 04 核对发版产物</h3><p>运行打包命令并复查安装包命名、官网页跳转、升级说明和回归清单。</p></article></div></section>
-      <section class="section" id="faq"><div class="section-header"><h2>常见问题</h2><p>以下问题围绕桌面端主链路、Team Mode 与离线打开场景整理。</p></div><div class="faq"><details open><summary>这页离线能看什么？</summary><p>站内锚点和本地图片完全离线可用；GitHub 仓库和 Releases 链接需要联网后才能访问。</p></details><details><summary>LokSystem 更适合个人还是团队？</summary><p>个人可以把它当成本地 AI 工作台，团队则可以把它扩展成 Leader + 成员的多 Agent 协作体系。</p></details><details><summary>Team Mode 失败成员会怎样处理？</summary><p>失败成员会被标记为 failed，Leader 会收到失败说明，同时未完成任务会尽量回收到主线，便于重新分派。</p></details><details><summary>哪里查看最新安装包？</summary><p>本地页主要用于说明与验收；真正的安装包和版本记录请以 GitHub Releases 为准。</p></details></div></section>
+      <section class="hero">
+        <div class="hero-card">
+          <span class="eyebrow fade-up">Bundled Official Site</span>
+          <div class="hero-grid">
+            <div class="hero-copy">
+              <h1 class="fade-up delay-1">把 AI 能力，真正放进可交付的工作流。</h1>
+              <p class="fade-up delay-2">
+                LokSystem 面向真实业务而设计。它不是单一对话工具，而是一套把本地 Agent、团队协作、远程触达、工作区沉淀与正式产出统一起来的协作工作台。
+              </p>
+              <div class="actions fade-up delay-2">
+                <a class="button button-primary" href="#capabilities">查看能力</a>
+                <a class="button button-secondary" href="#showcase">了解产品方式</a>
+                <a class="button button-secondary" href="https://github.com/iOfficeAI/LokSystem" target="_blank" rel="noreferrer">GitHub</a>
+              </div>
+              <div class="stats fade-up delay-2">
+                <div class="stat">
+                  <strong>统一工作区</strong>
+                  <p>附件、生成文件、阶段结果与团队协作都沉淀在同一上下文中。</p>
+                </div>
+                <div class="stat">
+                  <strong>统一协作语义</strong>
+                  <p>从个人任务到 Leader 编排，多成员推进保持一条清晰主线。</p>
+                </div>
+                <div class="stat">
+                  <strong>统一交付出口</strong>
+                  <p>输出从聊天延伸到 Word、Excel、PPT、PDF 等正式业务材料。</p>
+                </div>
+              </div>
+            </div>
+
+            <aside class="hero-aside fade-up delay-2">
+              <h3>内置官网页的价值</h3>
+              <ul>
+                <li>适合从“关于 → 官网”直接打开，作为产品说明入口。</li>
+                <li>核心内容可离线浏览，便于演示、验收与本地交付说明。</li>
+                <li>视觉和文案与当前产品定位保持同一套表达方式。</li>
+              </ul>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="overview">
+        <div class="section-header">
+          <h2>整体介绍</h2>
+          <p>LokSystem 关心的不是“能不能回答问题”，而是“能不能把任务稳定推进到结果真正落地”。</p>
+        </div>
+        <div class="cards">
+          <article class="card">
+            <span class="card-index">01</span>
+            <h3>本地 Agent 工作台</h3>
+            <p>承接 Lok CLI、Hermes、Codex 等后端能力，在桌面端完成会话、读写与结果沉淀。</p>
+          </article>
+          <article class="card">
+            <span class="card-index">02</span>
+            <h3>Team Mode 协作</h3>
+            <p>Leader 可以分配任务、回收结果、处理失败成员，并持续维持主线推进。</p>
+          </article>
+          <article class="card">
+            <span class="card-index">03</span>
+            <h3>WebUI 远程触达</h3>
+            <p>同一工作区既可桌面使用，也可远程访问，适合复查、验收与跨端协同。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="capabilities">
+        <div class="section-header">
+          <h2>核心能力</h2>
+          <p>LokSystem 的重点不是堆叠功能，而是把高频场景收敛成稳定、可重复、可验收的主链路。</p>
+        </div>
+        <div class="cards">
+          <article class="card">
+            <span class="card-index">A</span>
+            <h3>附件到工作区的闭环</h3>
+            <p>支持“上传附件 → Agent 读取 → 生成文件 → 工作区可见”的完整闭环。</p>
+          </article>
+          <article class="card">
+            <span class="card-index">B</span>
+            <h3>面向中文用户的渠道选择</h3>
+            <p>聚焦飞书、钉钉、微信、企业微信等更贴近本地业务的消息触达方式。</p>
+          </article>
+          <article class="card">
+            <span class="card-index">C</span>
+            <h3>发版与回归可说明</h3>
+            <p>从关于页、官网页到安装包与回归清单，交付前后都能统一表达与核查。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="showcase" id="showcase">
+        <div class="showcase-shell">
+          <div class="showcase-head">
+            <div>
+              <h2 class="showcase-title">产品方式，不只是功能列表。</h2>
+              <p class="showcase-subtitle">
+                LokSystem 更像一套 AI 协作操作面。它把个人使用、团队推进、远程访问和正式交付放进同一个连续界面里。
+              </p>
+            </div>
+            <div class="showcase-badge">Workspace First</div>
+          </div>
+
+          <div class="showcase-grid">
+            <section class="showcase-panel">
+              <h3>为什么它看起来更像工作台</h3>
+              <div class="showcase-list">
+                <div class="showcase-item">
+                  <strong>同一工作区沉淀</strong>
+                  <span>桌面端、WebUI、团队任务和生成文件共享同一上下文，减少信息割裂。</span>
+                </div>
+                <div class="showcase-item">
+                  <strong>同一抽象层复用</strong>
+                  <span>团队协作与本地助手能力持续复用 ACP 抽象层，便于后续扩展与一致接入。</span>
+                </div>
+                <div class="showcase-item">
+                  <strong>同一交付叙事</strong>
+                  <span>从产品介绍、演示、发版到用户验收，文案和能力口径可以保持统一。</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="showcase-panel showcase-panel-dark">
+              <h3>它适合的对象</h3>
+              <div class="pillars">
+                <div class="pillar">
+                  <strong>个人使用者</strong>
+                  <span>需要一个本地可控、结果可落地的 AI 工作环境。</span>
+                </div>
+                <div class="pillar">
+                  <strong>团队负责人</strong>
+                  <span>需要把多成员协作和阶段结果收束到清晰主线中。</span>
+                </div>
+                <div class="pillar">
+                  <strong>交付型团队</strong>
+                  <span>需要把模型结果直接转成可验收、可发送、可归档的正式材料。</span>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="delivery">
+        <div class="section-header">
+          <h2>交付价值</h2>
+          <p>当任务需要跨文件、跨成员、跨终端推进时，LokSystem 的价值会比纯聊天型工具更明显。</p>
+        </div>
+        <div class="cards">
+          <article class="card">
+            <span class="card-index">I</span>
+            <h3>稳定发版链路</h3>
+            <p>从构建、打包到官网说明、升级说明和验收内容，都能形成统一交付出口。</p>
+          </article>
+          <article class="card">
+            <span class="card-index">II</span>
+            <h3>Leader 协同推进</h3>
+            <p>让管理者处理失败分支、收回未完成任务，并持续追踪主线阶段结果。</p>
+          </article>
+          <article class="card">
+            <span class="card-index">III</span>
+            <h3>Office 原生产出</h3>
+            <p>把结果直接转成 Word、Excel、PPT、PDF，而不是停留在对话窗口中再次搬运。</p>
+          </article>
+        </div>
+      </section>
     </main>
-    <footer class="footer"><div class="wrap"><div class="footer-grid"><section class="footer-card"><h3>关于 LokSystem</h3><p>LokSystem 面向真实工作流：本地 Agent、Team Mode、WebUI 与 Office 交付不再分散在多套工具里。</p></section><section class="footer-card"><h3>你可以继续做什么</h3><ul><li>查看发版 smoke checklist，确认版本号、图标、About 页和静态官网页。</li><li>跑一轮最小回归：启动、会话、助手、团队、WebUI、打包。</li><li>结合安装/升级说明完成旧用户迁移与回滚演练。</li></ul></section><section class="footer-card"><h3>外部链接</h3><div class="actions"><a class="button button-secondary" href="https://github.com/iOfficeAI/LokSystem" target="_blank" rel="noreferrer">查看仓库</a><a class="button button-secondary" href="https://github.com/iOfficeAI/LokSystem/releases" target="_blank" rel="noreferrer">发布版本</a></div></section></div><div class="note">© 2026 LokSystem. 本页用于桌面端内置官网入口展示，也适合作为离线验收说明页。</div></div></footer>
+
+    <footer class="footer">
+      <div class="wrap">
+        <div class="footer-grid">
+          <section class="footer-card">
+            <h3>关于 LokSystem</h3>
+            <p>它把本地 Agent、Team Mode、WebUI 和 Office 级输出，组织进一套更适合真实业务推进的工作流中。</p>
+          </section>
+          <section class="footer-card">
+            <h3>适合用来做什么</h3>
+            <ul>
+              <li>作为“关于 → 官网”的内置产品介绍入口。</li>
+              <li>作为离线演示页、发版说明页和用户验收辅助页。</li>
+              <li>作为后续扩展视觉与品牌表达的基础模板。</li>
+            </ul>
+          </section>
+          <section class="footer-card">
+            <h3>外部链接</h3>
+            <div class="actions">
+              <a class="button button-secondary" href="https://github.com/iOfficeAI/LokSystem" target="_blank" rel="noreferrer">查看仓库</a>
+              <a class="button button-secondary" href="https://github.com/iOfficeAI/LokSystem/releases" target="_blank" rel="noreferrer">发布版本</a>
+            </div>
+          </section>
+        </div>
+        <div class="note">© 2026 LokSystem. 本页用于“关于 → 官网”的内置展示入口。</div>
+      </div>
+    </footer>
   </body>
 </html>

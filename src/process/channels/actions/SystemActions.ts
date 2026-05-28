@@ -155,7 +155,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
   const platform = context.platform;
   const source = platform === 'lark' || platform === 'dingtalk' || platform === 'weixin' || platform === 'wecom' ? platform : 'lark';
 
-  // Selected agent (defaults to Lok CLI)
+  // Selected agent (defaults to LokCLI)
   let savedAgent: unknown = undefined;
   try {
     savedAgent = await (platform === 'lark'
@@ -664,7 +664,7 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
  * Get display name for agent type
  */
 function getAgentDisplayName(agentType: ChannelAgentType): string {
-  if (agentType === 'aionrs' || agentType === 'lokcli') return 'Lok CLI';
+  if (agentType === 'aionrs' || agentType === 'lokcli') return 'LokCLI';
   const names: Record<string, string> = {
     gemini: '🤖 Gemini',
     acp: '🧠 Claude',
@@ -712,7 +712,7 @@ function getAvailableChannelAgents(): AgentDisplayInfo[] {
   const availableAgents: AgentDisplayInfo[] = [];
   const seenTypes = new Set<ChannelAgentType>();
 
-  availableAgents.push({ type: 'lokcli', emoji: '🧠', name: 'Lok CLI' });
+  availableAgents.push({ type: 'lokcli', emoji: '🧠', name: 'LokCLI' });
   seenTypes.add('lokcli');
 
   // Add detected ACP agents (claude, codex, etc.)

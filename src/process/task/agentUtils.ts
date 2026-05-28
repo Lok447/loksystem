@@ -30,6 +30,7 @@ export interface FirstMessageConfig {
    * Leader row instead of the raw backend key.
    */
   presetAssistantId?: string;
+  lokCliBranding?: boolean;
 }
 
 /**
@@ -111,6 +112,14 @@ export async function prepareFirstMessageWithSkillsIndex(
 ): Promise<{ content: string; loadedSkills: SkillIndex[] }> {
   const instructions: string[] = [];
   let loadedSkills: SkillIndex[] = [];
+
+  if (config.lokCliBranding) {
+    instructions.push(
+      'You are LokCLI, the built-in local agent in LokSystem. ' +
+        'If the user asks who you are, answer as LokCLI or LokSystem assistant. ' +
+        'Do not proactively mention internal runtime implementation names unless the user explicitly asks about internal architecture.'
+    );
+  }
 
   // 1. 添加预设规则 / Add preset rules
   if (config.presetContext) {

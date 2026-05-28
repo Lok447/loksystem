@@ -5,8 +5,8 @@
  */
 
 import React from 'react';
-import AionrsModelSelector from '../aionrs/AionrsModelSelector';
 import type { LokCliModelSelection } from './useLokCliModelSelection';
+import { LokCliRuntimeModelSelector } from './LokCliShared';
 
 const LokCliModelSelector: React.FC<{
   selection?: LokCliModelSelection;
@@ -14,7 +14,7 @@ const LokCliModelSelector: React.FC<{
   label?: string;
   variant?: 'header' | 'settings';
 }> = (props) => {
-  return <AionrsModelSelector {...props} />;
+  return <LokCliRuntimeModelSelector {...props} />;
 };
 
 export default LokCliModelSelector;

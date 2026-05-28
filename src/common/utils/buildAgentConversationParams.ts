@@ -81,6 +81,15 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     ...extraOverrides,
   };
 
+  if (type === 'lokcli') {
+    extra.backend = 'hermes';
+    extra.agentName = agentName || name;
+    if (cliPath) extra.cliPath = cliPath;
+    if (customAgentId) {
+      extra.customAgentId = customAgentId;
+    }
+  }
+
   if (isPreset) {
     extra.enabledSkills = presetResources?.enabledSkills;
     extra.excludeBuiltinSkills = presetResources?.excludeBuiltinSkills;

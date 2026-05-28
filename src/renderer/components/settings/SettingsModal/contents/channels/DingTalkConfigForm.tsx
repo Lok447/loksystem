@@ -333,7 +333,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
   const hasExistingUsers = authorizedUsers.length > 0;
   const isLokCliAgent = selectedAgent.backend === 'aionrs' || selectedAgent.backend === 'hermes';
   const agentOptions: Array<{ backend: string; name: string; customAgentId?: string; isExtension?: boolean }> =
-    availableAgents.length > 0 ? availableAgents : [{ backend: 'hermes', name: 'Lok CLI' }];
+    availableAgents.length > 0 ? availableAgents : [{ backend: 'hermes', name: 'LokCLI' }];
 
   return (
     <div className='flex flex-col gap-24px'>
@@ -528,7 +528,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
                   (selectedAgent.backend === 'gemini' ||
                   selectedAgent.backend === 'aionrs' ||
                   selectedAgent.backend === 'hermes'
-                    ? 'Lok CLI'
+                    ? 'LokCLI'
                     : selectedAgent.backend)}
               </span>
               <Down theme='outline' size={14} />

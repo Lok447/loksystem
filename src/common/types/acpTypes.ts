@@ -446,18 +446,18 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
   },
   hermes: {
     id: 'hermes',
-    name: 'Lok CLI',
+    name: 'LokCLI',
     // Migration note:
-    // - "Lok CLI" is the user-facing product/runtime name
+    // - "LokCLI" is the user-facing product/runtime name
     // - `hermes` remains the internal default runtime backend
     // - `aionrs` is being reduced to a compatibility-only role
-    description: 'Local Hermes v13.0 core agent for LokSystem',
+    description: 'LokCLI built-in local runtime for LokSystem',
     cliCommand: 'hermes',
     authRequired: true,
     enabled: true,
     supportsStreaming: false,
     acpArgs: ['acp'],
-    skillsDirs: ['.hermes/skills'],
+    skillsDirs: ['.loksystem/skills'],
   },
   snow: {
     id: 'snow',

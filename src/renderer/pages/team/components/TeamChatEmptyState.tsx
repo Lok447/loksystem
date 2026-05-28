@@ -45,6 +45,9 @@ const toDetectedKind = (type: TChatConversation['type']): Exclude<DetectedAgentK
 };
 
 const resolveAgentTypeFromConversation = (conversation: TChatConversation): string => {
+  if (conversation.type === 'gemini' || conversation.type === 'aionrs' || conversation.type === 'lokcli') {
+    return ((conversation.extra as { backend?: string } | undefined)?.backend || 'hermes') as string;
+  }
   if (conversation.type === 'acp') {
     return (conversation.extra as { backend?: string } | undefined)?.backend ?? 'acp';
   }

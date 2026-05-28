@@ -456,7 +456,7 @@ export class ActionExecutor {
       if (!session || !session.conversationId) {
         const source = platform;
 
-        // Read selected agent for this platform (defaults to Lok CLI)
+        // Read selected agent for this platform (defaults to LokCLI)
         let savedAgent: unknown = undefined;
         try {
           savedAgent = await ProcessConfig.get(

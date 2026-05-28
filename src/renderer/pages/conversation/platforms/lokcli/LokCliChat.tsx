@@ -5,8 +5,8 @@
  */
 
 import React from 'react';
-import AionrsChat from '../aionrs/AionrsChat';
 import type { LokCliModelSelection } from './useLokCliModelSelection';
+import { LokCliRuntimeChat } from './LokCliShared';
 
 const LokCliChat: React.FC<{
   conversation_id: string;
@@ -17,7 +17,7 @@ const LokCliChat: React.FC<{
   sessionMode?: string;
   emptySlot?: React.ReactNode;
 }> = (props) => {
-  return <AionrsChat {...props} />;
+  return <LokCliRuntimeChat {...props} />;
 };
 
 export default LokCliChat;

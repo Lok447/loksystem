@@ -38,7 +38,7 @@ export class TeamSessionService {
   /**
    * Returns the workspace path as-is, or empty string when not specified.
    * An empty workspace tells the downstream agent factory (initAgent.ts) to
-   * create a temporary workspace (e.g. `aionrs-temp-<timestamp>`), matching
+   * create an auto-generated temporary workspace, matching
    * the single-agent conversation behavior.
    */
   private resolveWorkspace(workspace: string | undefined): string {
@@ -52,7 +52,7 @@ export class TeamSessionService {
 
     const provider = providers[0];
     if (!provider) {
-      throw new Error('No enabled model provider for Lok CLI');
+      throw new Error('No enabled model provider for LokCLI');
     }
 
     const enabledModel = provider.model?.find((m: string) => provider.modelEnabled?.[m] !== false);
@@ -251,11 +251,11 @@ export class TeamSessionService {
   private resolveRecoveredAgentType(conversation: TChatConversation): string | undefined {
     switch (conversation.type) {
       case 'gemini':
-        return 'gemini';
+        return 'hermes';
       case 'lokcli':
-        return 'lokcli';
+        return ((conversation.extra as { backend?: string } | undefined)?.backend || 'hermes') as string;
       case 'aionrs':
-        return 'aionrs';
+        return 'hermes';
       case 'remote':
         return 'remote';
       case 'nanobot':

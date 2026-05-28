@@ -34,7 +34,7 @@ const LokCliSettings: React.FC = () => {
     <SettingsPageWrapper>
       <div className='flex flex-col gap-16px'>
         <Typography.Title heading={5} className='!mb-0'>
-          Lok CLI
+          LokCLI
         </Typography.Title>
 
         <div className='flex flex-col gap-8px p-16px rd-12px bg-aou-1'>
@@ -63,7 +63,7 @@ const LokCliSettings: React.FC = () => {
         <Typography.Text type='secondary' className='text-12px'>
           {t('settings.aionrs.providerNote', {
             defaultValue:
-              'Provider and API key settings are managed in the Models page. Lok CLI supports domestic model providers and OpenAI-compatible endpoints.',
+              'Provider and API key settings are managed in the Models page. LokCLI supports domestic model providers and OpenAI-compatible endpoints.',
           })}
         </Typography.Text>
       </div>

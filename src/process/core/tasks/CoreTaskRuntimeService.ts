@@ -185,7 +185,7 @@ export class CoreTaskRuntimeService {
 
   public async warmupConversation(conversationId: string): Promise<IAgentManager> {
     const task = await this.workerTaskManager.getOrBuildTask(conversationId);
-    if (task.type === 'acp') {
+    if (task.type === 'acp' || task.type === 'lokcli') {
       await (task as unknown as AcpAgentManager).initAgent();
     }
     this.emitRuntimeUpdate({
@@ -377,7 +377,7 @@ When skill instructions reference relative paths like "skills/{name}/scripts/...
       return false;
     }
 
-    if (task.type === 'aionrs' || task.type === 'lokcli') {
+    if (task.type === 'aionrs') {
       const keys = AionrsApprovalStore.createKeysFromConfirmation(action, commandType);
       if (keys.length === 0) return false;
       return task.approvalStore.allApproved(keys);

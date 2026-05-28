@@ -6,6 +6,7 @@ import type { AcpModelInfo, AcpResult, AcpSessionConfigOption } from '@/common/t
 import { AcpErrorType, parseInitializeResult } from '@/common/types/acpTypes';
 import { getFullAutoMode } from '@/common/types/agentModes';
 import { LegacyConnectorFactory } from '@process/acp/compat/LegacyConnectorFactory';
+import { HermesSharedClientFactory } from '@process/acp/compat/HermesSharedClientFactory';
 import {
   loadAuthCredentials,
   mapAcpErrorCodeToType,
@@ -191,7 +192,8 @@ export class AcpAgentV2 {
     }
 
     const callbacks: SessionCallbacks = this.buildCallbacks();
-    const clientFactory = new LegacyConnectorFactory();
+    const clientFactory =
+      this.agentConfig.agentBackend === 'hermes' ? new HermesSharedClientFactory() : new LegacyConnectorFactory();
 
     // Resolve prompt timeout: per-backend → global → default (300s)
     const acpConfig = (await ProcessConfig.get('acp.config')) as Record<string, { promptTimeout?: number }> | undefined;

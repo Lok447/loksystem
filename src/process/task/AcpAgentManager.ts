@@ -46,6 +46,7 @@ import { extractTextFromMessage, processCronInMessage } from './MessageMiddlewar
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 import { mirrorAcpStreamMessage } from '@process/core/acp';
 import { resolveHermesBinary } from '@process/agent/hermes/binaryResolver';
+import { readBundledHermesVersion } from '@process/agent/hermes/runtimeMetadata';
 import path from 'node:path';
 
 interface AcpAgentManagerData {
@@ -77,6 +78,8 @@ interface AcpAgentManagerData {
   sandboxMode?: CodexSandboxMode;
   /** Pending config option selections from Guid page (applied after session creation) */
   pendingConfigOptions?: Record<string, string>;
+  /** Bundled runtime version persisted for LokCLI/Hermes session reuse validation */
+  acpRuntimeVersion?: string;
 }
 
 type BufferedStreamTextMessage = {
@@ -127,8 +130,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    *  indicate a missing finish signal. */
   private promptInFlight: boolean = false;
 
-  constructor(data: AcpAgentManagerData) {
-    super('acp', data, new IpcAgentEventEmitter(), false);
+  constructor(data: AcpAgentManagerData, taskType: 'acp' | 'lokcli' = 'acp') {
+    super(taskType, data, new IpcAgentEventEmitter(), false);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data;
@@ -191,6 +194,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     for (const key of keys) {
       this.flushBufferedStreamTextMessage(key);
     }
+  }
+
+  private isPersistedConversationType(type: string | undefined): type is 'acp' | 'lokcli' {
+    return type === 'acp' || type === 'lokcli';
   }
 
   private beginTrackedTurn(): number {
@@ -480,10 +487,15 @@ ${collectedResponses.join('\n')}`;
 
   private buildHermesWorkspaceEnv(workspace?: string, baseEnv?: Record<string, string>): Record<string, string> {
     const resolvedWorkspace = path.resolve(workspace || process.cwd());
+    const hermesVersion = readBundledHermesVersion() || process.env.LOKCLI_RUNTIME_VERSION || 'unknown';
     return {
       ...baseEnv,
+      LOKCLI_BRAND: 'LokCLI',
       LOKSYSTEM_WORKSPACE: resolvedWorkspace,
       LOKSYSTEM_BRAND: 'LokSystem',
+      LOKCLI_RUNTIME_VERSION: hermesVersion,
+      LOKCLI_RUNTIME_BRAND: 'LokCLI',
+      LOKCLI_RUNTIME_DISPLAY_NAME: 'LokCLI',
       HERMES_WORKSPACE: resolvedWorkspace,
       HERMES_PROJECT_ROOT: resolvedWorkspace,
       PWD: resolvedWorkspace,
@@ -921,6 +933,17 @@ ${collectedResponses.join('\n')}`;
     // during start(), so we don't need to call cacheModelList() here.
   }
 
+  private alignHermesResumeMetadata(data: AcpAgentManagerData): void {
+    if (data.backend !== 'hermes') return;
+
+    const currentRuntimeVersion = readBundledHermesVersion() || process.env.LOKCLI_RUNTIME_VERSION || 'unknown';
+    const persistedRuntimeVersion = data.acpRuntimeVersion;
+    if (persistedRuntimeVersion && persistedRuntimeVersion !== currentRuntimeVersion) {
+      data.acpSessionId = undefined;
+      data.acpSessionUpdatedAt = undefined;
+    }
+  }
+
   // ── initAgent ────────────────────────────────────────────────────────
 
   initAgent(data: AcpAgentManagerData = this.options) {
@@ -928,6 +951,7 @@ ${collectedResponses.join('\n')}`;
 
     this.bootstrapping = true;
     this.bootstrap = (async () => {
+      this.alignHermesResumeMetadata(data);
       const { cliPath, customArgs, customEnv, yoloMode } = await this.resolveAgentCliConfig(data);
 
       const agentConfig = {
@@ -948,6 +972,7 @@ ${collectedResponses.join('\n')}`;
           agentName: data.agentName,
           acpSessionId: data.acpSessionId,
           acpSessionUpdatedAt: data.acpSessionUpdatedAt,
+          acpRuntimeVersion: data.acpRuntimeVersion,
           currentModelId: this.persistedModelId ?? undefined,
           sessionMode: this.currentMode,
           pendingConfigOptions: data.pendingConfigOptions,
@@ -1086,6 +1111,7 @@ ${collectedResponses.join('\n')}`;
               enableTeamGuide: !isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend)),
               backend: this.options.backend,
               presetAssistantId: this.options.presetAssistantId || this.options.customAgentId,
+              lokCliBranding: this.options.backend === 'hermes',
             });
             contentToSend = injectedContent;
           }
@@ -1508,7 +1534,7 @@ ${collectedResponses.join('\n')}`;
     try {
       const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'acp') {
+      if (result.success && result.data && this.isPersistedConversationType(result.data.type)) {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
@@ -1536,7 +1562,7 @@ ${collectedResponses.join('\n')}`;
     try {
       const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'acp') {
+      if (result.success && result.data && this.isPersistedConversationType(result.data.type)) {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
@@ -1560,7 +1586,7 @@ ${collectedResponses.join('\n')}`;
     try {
       const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'acp') {
+      if (result.success && result.data && this.isPersistedConversationType(result.data.type)) {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
@@ -1584,7 +1610,7 @@ ${collectedResponses.join('\n')}`;
     try {
       const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'acp') {
+      if (result.success && result.data && this.isPersistedConversationType(result.data.type)) {
         const conversation = result.data;
         db.updateConversation(this.conversation_id, {
           extra: { ...conversation.extra, cachedConfigOptions: configOptions },
@@ -1678,13 +1704,17 @@ ${collectedResponses.join('\n')}`;
     try {
       const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'acp') {
+      if (result.success && result.data && this.isPersistedConversationType(result.data.type)) {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
           acpSessionId: sessionId,
           acpSessionConversationId: this.conversation_id,
           acpSessionUpdatedAt: Date.now(),
+          acpRuntimeVersion:
+            this.options.backend === 'hermes'
+              ? readBundledHermesVersion() || process.env.LOKCLI_RUNTIME_VERSION || 'unknown'
+              : conversation.extra?.acpRuntimeVersion,
         };
         db.updateConversation(this.conversation_id, {
           extra: updatedExtra,

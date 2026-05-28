@@ -4,4 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export { default } from '../aionrs/AionrsSendBox';
+import { LokCliRuntimeSendBox } from './LokCliShared';
+
+export default LokCliRuntimeSendBox;

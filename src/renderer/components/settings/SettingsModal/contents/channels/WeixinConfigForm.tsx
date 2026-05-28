@@ -380,7 +380,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     backend: string;
     name: string;
     customAgentId?: string;
-  }> = availableAgents.length > 0 ? availableAgents : [{ backend: 'hermes', name: 'Lok CLI' }];
+  }> = availableAgents.length > 0 ? availableAgents : [{ backend: 'hermes', name: 'LokCLI' }];
 
   const handleDisconnect = async () => {
     try {
@@ -525,7 +525,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
                 (selectedAgent.backend === 'gemini' ||
                 selectedAgent.backend === 'aionrs' ||
                 selectedAgent.backend === 'hermes'
-                  ? 'Lok CLI'
+                  ? 'LokCLI'
                   : selectedAgent.backend)}
             </span>
             <Down theme='outline' size={14} />
