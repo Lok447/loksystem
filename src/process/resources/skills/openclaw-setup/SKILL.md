@@ -1,6 +1,6 @@
 ---
 name: openclaw-setup
-description: 'OpenClaw usage expert: Helps you install, deploy, configure, and use OpenClaw personal AI assistant. Can diagnose issues, create bots, execute automated tasks, etc. Use when users need to install OpenClaw, configure Gateway, set up Channels, create Agents, troubleshoot issues, or perform OpenClaw-related operations.'
+description: "OpenClaw 使用助手：帮助安装、部署、配置和使用 OpenClaw 个人 AI 助手，支持 Gateway、Channels、Agents 配置，以及问题排查和自动化任务相关操作。"
 ---
 
 # OpenClaw 使用专家

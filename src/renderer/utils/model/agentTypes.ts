@@ -20,10 +20,13 @@ export type AvailableAgent = {
   backend: string;
   name: string;
   displayName?: string;
+  productKey?: string;
+  runtimeKey?: string;
+  isBuiltinRuntime?: boolean;
   kind?: string;
   available?: boolean;
   teamCapable?: boolean;
-  conversationType?: 'acp' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'gemini';
+  conversationType?: 'acp' | 'lokcli' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'gemini';
   supportedModes?: string[];
   cliPath?: string;
   customAgentId?: string;
@@ -44,9 +47,10 @@ export type AvailableAgent = {
 
 function inferConversationType(
   backend: string
-): 'acp' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'gemini' {
-  if (backend === 'gemini') return 'gemini';
-  if (backend === 'aionrs') return 'aionrs';
+): 'acp' | 'lokcli' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'gemini' {
+  if (backend === 'gemini') return 'lokcli';
+  if (backend === 'hermes') return 'lokcli';
+  if (backend === 'aionrs') return 'lokcli';
   if (backend === 'codex') return 'codex';
   if (backend === 'openclaw-gateway') return 'openclaw-gateway';
   if (backend === 'nanobot') return 'nanobot';
@@ -55,12 +59,20 @@ function inferConversationType(
 }
 
 function normalizeAvailableAgent(agent: AvailableAgent): AvailableAgent {
+  const normalizedConversationType = agent.conversationType || inferConversationType(agent.backend);
+  const normalizedProductKey =
+    agent.productKey || (normalizedConversationType === 'lokcli' ? 'lokcli' : agent.backend);
+  const normalizedRuntimeKey = agent.runtimeKey || agent.backend;
+
   return {
     ...agent,
     displayName: agent.displayName || agent.name,
+    productKey: normalizedProductKey,
+    runtimeKey: normalizedRuntimeKey,
+    isBuiltinRuntime: agent.isBuiltinRuntime ?? (normalizedProductKey === 'lokcli' && normalizedRuntimeKey === 'hermes'),
     available: agent.available ?? true,
     teamCapable: agent.teamCapable ?? false,
-    conversationType: agent.conversationType || inferConversationType(agent.backend),
+    conversationType: normalizedConversationType,
     logo:
       agent.logo ??
       resolveAgentLogo({

@@ -12,8 +12,8 @@ import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSider from '@/renderer/pages/conversation/components/ChatSider';
 import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
-import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
-import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
+import LokCliModelSelector from '@/renderer/pages/conversation/platforms/lokcli/LokCliModelSelector';
+import { useLokCliModelSelection } from '@/renderer/pages/conversation/platforms/lokcli/useLokCliModelSelection';
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import TeamAgentIdentity from './components/TeamAgentIdentity';
@@ -31,14 +31,15 @@ type TeamPageContentProps = {
   onRenameTeam: (newName: string) => Promise<boolean>;
 };
 
-const isLokCliConversationType = (type: string | undefined): boolean => type === 'aionrs' || type === 'gemini';
+const isLokCliCompatibleConversationType = (type: string | undefined): boolean =>
+  type === 'lokcli' || type === 'aionrs' || type === 'gemini';
 
 const getConversationModel = (conversation: TChatConversation | undefined): TProviderWithModel | undefined => {
   return (conversation as Partial<{ model: TProviderWithModel }> | undefined)?.model;
 };
 
-/** Compact aionrs model selector for the agent header */
-const AionrsHeaderModelSelector: React.FC<{ conversationId: string; initialModel?: TProviderWithModel }> = ({
+/** Compact LokCLI model selector for the agent header */
+const LokCliHeaderModelSelector: React.FC<{ conversationId: string; initialModel?: TProviderWithModel }> = ({
   conversationId,
   initialModel,
 }) => {
@@ -50,8 +51,8 @@ const AionrsHeaderModelSelector: React.FC<{ conversationId: string; initialModel
     },
     [conversationId]
   );
-  const modelSelection = useAionrsModelSelection({ initialModel, onSelectModel });
-  return <AionrsModelSelector selection={modelSelection} />;
+  const modelSelection = useLokCliModelSelection({ initialModel, onSelectModel });
+  return <LokCliModelSelector selection={modelSelection} />;
 };
 
 /** Fetches conversation for a single agent and renders TeamChatView */
@@ -67,8 +68,8 @@ const AgentChatSlot: React.FC<{
     getRendererCoreClient().conversations.get(agent.conversationId)
   );
 
-  const isAionrs = conversation?.type === 'aionrs';
-  const isLokCli = isLokCliConversationType(conversation?.type) || isLokCliConversationType(agent.conversationType);
+  const isLokCliCompatible = isLokCliCompatibleConversationType(conversation?.type);
+  const isLokCli = isLokCliCompatibleConversationType(conversation?.type) || isLokCliCompatibleConversationType(agent.conversationType);
   const initialModelId = (conversation?.extra as { currentModelId?: string })?.currentModelId;
   const conversationModel = getConversationModel(conversation);
   const isAcpLike = agent.conversationType === 'acp' || agent.conversationType === 'codex';
@@ -102,7 +103,7 @@ const AgentChatSlot: React.FC<{
           nameClassName='text-13px text-[color:var(--color-text-2)] font-medium'
         />
         <div className='flex items-center gap-8px shrink-0'>
-          {agent.conversationId && !isAionrs && isAcpLike && (
+          {agent.conversationId && !isLokCliCompatible && isAcpLike && (
             <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
               <AcpModelSelector
                 key={agent.conversationId}
@@ -114,7 +115,7 @@ const AgentChatSlot: React.FC<{
           )}
           {isLokCli && agent.conversationId && (
             <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
-              <AionrsHeaderModelSelector
+              <LokCliHeaderModelSelector
                 key={agent.conversationId}
                 conversationId={agent.conversationId}
                 initialModel={conversationModel}

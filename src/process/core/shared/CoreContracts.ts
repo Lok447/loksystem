@@ -173,8 +173,11 @@ export interface CoreAcpAgentDescriptorDto {
   kind?: string;
   available?: boolean;
   displayName?: string;
+  productKey?: string;
+  runtimeKey?: string;
+  isBuiltinRuntime?: boolean;
   teamCapable?: boolean;
-  conversationType?: 'acp' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'gemini';
+  conversationType?: 'acp' | 'lokcli' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'gemini';
   supportedModes?: string[];
   logos?: {
     icon?: string | null;
@@ -237,6 +240,6 @@ export interface CoreConversationStreamEventDto {
   messageId: string;
   messageType: string;
   hidden?: boolean;
-  source: 'remote' | 'nanobot' | 'aionrs' | 'openclaw' | 'cron' | 'skill_suggest' | 'team' | 'unknown';
+  source: 'remote' | 'nanobot' | 'aionrs' | 'lokcli' | 'openclaw' | 'cron' | 'skill_suggest' | 'team' | 'unknown';
   message: IResponseMessage;
 }

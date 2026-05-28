@@ -377,7 +377,7 @@ When skill instructions reference relative paths like "skills/{name}/scripts/...
       return false;
     }
 
-    if (task.type === 'aionrs') {
+    if (task.type === 'aionrs' || task.type === 'lokcli') {
       const keys = AionrsApprovalStore.createKeysFromConfirmation(action, commandType);
       if (keys.length === 0) return false;
       return task.approvalStore.allApproved(keys);

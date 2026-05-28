@@ -75,8 +75,8 @@ const getSelectedItemDisplayLabel = (item: FileSelectionItem): string => {
 
 const normalizeConversationEventPrefix = (
   type: string | undefined
-): 'aionrs' | 'acp' | 'remote' | 'openclaw-gateway' | 'nanobot' | 'codex' | undefined => {
-  if (type === 'gemini' || type === 'aionrs') return 'aionrs';
+): 'lokcli' | 'acp' | 'remote' | 'openclaw-gateway' | 'nanobot' | 'codex' | undefined => {
+  if (type === 'gemini' || type === 'aionrs' || type === 'lokcli') return 'lokcli';
   if (type === 'acp' || type === 'remote' || type === 'openclaw-gateway' || type === 'nanobot' || type === 'codex') {
     return type;
   }
@@ -815,9 +815,9 @@ const SendBox: React.FC<{
   }, []);
 
   useAddEventListener(
-    'aionrs.selected.file.append',
+    'lokcli.selected.file.append',
     (items: FileSelectionItem[]) => {
-      if (conversationEventPrefix === 'aionrs') {
+      if (conversationEventPrefix === 'lokcli') {
         handleExternalSelectionAppend(items);
       }
     },
@@ -872,8 +872,8 @@ const SendBox: React.FC<{
   const emitSelectedFileAppend = useCallback(
     (item: FileOrFolderItem) => {
       switch (conversationEventPrefix) {
-        case 'aionrs':
-          emitter.emit('aionrs.selected.file.append', [item]);
+        case 'lokcli':
+          emitter.emit('lokcli.selected.file.append', [item]);
           break;
         case 'acp':
           emitter.emit('acp.selected.file.append', [item]);

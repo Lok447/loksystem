@@ -45,7 +45,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
 
   const enabledModelList = React.useMemo(() => modelList.filter((provider) => provider.enabled !== false), [modelList]);
 
-  const geminiButtonLabel = React.useMemo(
+  const lokCliButtonLabel = React.useMemo(
     () =>
       getModelDisplayLabel({
         selectedValue: currentModel?.useModel,
@@ -168,7 +168,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
         <Button className='sendbox-model-btn guid-config-btn' shape='round' size='small'>
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
-            <span>{geminiButtonLabel}</span>
+            <span>{lokCliButtonLabel}</span>
             <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
           </span>
         </Button>

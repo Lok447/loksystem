@@ -9,8 +9,8 @@ import { acpConversation, channel } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import { getRendererCoreClient } from '@/common/coreClient';
 import { openExternalUrl } from '@/renderer/utils/platform';
-import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
-import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
+import LokCliModelSelector from '@/renderer/pages/conversation/platforms/lokcli/LokCliModelSelector';
+import type { LokCliModelSelection } from '@/renderer/pages/conversation/platforms/lokcli/useLokCliModelSelection';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -53,7 +53,7 @@ const SectionHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ 
 
 interface LarkConfigFormProps {
   pluginStatus: IChannelPluginStatus | null;
-  modelSelection: AionrsModelSelection;
+  modelSelection: LokCliModelSelection;
   onStatusChange: (status: IChannelPluginStatus | null) => void;
 }
 
@@ -82,7 +82,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     Array<{ backend: string; name: string; customAgentId?: string; isPreset?: boolean }>
   >([]);
   const [selectedAgent, setSelectedAgent] = useState<{ backend: string; name?: string; customAgentId?: string }>({
-    backend: 'aionrs',
+    backend: 'hermes',
   });
 
   // Load pending pairings
@@ -147,12 +147,12 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
 
         if (saved && typeof saved === 'object' && 'backend' in saved && typeof (saved as any).backend === 'string') {
           setSelectedAgent({
-            backend: ((saved as any).backend as string) === 'gemini' ? 'aionrs' : ((saved as any).backend as string),
+            backend: ((saved as any).backend as string) === 'gemini' ? 'hermes' : ((saved as any).backend as string),
             customAgentId: (saved as any).customAgentId,
             name: (saved as any).name,
           });
         } else if (typeof saved === 'string') {
-          setSelectedAgent({ backend: saved === 'gemini' ? 'aionrs' : (saved as string) });
+          setSelectedAgent({ backend: saved === 'gemini' ? 'hermes' : (saved as string) });
         }
       } catch (error) {
         console.error('[LarkConfig] Failed to load agents:', error);
@@ -342,7 +342,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   };
 
   const hasExistingUsers = authorizedUsers.length > 0;
-  const isGeminiAgent = selectedAgent.backend === 'aionrs';
+  const isLokCliAgent = selectedAgent.backend === 'aionrs' || selectedAgent.backend === 'hermes';
   const agentOptions: Array<{ backend: string; name: string; customAgentId?: string; isExtension?: boolean }> =
     availableAgents.length > 0 ? availableAgents : [{ backend: 'hermes', name: 'Lok CLI' }];
 
@@ -646,7 +646,11 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
                         ? `${selectedAgent.backend}|${selectedAgent.customAgentId}`
                         : selectedAgent.backend)
                   )?.name ||
-                  selectedAgent.backend}
+                  (selectedAgent.backend === 'gemini' ||
+                  selectedAgent.backend === 'aionrs' ||
+                  selectedAgent.backend === 'hermes'
+                    ? 'Lok CLI'
+                    : selectedAgent.backend)}
               </span>
               <Down theme='outline' size={14} />
             </Button>
@@ -659,11 +663,11 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         label={t('settings.assistant.defaultModel', 'Default Model')}
         description={t('settings.lark.defaultModelDesc', 'Model used for Lark conversations')}
       >
-        <AionrsModelSelector
-          selection={isGeminiAgent ? modelSelection : undefined}
-          disabled={!isGeminiAgent}
+        <LokCliModelSelector
+          selection={isLokCliAgent ? modelSelection : undefined}
+          disabled={!isLokCliAgent}
           label={
-            !isGeminiAgent
+            !isLokCliAgent
               ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running')
               : undefined
           }

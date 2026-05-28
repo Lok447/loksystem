@@ -9,8 +9,8 @@ import { acpConversation, channel } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import { getRendererCoreClient } from '@/common/coreClient';
 import { resolveWebRuntimeServerPath } from '@/common/utils/webRuntimeOrigin';
-import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
-import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
+import LokCliModelSelector from '@/renderer/pages/conversation/platforms/lokcli/LokCliModelSelector';
+import type { LokCliModelSelection } from '@/renderer/pages/conversation/platforms/lokcli/useLokCliModelSelection';
 import { Button, Dropdown, Empty, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -45,7 +45,7 @@ const SectionHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ 
 
 interface WeixinConfigFormProps {
   pluginStatus: IChannelPluginStatus | null;
-  modelSelection: AionrsModelSelection;
+  modelSelection: LokCliModelSelection;
   onStatusChange: (status: IChannelPluginStatus | null) => void;
 }
 
@@ -81,7 +81,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     backend: string;
     name?: string;
     customAgentId?: string;
-  }>({ backend: 'aionrs' });
+  }>({ backend: 'hermes' });
 
   // Close EventSource on unmount to prevent connection leaks.
   useEffect(() => {
@@ -235,7 +235,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
         ) {
           const s = saved as { backend: string; customAgentId?: string; name?: string };
           setSelectedAgent({
-            backend: s.backend === 'gemini' ? 'aionrs' : s.backend,
+            backend: s.backend === 'gemini' ? 'hermes' : s.backend,
             customAgentId: s.customAgentId,
             name: s.name,
           });
@@ -375,7 +375,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     }
   };
 
-  const isGeminiAgent = selectedAgent.backend === 'aionrs';
+  const isLokCliAgent = selectedAgent.backend === 'aionrs' || selectedAgent.backend === 'hermes';
   const agentOptions: Array<{
     backend: string;
     name: string;
@@ -522,7 +522,11 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
                       ? `${selectedAgent.backend}|${selectedAgent.customAgentId}`
                       : selectedAgent.backend)
                 )?.name ||
-                selectedAgent.backend}
+                (selectedAgent.backend === 'gemini' ||
+                selectedAgent.backend === 'aionrs' ||
+                selectedAgent.backend === 'hermes'
+                  ? 'Lok CLI'
+                  : selectedAgent.backend)}
             </span>
             <Down theme='outline' size={14} />
           </Button>
@@ -534,11 +538,11 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
         label={t('settings.assistant.defaultModel', 'Default Model')}
         description={t('settings.weixin.defaultModelDesc', 'Model used for WeChat conversations')}
       >
-        <AionrsModelSelector
-          selection={isGeminiAgent ? modelSelection : undefined}
-          disabled={!isGeminiAgent}
+        <LokCliModelSelector
+          selection={isLokCliAgent ? modelSelection : undefined}
+          disabled={!isLokCliAgent}
           label={
-            !isGeminiAgent
+            !isLokCliAgent
               ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running')
               : undefined
           }

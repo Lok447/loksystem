@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { isProviderBackedAgent } from '@/common/config/lokcliCompatibility';
 import type { IProvider } from '@/common/config/storage';
 import type { AcpBackend, AvailableAgent, EffectiveAgentInfo } from '../types';
 import { useCallback } from 'react';
@@ -30,7 +31,7 @@ export const useAgentAvailability = ({
 }: UseAgentAvailabilityOptions): UseAgentAvailabilityResult => {
   const isMainAgentAvailable = useCallback(
     (agentType: string): boolean => {
-      if (agentType === 'gemini' || agentType === 'aionrs') {
+      if (isProviderBackedAgent(agentType)) {
         return modelList != null && modelList.length > 0;
       }
       return availableAgents?.some((agent) => agent.backend === agentType) ?? false;

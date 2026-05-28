@@ -14,10 +14,8 @@ import type {
   RemoteDetectedAgent,
 } from '@/common/types/detectedAgent';
 import { isAgentKind } from '@/common/types/detectedAgent';
+import { resolveHermesBinary } from '@process/agent/hermes/binaryResolver';
 import type { RemoteAgentConfig } from '@process/agent/remote/types';
-import { existsSync } from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 
 /**
  * Central registry for ALL detected execution engines.
@@ -26,7 +24,7 @@ import path from 'node:path';
  * `getDetectedAgents()` API consumed by IPC bridges.
  *
  * Sources:
- *   - Lok CLI      - default Hermes entry (launches `hermes acp`)
+ *   - Lok CLI      - default bundled Hermes runtime (launches `hermes acp`)
  *   - ACP builtin  - CLI agents on PATH (qwen, codebuddy, opencode, etc.)
  *   - ACP extension - contributed by hub extensions
  *   - Remote       - user-configured WebSocket agents (from DB)
@@ -41,19 +39,6 @@ import path from 'node:path';
 class AgentRegistry {
   private static readonly DISABLED_BACKENDS = new Set(['aionrs', 'claude', 'gemini']);
 
-  private resolveHermesCliPath(): string {
-    const candidates = [
-      process.env.HERMES_CLI_PATH,
-      path.join(os.homedir(), 'hermes-agent-main', '.venv', process.platform === 'win32' ? 'Scripts' : 'bin', process.platform === 'win32' ? 'hermes.exe' : 'hermes'),
-    ].filter((candidate): candidate is string => Boolean(candidate));
-
-    for (const candidate of candidates) {
-      if (existsSync(candidate)) return candidate;
-    }
-
-    return ACP_BACKENDS_ALL.hermes.cliCommand ?? 'hermes';
-  }
-
   private detectedAgents: DetectedAgent[] = [];
   private isInitialized = false;
   private mutationQueue: Promise<void> = Promise.resolve();
@@ -67,13 +52,14 @@ class AgentRegistry {
 
   private createLokCliAgent(): AcpDetectedAgent {
     const hermes = ACP_BACKENDS_ALL.hermes;
+    const resolvedCliPath = resolveHermesBinary() ?? ACP_BACKENDS_ALL.hermes.cliCommand ?? 'hermes';
     return {
       id: 'hermes',
       name: hermes.name,
       kind: 'acp',
       available: true,
       backend: 'hermes',
-      cliPath: this.resolveHermesCliPath(),
+      cliPath: resolvedCliPath,
       acpArgs: hermes.acpArgs,
     };
   }

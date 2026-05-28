@@ -1,6 +1,6 @@
 ---
 name: officecli-pitch-deck
-description: "Use this skill when the user is building a fundraising / investor pitch deck — seed, Series A / B / C, convertible note, SAFE round, strategic raise. Trigger on: 'pitch deck', 'investor deck', 'Series A deck', 'Series B deck', 'Series C deck', 'fundraising deck', 'seed pitch', 'VC deck', 'raising capital', 'term sheet presentation'. Output is a single .pptx. This skill is a scene layer on top of officecli-pptx — inherits every pptx v2 rule (visual floor, grid, palettes, connector canon, Delivery Gate). DO NOT invoke for a generic board review, sales deck, all-hands, or product launch — route those to officecli-pptx base."
+description: "用于生成融资或投资人路演 PPT：适合种子轮、A/B/C 轮、SAFE、可转债和战略融资等场景，输出单个 .pptx。"
 ---
 
 # OfficeCLI Pitch Deck Skill

@@ -1,6 +1,6 @@
 ---
 name: cron
-description: Scheduled task management - create, query, update scheduled tasks to automatically execute operations at specified times.
+description: "定时任务管理技能：用于创建、查询和更新定时任务，让指定操作按设定时间自动执行。"
 ---
 
 # Scheduled Task Skill

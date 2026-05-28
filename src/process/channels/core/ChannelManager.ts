@@ -506,8 +506,8 @@ export class ChannelManager {
   /**
    * Sync channel settings after agent or model change in the Settings UI.
    * Clears all cached sessions so the next incoming message re-evaluates
-   * which conversation to use. For gemini type changes, also updates the
-   * model field on existing conversations.
+   * which conversation to use. For LokCLI provider-backed changes, also
+   * updates the model field on existing conversations.
    */
   async syncChannelSettings(
     platform: ChannelPlatform,
@@ -521,15 +521,27 @@ export class ChannelManager {
     try {
       const { convType: newType } = resolveChannelConvType(agent.backend);
 
-      // For gemini + model info: update existing conversations' model field
-      if (newType === 'gemini' && model?.id && model?.useModel) {
+      // For LokCLI provider-backed channels, update existing conversations'
+      // model fields so newly selected model settings take effect immediately.
+      if (newType === 'lokcli' && model?.id && model?.useModel) {
         if (isBuiltinChannelPlatform(platform)) {
           const builtinPlatform: 'lark' | 'dingtalk' | 'weixin' | 'wecom' = platform;
           const fullModel = await getChannelDefaultModel(builtinPlatform);
           const db = await getDatabase();
-          const result = db.updateChannelConversationModel(builtinPlatform, 'gemini', fullModel);
-          if (result.success) {
-            console.log(`[ChannelManager] Updated ${result.data} gemini conversation(s) for ${builtinPlatform}`);
+          const conversationTypesToSync = ['lokcli', 'gemini', 'aionrs'] as const;
+          let updatedCount = 0;
+
+          for (const conversationType of conversationTypesToSync) {
+            const result = db.updateChannelConversationModel(builtinPlatform, conversationType, fullModel);
+            if (result.success) {
+              updatedCount += result.data || 0;
+            }
+          }
+
+          if (updatedCount > 0) {
+            console.log(
+              `[ChannelManager] Updated ${updatedCount} LokCLI channel conversation(s) for ${builtinPlatform}`
+            );
           }
         } else {
           console.log(`[ChannelManager] Skip conversation model sync for extension platform: ${platform}`);
@@ -571,12 +583,12 @@ export class ChannelManager {
     if (clearedSession) {
       cleanedUp = true;
 
-      // 2. Clear AssistantGeminiService agent cache for this session
+      // 2. Clear provider-backed message context for this session
       try {
-        const geminiService = getChannelMessageService();
-        await geminiService.clearContext(clearedSession.id);
+        const messageService = getChannelMessageService();
+        await messageService.clearContext(clearedSession.id);
       } catch (error) {
-        console.warn(`[ChannelManager] Failed to clear Gemini context:`, error);
+        console.warn(`[ChannelManager] Failed to clear channel message context:`, error);
       }
     }
 

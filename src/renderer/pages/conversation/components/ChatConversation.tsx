@@ -26,9 +26,9 @@ import NanobotChat from '../platforms/nanobot/NanobotChat';
 import OpenClawChat from '../platforms/openclaw/OpenClawChat';
 import RemoteChat from '../platforms/remote/RemoteChat';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
-import AionrsChat from '../platforms/aionrs/AionrsChat';
-import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
-import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
+import LokCliChat from '../platforms/lokcli/LokCliChat';
+import LokCliModelSelector from '../platforms/lokcli/LokCliModelSelector';
+import { useLokCliModelSelection } from '../platforms/lokcli/useLokCliModelSelection';
 import { usePreviewContext } from '../Preview';
 import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.tsx';
 import ConversationSkillsIndicator from './ConversationSkillsIndicator';
@@ -134,13 +134,13 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
   );
 };
 
-type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' | 'gemini' }>;
+type LokCliConversation = Extract<TChatConversation, { type: 'lokcli' | 'aionrs' | 'gemini' }>;
 
-const isLokCliConversation = (conversation: TChatConversation | undefined): conversation is AionrsConversation =>
-  conversation?.type === 'aionrs' || conversation?.type === 'gemini';
+const isLokCliConversation = (conversation: TChatConversation | undefined): conversation is LokCliConversation =>
+  conversation?.type === 'lokcli' || conversation?.type === 'aionrs' || conversation?.type === 'gemini';
 
-const AionrsConversationPanel: React.FC<{
-  conversation: AionrsConversation;
+const LokCliConversationPanel: React.FC<{
+  conversation: LokCliConversation;
   sliderTitle: React.ReactNode;
 }> = ({ conversation, sliderTitle }) => {
   const onSelectModel = useCallback(
@@ -154,13 +154,13 @@ const AionrsConversationPanel: React.FC<{
     [conversation.id]
   );
 
-  const modelSelection = useAionrsModelSelection({
+  const modelSelection = useLokCliModelSelection({
     initialModel: conversation.model,
     onSelectModel,
   });
   const workspaceEnabled = Boolean(conversation.extra?.workspace);
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
-  const aionrsAssistantId = resolveAssistantConfigId(conversation) ?? undefined;
+  const lokCliAssistantId = resolveAssistantConfigId(conversation) ?? undefined;
 
   const chatLayoutProps = {
     title: conversation.name,
@@ -169,7 +169,7 @@ const AionrsConversationPanel: React.FC<{
     headerExtra: (
       <div className='flex items-center gap-8px'>
         <div className='chat-layout-header__selector shrink-0'>
-          <AionrsModelSelector selection={modelSelection} />
+          <LokCliModelSelector selection={modelSelection} />
         </div>
         <ConversationSkillsIndicator conversation={conversation} />
         <CronJobManager
@@ -180,13 +180,13 @@ const AionrsConversationPanel: React.FC<{
       </div>
     ),
     workspaceEnabled,
-    backend: 'aionrs' as const,
-    presetAssistant: presetAssistantInfo ? { ...presetAssistantInfo, id: aionrsAssistantId } : undefined,
+    backend: 'lokcli' as const,
+    presetAssistant: presetAssistantInfo ? { ...presetAssistantInfo, id: lokCliAssistantId } : undefined,
   };
 
   return (
     <ChatLayout {...chatLayoutProps} conversationId={conversation.id}>
-      <AionrsChat
+      <LokCliChat
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
         modelSelection={modelSelection}
@@ -310,7 +310,7 @@ const ChatConversation: React.FC<{
 
   if (isLokCli) {
     return (
-      <AionrsConversationPanel
+      <LokCliConversationPanel
         key={conversation.id}
         conversation={conversation}
         sliderTitle={sliderTitle}

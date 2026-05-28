@@ -1,8 +1,6 @@
 ---
 name: weixin-file-send
-description: |
-  Use when the user wants a local file or image sent back, such as "send me the file"
-  or "发给我".
+description: "当用户希望把本地文件或图片发回给自己时使用，例如“把文件发给我”“把图片发给我”等场景。"
 ---
 
 # Weixin File Send

@@ -15,10 +15,13 @@ export type AvailableAgent = {
   backend: string;
   name: string;
   displayName?: string;
+  productKey?: string;
+  runtimeKey?: string;
+  isBuiltinRuntime?: boolean;
   kind?: string;
   available?: boolean;
   teamCapable?: boolean;
-  conversationType?: 'acp' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'gemini';
+  conversationType?: 'acp' | 'lokcli' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'gemini';
   supportedModes?: string[];
   cliPath?: string;
   customAgentId?: string;

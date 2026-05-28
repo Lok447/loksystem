@@ -168,7 +168,7 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
   if (row.type === 'gemini' && row.model) {
     return {
       ...base,
-      type: 'aionrs' as const,
+      type: 'lokcli' as const,
       extra: JSON.parse(row.extra),
       model: JSON.parse(row.model),
     } as TChatConversation;
@@ -210,11 +210,21 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     } as TChatConversation;
   }
 
+  // LokCLI type has model field
+  if (row.type === 'lokcli' && row.model) {
+    return {
+      ...base,
+      type: 'lokcli' as const,
+      extra: JSON.parse(row.extra),
+      model: JSON.parse(row.model),
+    } as TChatConversation;
+  }
+
   // Aionrs type has model field
   if (row.type === 'aionrs' && row.model) {
     return {
       ...base,
-      type: 'aionrs' as const,
+      type: 'lokcli' as const,
       extra: JSON.parse(row.extra),
       model: JSON.parse(row.model),
     } as TChatConversation;

@@ -1,6 +1,6 @@
 ---
 name: loksystem-skills
-description: 'Access the LokSystem Skills registry - discover and download AI agent skills. Use when you need to find a reusable skill for a task or manage your agent credentials on the LokSystem Skills platform.'
+description: "LokSystem Skills 技能市场入口：用于发现、下载和管理可复用的 AI 技能，也可管理 LokSystem Skills 平台相关凭据。"
 ---
 
 # LokSystem Skills Market

@@ -1,6 +1,6 @@
 ---
 name: star-office-helper
-description: Install, start, connect, and troubleshoot visualization companion projects for Lok/OpenClaw, with Star-Office-UI as the default recommendation. Use when users ask for Star Office setup, URL/port connection, Unauthorized page diagnosis, Python venv/pip issues (PEP 668), preview panel wiring, real-time monitor wake-up checks, or similar open-source visualizer alternatives.
+description: "Lok/OpenClaw 可视化伴侣项目助手：帮助安装、启动、连接和排查 Star-Office-UI 等可视化项目，适用于 URL/端口连接、Unauthorized 页面诊断、Python venv/pip 问题和预览联动配置。"
 ---
 
 # Star Office Helper

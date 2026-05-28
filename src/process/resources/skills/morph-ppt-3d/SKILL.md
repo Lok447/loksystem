@@ -1,6 +1,6 @@
 ---
 name: morph-ppt-3d
-description: 3D Morph PPT — extends morph-ppt with GLB model insertion, cinematographic camera, model-content layout, and enriched visual design system.
+description: "3D Morph PPT 技能：在 morph-ppt 基础上支持 GLB 3D 模型插入、电影感镜头、模型与内容混排，以及更丰富的视觉设计。"
 ---
 
 # Morph PPT — 3D Extension

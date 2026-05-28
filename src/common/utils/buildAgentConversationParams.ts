@@ -35,9 +35,11 @@ export type BuildAgentConversationInput = {
 export function getConversationTypeForBackend(backend: string): ICreateConversationParams['type'] {
   switch (backend) {
     case 'gemini':
-      return 'aionrs';
+      return 'lokcli';
+    case 'hermes':
+      return 'lokcli';
     case 'aionrs':
-      return 'aionrs';
+      return 'lokcli';
     case 'openclaw-gateway':
     case 'openclaw':
       return 'openclaw-gateway';
@@ -69,8 +71,8 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     extra: extraOverrides,
   } = input;
 
-  const normalizedBackend = backend === 'gemini' ? 'aionrs' : backend;
-  const effectivePresetType = (presetAgentType || backend) === 'gemini' ? 'aionrs' : presetAgentType || backend;
+  const normalizedBackend = backend === 'gemini' ? 'hermes' : backend;
+  const effectivePresetType = (presetAgentType || backend) === 'gemini' ? 'hermes' : presetAgentType || backend;
   const effectivePresetAssistantId = presetAssistantId || customAgentId;
   const type = getConversationTypeForBackend(isPreset ? effectivePresetType : normalizedBackend);
   const extra: ICreateConversationParams['extra'] = {
@@ -83,7 +85,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     extra.enabledSkills = presetResources?.enabledSkills;
     extra.excludeBuiltinSkills = presetResources?.excludeBuiltinSkills;
     extra.presetAssistantId = effectivePresetAssistantId;
-    if (type === 'aionrs') {
+    if (type === 'lokcli') {
       extra.presetRules = presetResources?.rules;
     } else {
       extra.presetContext = presetResources?.rules;

@@ -15,6 +15,7 @@ import {
   createNanobotAgent,
   createRemoteAgent,
   createAionrsAgent,
+  createLokCliAgent,
 } from '@process/utils/initAgent';
 
 /**
@@ -125,9 +126,9 @@ export class ConversationServiceImpl implements IConversationService {
 
     switch (params.type) {
       case 'gemini': {
-        conversation = await createAionrsAgent({
+        conversation = await createLokCliAgent({
           ...params,
-          type: 'aionrs',
+          type: 'lokcli',
         } as CreateConversationParams);
         break;
       }
@@ -149,6 +150,10 @@ export class ConversationServiceImpl implements IConversationService {
       }
       case 'aionrs': {
         conversation = await createAionrsAgent(params as any);
+        break;
+      }
+      case 'lokcli': {
+        conversation = await createLokCliAgent(params as any);
         break;
       }
       default: {

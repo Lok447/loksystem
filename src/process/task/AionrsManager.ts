@@ -81,6 +81,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   model: TProviderWithModel;
   readonly approvalStore = new AionrsApprovalStore();
   private agent: AionrsAgent | null = null;
+  protected readonly runtimeBackend: 'aionrs' | 'lokcli';
   private agentReady: Promise<void>;
   private currentMode: string = 'default';
   private _capabilities: AionrsCapabilities | null = null;
@@ -109,12 +110,13 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     { message: Extract<TMessage, { type: 'text' }>; timer: ReturnType<typeof setTimeout> }
   >();
 
-  constructor(data: AionrsManagerData, model: TProviderWithModel) {
-    super('aionrs', { ...data, model }, new IpcAgentEventEmitter(), false);
+  constructor(data: AionrsManagerData, model: TProviderWithModel, runtimeBackend: 'aionrs' | 'lokcli' = 'aionrs') {
+    super(runtimeBackend, { ...data, model }, new IpcAgentEventEmitter(), false);
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
     this.model = model;
     this.currentMode = data.sessionMode || 'default';
+    this.runtimeBackend = runtimeBackend;
 
     // enableFork=false skips auto-init in ForkTask, so init manually
     this.init();
@@ -197,7 +199,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       import('@process/team/prompts/teamGuideCapability'),
       import('@process/team/mcp/guide/teamGuideSingleton'),
     ]);
-    if (!(await shouldInjectTeamGuideMcp('aionrs'))) return undefined;
+    if (!(await shouldInjectTeamGuideMcp(this.runtimeBackend))) return undefined;
     const base = getTeamGuideStdioConfig();
     if (!base) return undefined;
     return {
@@ -206,7 +208,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       args: base.args,
       env: [
         ...base.env,
-        { name: 'LOK_MCP_BACKEND', value: 'aionrs' },
+        { name: 'LOK_MCP_BACKEND', value: this.runtimeBackend },
         { name: 'LOK_MCP_CONVERSATION_ID', value: this.conversation_id },
       ],
     };
@@ -326,7 +328,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       conversation_id: this.conversation_id,
     };
     ipcBridge.conversation.responseStream.emit(normalizedMessage);
-    mirrorConversationStreamMessage(normalizedMessage, 'aionrs');
+    mirrorConversationStreamMessage(normalizedMessage, this.runtimeBackend);
   }
 
   private emitThinkingMessage(content: string, status: 'thinking' | 'done' = 'thinking'): void {
@@ -381,7 +383,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       },
       createdAt: this.thinkingStartTime || Date.now(),
     };
-    addOrUpdateMessage(this.conversation_id, tMessage, 'aionrs');
+    addOrUpdateMessage(this.conversation_id, tMessage, this.runtimeBackend);
   }
 
   private clearThinkingState(): void {
@@ -422,7 +424,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     if (!buffered) return;
     clearTimeout(buffered.timer);
     this.bufferedStreamTexts.delete(key);
-    addOrUpdateMessage(this.conversation_id, buffered.message, 'aionrs');
+    addOrUpdateMessage(this.conversation_id, buffered.message, this.runtimeBackend);
   }
 
   private flushAllBufferedStreamTexts(): void {
@@ -437,7 +439,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     void ConversationTurnCompletionService.getInstance().notifyPotentialCompletion(this.conversation_id, {
       status: this.status ?? 'finished',
       workspace: this.workspace,
-      backend: 'aionrs',
+      backend: this.runtimeBackend,
       pendingConfirmations: this.getConfirmations().length,
       modelId: this.model.useModel,
     });
@@ -453,7 +455,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       try {
         const db = await getDatabase();
         const result = db.getConversation(this.conversation_id);
-        if (result.success && result.data && result.data.type === 'aionrs') {
+        if (result.success && result.data && (result.data.type === 'aionrs' || result.data.type === 'lokcli')) {
           const conversation = result.data;
           db.updateConversation(this.conversation_id, {
             extra: { ...conversation.extra, lastTokenUsage: { totalTokens } },
@@ -583,7 +585,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
           conversation_id: this.conversation_id,
           msg_id: uuid(),
           data: {
-            agentType: 'aionrs' as const,
+            agentType: this.runtimeBackend,
             provider: this.model.name,
             modelId: this.model.useModel,
             baseUrl: this.model.baseUrl,
@@ -657,7 +659,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
             this.queueBufferedStreamText(tMessage as Extract<TMessage, { type: 'text' }>);
           } else {
             this.flushAllBufferedStreamTexts();
-            addOrUpdateMessage(this.conversation_id, tMessage, 'aionrs');
+            addOrUpdateMessage(this.conversation_id, tMessage, this.runtimeBackend);
           }
           const dbDuration = Date.now() - dbStart;
 
@@ -729,7 +731,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       };
 
       const collectedResponses: string[] = [];
-      await processCronInMessage(this.conversation_id, 'aionrs', cronMessage, (sysMsg) => {
+      await processCronInMessage(this.conversation_id, this.runtimeBackend, cronMessage, (sysMsg) => {
         collectedResponses.push(sysMsg);
         this.emitConversationResponseStream({
           type: 'system',
@@ -780,7 +782,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     try {
       const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'aionrs') {
+      if (result.success && result.data && (result.data.type === 'aionrs' || result.data.type === 'lokcli')) {
         const conversation = result.data;
         db.updateConversation(this.conversation_id, {
           extra: { ...conversation.extra, sessionMode: mode },

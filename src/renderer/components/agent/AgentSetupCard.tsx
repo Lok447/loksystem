@@ -105,12 +105,14 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
         const normalizedBackend = normalizeAgentBackend(agent.backend);
         const isLokCli = normalizedBackend === 'aionrs';
         const isCodex = agent.backend === 'codex';
-        const conversationType = isLokCli ? 'aionrs' : isCodex ? 'codex' : 'acp';
+        const conversationType = isLokCli ? 'lokcli' : isCodex ? 'codex' : 'acp';
         const defaultConversationName = t('conversation.welcome.newConversation');
 
         // Legacy Gemini sessions now run through Lok CLI, so both types share model handling.
         const currentModel =
-          conversation.type === 'gemini' || conversation.type === 'aionrs' ? conversation.model : undefined;
+          conversation.type === 'gemini' || conversation.type === 'aionrs' || conversation.type === 'lokcli'
+            ? conversation.model
+            : undefined;
         const createParams: ICreateConversationParams = {
           type: conversationType,
           model: currentModel || {
@@ -160,7 +162,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
         if (initialMessage) {
           const messageData = { input: initialMessage, files: [] as string[] };
           if (isLokCli) {
-            sessionStorage.setItem(`aionrs_initial_message_${newConversation.id}`, JSON.stringify(messageData));
+            sessionStorage.setItem(`lokcli_initial_message_${newConversation.id}`, JSON.stringify(messageData));
           } else if (isCodex) {
             sessionStorage.setItem(`codex_initial_message_${newConversation.id}`, JSON.stringify(messageData));
           } else {

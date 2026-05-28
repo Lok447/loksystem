@@ -81,12 +81,12 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-import AionrsChat from '@/renderer/pages/conversation/platforms/aionrs/AionrsChat';
-import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
+import LokCliChat from '@/renderer/pages/conversation/platforms/lokcli/LokCliChat';
+import type { LokCliModelSelection } from '@/renderer/pages/conversation/platforms/lokcli/useLokCliModelSelection';
 import TeamChatEmptyState from '@/renderer/pages/team/components/TeamChatEmptyState';
 
-const useAionrsDraft = getSendBoxDraftHook('aionrs', {
-  _type: 'aionrs',
+const useLokCliDraft = getSendBoxDraftHook('lokcli', {
+  _type: 'lokcli',
   atPath: [],
   content: '',
   uploadFile: [],
@@ -100,18 +100,18 @@ const useAcpDraft = getSendBoxDraftHook('acp', {
 });
 
 const DraftProbe: React.FC<{ conversationId: string }> = ({ conversationId }) => {
-  const aionrsDraft = useAionrsDraft(conversationId).data;
+  const lokcliDraft = useLokCliDraft(conversationId).data;
   const acpDraft = useAcpDraft(conversationId).data;
 
   return (
     <>
-      <div data-testid='aionrs-draft'>{aionrsDraft?.content ?? ''}</div>
+      <div data-testid='lokcli-draft'>{lokcliDraft?.content ?? ''}</div>
       <div data-testid='acp-draft'>{acpDraft?.content ?? ''}</div>
     </>
   );
 };
 
-const modelSelection: AionrsModelSelection = {
+const modelSelection: LokCliModelSelection = {
   currentModel: undefined,
   providers: [],
   getDisplayModelName: (modelName) => modelName ?? '',
@@ -147,7 +147,7 @@ describe('team empty state', () => {
     seedLokCliTeamConversation('conv-gemini-empty', 'bob');
 
     render(
-      <AionrsChat
+      <LokCliChat
         conversation_id='conv-gemini-empty'
         workspace='/tmp/workspace'
         modelSelection={modelSelection}
@@ -191,7 +191,7 @@ describe('team empty state', () => {
 
     fireEvent.click(await findInMessageList('Organize a debate with agents taking different sides'));
 
-    expect(screen.getByTestId('aionrs-draft').textContent).toBe('Organize a debate with agents taking different sides');
+    expect(screen.getByTestId('lokcli-draft').textContent).toBe('Organize a debate with agents taking different sides');
     expect(screen.getByTestId('acp-draft').textContent).toBe('');
   });
 

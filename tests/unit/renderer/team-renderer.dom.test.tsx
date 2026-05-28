@@ -140,12 +140,12 @@ vi.mock('@/renderer/components/agent/AcpModelSelector', () => ({
   default: () => null,
 }));
 
-vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector', () => ({
+vi.mock('@/renderer/pages/conversation/platforms/lokcli/LokCliModelSelector', () => ({
   default: () => null,
 }));
 
-vi.mock('@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection', () => ({
-  useAionrsModelSelection: () => ({}),
+vi.mock('@/renderer/pages/conversation/platforms/lokcli/useLokCliModelSelection', () => ({
+  useLokCliModelSelection: () => ({}),
 }));
 
 vi.mock('@/renderer/pages/team/components/agentSelectUtils', () => ({

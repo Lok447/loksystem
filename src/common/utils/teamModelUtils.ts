@@ -6,6 +6,7 @@
 
 import type { IProvider } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
+import { isProviderBackedAgent } from '@/common/config/lokcliCompatibility';
 import { hasSpecificModelCapability } from '@/common/utils/modelCapabilities';
 
 export type TeamAvailableModel = {
@@ -32,7 +33,7 @@ function passesCapabilityFilter(provider: IProvider, modelName: string): boolean
  *
  * Resolution order:
  * 1. ACP backends (claude, codex, qwen, etc.) -> read from acp.cachedModels[backend].availableModels
- * 2. Gemini/Aionrs -> enabled provider-backed models with capability filtering
+ * 2. LokCLI provider-backed backends -> enabled provider-backed models with capability filtering
  * 3. Others -> empty list (no model switching)
  */
 export function getTeamAvailableModels(
@@ -49,7 +50,7 @@ export function getTeamAvailableModels(
     }));
   }
 
-  if (backend === 'gemini' || backend === 'aionrs') {
+  if (isProviderBackedAgent(backend) || backend === 'lokcli') {
     const seen = new Set<string>();
     const merged: TeamAvailableModel[] = [];
     const enabledProviders = (providers || []).filter((p) => p.enabled !== false && p.model?.length);

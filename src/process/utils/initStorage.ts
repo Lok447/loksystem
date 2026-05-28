@@ -266,7 +266,7 @@ const normalizeLegacyConversation = (conversation: TChatConversation): TChatConv
 
   return {
     ...conversation,
-    type: 'aionrs',
+    type: 'lokcli',
     model: modelRecord as unknown as TProviderWithModel,
   } as TChatConversation;
 };
@@ -834,6 +834,15 @@ const cleanupOrphanedHealthCheckConversations = async () => {
   }
 };
 
+const migrateLokCliConfigKeys = async (): Promise<void> => {
+  try {
+    const existingLokCliConfig = await configFile.get('lokcli.config').catch((): undefined => undefined);
+    if (!existingLokCliConfig) return;
+  } catch (error) {
+    console.warn('[LokSystem] Failed to migrate lokcli compatibility config:', error);
+  }
+};
+
 const initStorage = async () => {
   const t0 = performance.now();
   const mark = (label: string) => console.log(`[LokSystem:init] ${label} +${Math.round(performance.now() - t0)}ms`);
@@ -855,7 +864,10 @@ const initStorage = async () => {
   EnvStorage.interceptor(envFile);
   mark('3. storage interceptors');
 
-  // 3.1 Config migration only makes sense in standalone server mode (not inside Electron itself)
+  await migrateLokCliConfigKeys();
+  mark('3.1 migrateLokCliConfigKeys');
+
+  // 3.2 Config migration only makes sense in standalone server mode (not inside Electron itself)
   if (!hasElectronAppPath()) {
     // Migrate config from Electron desktop app (once, after storage is ready)
     await migrateFromElectronConfig(configFile as unknown as Parameters<typeof migrateFromElectronConfig>[0]);
@@ -870,7 +882,7 @@ const initStorage = async () => {
         configFile as unknown as Parameters<typeof importConfigFromFile>[2]
       );
     }
-    mark('3.1 configMigration');
+    mark('3.2 configMigration');
   }
 
   // 4. 初始�?MCP 配置（为所有用户提供默认配置）
@@ -1198,5 +1210,3 @@ export const clearSkillsCache = (): void => {
 };
 
 export default initStorage;
-
-

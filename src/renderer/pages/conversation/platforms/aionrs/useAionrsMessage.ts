@@ -283,7 +283,7 @@ export const useAionrsMessage = (
       setWaitingResponse(isRunning);
       waitingResponseRef.current = isRunning;
       // Load persisted token usage stats
-      if (res.type === 'aionrs' && res.extra?.lastTokenUsage) {
+      if ((res.type === 'aionrs' || res.type === 'lokcli') && res.extra?.lastTokenUsage) {
         const { lastTokenUsage } = res.extra;
         if (lastTokenUsage.totalTokens > 0) {
           setTokenUsage(lastTokenUsage);

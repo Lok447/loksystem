@@ -17,13 +17,14 @@ import OpenClawAgentManager from './OpenClawAgentManager';
 import NanoBotAgentManager from './NanoBotAgentManager';
 import RemoteAgentManager from './RemoteAgentManager';
 import { AionrsManager } from './AionrsManager';
+import { LokCliManager } from './LokCliManager';
 
 const agentFactory = new AgentFactory();
 
 // Legacy gemini conversations now reuse the Lok CLI runtime.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const createLokCliManager = (conv: any, opts?: { yoloMode?: boolean }) =>
-  new AionrsManager({ ...conv.extra, conversation_id: conv.id, yoloMode: opts?.yoloMode }, conv.model) as unknown as
+  new LokCliManager({ ...conv.extra, conversation_id: conv.id, yoloMode: opts?.yoloMode }, conv.model) as unknown as
     ReturnType<typeof agentFactory.create>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,6 +72,8 @@ agentFactory.register('remote', (conv, opts) => {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 agentFactory.register('aionrs', createLokCliManager);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+agentFactory.register('lokcli', createLokCliManager);
 
 const conversationRepo = new SqliteConversationRepository();
 export const workerTaskManager = new WorkerTaskManager(agentFactory, conversationRepo);

@@ -33,7 +33,7 @@ const AionrsChat: React.FC<{
     updateLocalImage({ root: workspace });
   }, [workspace]);
   const conversationValue = useMemo<ConversationContextValue>(() => {
-    return { conversationId: conversation_id, workspace, type: 'aionrs' };
+    return { conversationId: conversation_id, workspace, type: 'lokcli' };
   }, [conversation_id, workspace]);
 
   return (

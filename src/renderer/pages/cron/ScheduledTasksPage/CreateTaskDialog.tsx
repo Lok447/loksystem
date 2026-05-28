@@ -19,6 +19,7 @@ import AcpConfigSelector from '@renderer/components/agent/AcpConfigSelector';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
+import { getStoredProviderModelId, isLokCliProviderBackend, readLokCliDefaultModel } from '@/common/config/lokcliCompatibility';
 import type { AcpBackendAll, AcpModelInfo, AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
@@ -241,14 +242,14 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       .catch(() => setCachedConfigOptions(undefined));
   }, [resolvedBackend]);
 
-  const isGeminiMode = resolvedBackend === 'gemini' || resolvedBackend === 'aionrs';
+  const isGeminiMode = resolvedBackend === 'gemini' || isLokCliProviderBackend(resolvedBackend);
 
   // Lok CLI does not support Google Auth — filter it out (mirrors GuidPage.tsx logic)
   const filteredProviders = providers;
 
   // Build Gemini currentModel from modelId for GuidModelSelector
   const geminiCurrentModel = useMemo<TProviderWithModel | undefined>(() => {
-    if ((resolvedBackend !== 'gemini' && resolvedBackend !== 'aionrs') || !modelId) return undefined;
+    if ((!resolvedBackend || !isGeminiMode) || !modelId) return undefined;
     for (const p of filteredProviders) {
       if (getAvailableModels(p).includes(modelId)) {
         return { ...p, useModel: modelId } as TProviderWithModel;
@@ -273,7 +274,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   // Load ACP cached model info when backend changes
   useEffect(() => {
-    if (!resolvedBackend || resolvedBackend === 'gemini' || resolvedBackend === 'aionrs') {
+    if (!resolvedBackend || isGeminiMode) {
       setAcpCachedModelInfo(null);
       return;
     }
@@ -297,11 +298,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           if (preferred) setModelId(preferred);
         })
         .catch(() => {});
-    } else if (resolvedBackend === 'aionrs') {
-      configService
-        .get('aionrs.defaultModel')
+    } else if (isLokCliProviderBackend(resolvedBackend)) {
+      readLokCliDefaultModel(configService.get)
         .then((saved) => {
-          if (saved?.useModel) setModelId(saved.useModel);
+          const preferredModel = getStoredProviderModelId(saved);
+          if (preferredModel) setModelId(preferredModel);
         })
         .catch(() => {});
     }

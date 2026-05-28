@@ -10,10 +10,10 @@ import type { Message } from '@arco-design/web-react';
 
 export type MessageApi = ReturnType<typeof Message.useMessage>[0];
 
-export type WorkspaceEventPrefix = 'gemini' | 'acp' | 'codex' | 'aionrs';
+export type WorkspaceEventPrefix = 'gemini' | 'acp' | 'codex' | 'aionrs' | 'lokcli';
 
 export function normalizeWorkspaceEventPrefix(prefix: WorkspaceEventPrefix): Exclude<WorkspaceEventPrefix, 'gemini'> {
-  return prefix === 'gemini' ? 'aionrs' : prefix;
+  return prefix === 'gemini' ? 'lokcli' : prefix;
 }
 
 /**

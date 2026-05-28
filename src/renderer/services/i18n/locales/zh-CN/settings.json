@@ -36,7 +36,8 @@
     "customPathLabel": "技能目录路径",
     "customPathPlaceholder": "例如：C:\\Users\\me\\.mytools\\skills",
     "searchPlaceholder": "搜索技能...",
-    "noSearchResults": "未找到相关技能"
+    "noSearchResults": "未找到相关技能",
+    "noSupportedExternalSources": "未发现受支持的外部技能来源"
   },
   "authMethod": "认证",
   "geminiApiKey": "Gemini API 密钥",

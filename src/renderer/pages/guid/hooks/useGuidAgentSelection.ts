@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { isLokCliProviderBackend, readLokCliConfig } from '@/common/config/lokcliCompatibility';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import type { IProvider } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
@@ -119,7 +120,7 @@ export const useGuidAgentSelection = ({
     _setSelectedAcpModel((prev) => {
       const newModelId = typeof modelId === 'function' ? modelId(prev) : modelId;
       const agentKey = selectedAgentRef.current;
-      if (agentKey && agentKey !== 'gemini' && agentKey !== 'custom' && newModelId) {
+      if (agentKey && !isProviderBackedAgent(agentKey) && agentKey !== 'custom' && newModelId) {
         void savePreferredModelId(agentKey, newModelId);
       }
       return newModelId;
@@ -399,12 +400,8 @@ export const useGuidAgentSelection = ({
         let preferred: string | undefined;
         let yoloMode = false;
 
-        if (configKey === 'gemini') {
-          const config = await configService.get('gemini.config');
-          preferred = config?.preferredMode;
-          yoloMode = config?.yoloMode ?? false;
-        } else if (configKey === 'aionrs') {
-          const config = await configService.get('aionrs.config');
+        if (isProviderBackedAgent(configKey)) {
+          const config = await readLokCliConfig(configService.get);
           preferred = config?.preferredMode;
         } else {
           const config = await configService.get('acp.config');
@@ -428,7 +425,6 @@ export const useGuidAgentSelection = ({
         if (yoloMode) {
           const yoloValues: Record<string, string> = {
             claude: 'bypassPermissions',
-            gemini: 'yolo',
             codex: 'yolo',
             qwen: 'yolo',
           };

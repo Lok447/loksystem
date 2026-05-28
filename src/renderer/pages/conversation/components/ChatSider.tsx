@@ -16,15 +16,12 @@ const ChatSider: React.FC<{
   const [messageApi, messageContext] = Message.useMessage({ maxCount: 1 });
 
   let workspaceNode: React.ReactNode = null;
-  if (
-    (conversation?.type === 'gemini' || conversation?.type === 'aionrs') &&
-    conversation.extra?.workspace
-  ) {
+  if ((conversation?.type === 'gemini' || conversation?.type === 'aionrs' || conversation?.type === 'lokcli') && conversation.extra?.workspace) {
     workspaceNode = (
       <ChatWorkspace
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
-        eventPrefix='aionrs'
+        eventPrefix='lokcli'
         messageApi={messageApi}
         teamId={teamId}
       ></ChatWorkspace>

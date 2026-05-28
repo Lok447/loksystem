@@ -210,7 +210,7 @@ const ConversationTabs: React.FC = () => {
       const workspace = currentTab.workspace;
 
       try {
-        // [BUG-3] Build params inside try block: getDefaultGeminiModel() may throw if no model configured
+        // [BUG-3] Build params inside try block: LokCLI model resolution may throw if no model configured
         let params;
 
         if (key.startsWith('cli:')) {
@@ -247,7 +247,7 @@ const ConversationTabs: React.FC = () => {
         void navigate(`/conversation/${newConversation.id}`);
         emitter.emit('chat.history.refresh');
       } catch (error) {
-        // [BUG-3] Unified catch: handles both param building errors (getDefaultGeminiModel) and IPC errors
+        // [BUG-3] Unified catch: handles both param building errors and IPC errors
         console.error('Failed to create conversation:', error);
         Message.error(t('conversation.createFailed'));
       } finally {

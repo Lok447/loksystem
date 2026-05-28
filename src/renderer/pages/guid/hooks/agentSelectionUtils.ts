@@ -5,18 +5,18 @@
  */
 
 import { configService } from '@/common/config/configService';
+import {
+  isLokCliProviderBackend,
+  writeLokCliConfig,
+} from '@/common/config/lokcliCompatibility';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
 import type { AcpBackend } from '../types';
 
 /** Save preferred mode to the agent's own config key */
 export async function savePreferredMode(agentKey: string, mode: string): Promise<void> {
   try {
-    if (agentKey === 'gemini') {
-      const config = await configService.get('gemini.config');
-      await configService.set('gemini.config', { ...config, preferredMode: mode });
-    } else if (agentKey === 'aionrs') {
-      const config = await configService.get('aionrs.config');
-      await configService.set('aionrs.config', { ...config, preferredMode: mode });
+    if (isLokCliProviderBackend(agentKey) || agentKey === 'gemini' || agentKey === 'hermes') {
+      await writeLokCliConfig(configService.set, { preferredMode: mode });
     } else if (agentKey !== 'custom') {
       const config = await configService.get('acp.config');
       const backendConfig = config?.[agentKey as AcpBackendAll] || {};

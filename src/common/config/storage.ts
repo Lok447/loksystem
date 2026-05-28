@@ -99,6 +99,11 @@ export interface IConfigStorageRefer {
   'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
   'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID
   'gemini.defaultModel': string | { id: string; useModel: string };
+  'lokcli.config'?: {
+    /** Preferred session mode for new conversations / 新会话的默认模式 */
+    preferredMode?: string;
+  };
+  'lokcli.defaultModel'?: { id: string; useModel: string };
   'aionrs.config'?: {
     /** Preferred session mode for new conversations / 新会话的默认模式 */
     preferredMode?: string;
@@ -274,6 +279,38 @@ export type TChatConversation =
         sessionMode?: string;
         /** Explicit marker for temporary health-check conversations */
         isHealthCheck?: boolean;
+        /** Cron job ID that spawned this conversation */
+        cronJobId?: string;
+      }
+    >
+  | IChatConversation<
+      'lokcli',
+      {
+        workspace: string;
+        customWorkspace?: boolean;
+        proxy?: string;
+        /** System rules injected at initialization */
+        presetRules?: string;
+        /** Enabled skills list */
+        enabledSkills?: string[];
+        /** Snapshot of actually loaded skills */
+        loadedSkills?: Array<{ name: string; description: string }>;
+        /** Preset assistant ID */
+        presetAssistantId?: string;
+        /** Whether this conversation is pinned */
+        pinned?: boolean;
+        /** Pin timestamp in milliseconds */
+        pinnedAt?: number;
+        /** Max tokens per response */
+        maxTokens?: number;
+        /** Max agentic turns */
+        maxTurns?: number;
+        /** Persisted session mode for resume support */
+        sessionMode?: string;
+        /** Explicit marker for temporary health-check conversations */
+        isHealthCheck?: boolean;
+        /** Last token usage stats */
+        lastTokenUsage?: TokenUsageData;
         /** Cron job ID that spawned this conversation */
         cronJobId?: string;
       }

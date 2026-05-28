@@ -447,6 +447,10 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
   hermes: {
     id: 'hermes',
     name: 'Lok CLI',
+    // Migration note:
+    // - "Lok CLI" is the user-facing product/runtime name
+    // - `hermes` remains the internal default runtime backend
+    // - `aionrs` is being reduced to a compatibility-only role
     description: 'Local Hermes v13.0 core agent for LokSystem',
     cliCommand: 'hermes',
     authRequired: true,

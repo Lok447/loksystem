@@ -387,7 +387,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                     </div>
                   ))}
                   {filteredExternalSkills.length === 0 && (
-                    <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-b-base border-dashed'>
+                    <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-border-1 border-dashed'>
                       {t('settings.skillsHub.noSearchResults', { defaultValue: 'No matching skills found' })}
                     </div>
                   )}
@@ -395,9 +395,9 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               </div>
             )}
             {!activeSource && (
-              <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-b-base border-dashed'>
+              <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-border-1 border-dashed -mt-6px'>
                 {t('settings.skillsHub.noSupportedExternalSources', {
-                  defaultValue: 'No supported external skill sources discovered',
+                  defaultValue: '未发现受支持的外部技能来源',
                 })}
               </div>
             )}

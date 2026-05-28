@@ -49,8 +49,8 @@ const resolveAgentIdentity = (conversation: TChatConversation): { backend: strin
   if (conversation.type === 'codex') {
     return { backend: 'codex', agentName: 'Codex' };
   }
-  if (conversation.type === 'gemini' || conversation.type === 'aionrs') {
-    return { backend: 'aionrs', agentName: 'Lok CLI' };
+  if (conversation.type === 'gemini' || conversation.type === 'aionrs' || conversation.type === 'lokcli') {
+    return { backend: 'lokcli', agentName: 'LokCLI' };
   }
   if (conversation.type === 'openclaw-gateway') {
     const backend = String(conversation.extra?.backend || 'openclaw');

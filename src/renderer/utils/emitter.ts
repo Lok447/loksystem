@@ -17,6 +17,10 @@ export type ReplyQuote = {
 };
 
 interface EventTypes {
+  'lokcli.selected.file': [Array<string | FileOrFolderItem>];
+  'lokcli.selected.file.append': [Array<string | FileOrFolderItem>];
+  'lokcli.selected.file.clear': void;
+  'lokcli.workspace.refresh': void;
   'aionrs.selected.file': [Array<string | FileOrFolderItem>];
   'aionrs.selected.file.append': [Array<string | FileOrFolderItem>];
   'aionrs.selected.file.clear': void;

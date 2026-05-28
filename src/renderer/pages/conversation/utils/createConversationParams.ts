@@ -6,6 +6,12 @@
 
 import { providerService } from '@/common/config/providerService';
 import { configService } from '@/common/config/configService';
+import {
+  getStoredProviderModelId,
+  isLokCliProviderBackend,
+  readLokCliConfig,
+  readLokCliDefaultModel,
+} from '@/common/config/lokcliCompatibility';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend } from '@/common/types/acpTypes';
@@ -32,7 +38,7 @@ const LEGACY_YOLO_MODE_MAP: Partial<Record<string, string>> = {
 };
 
 function normalizeBackend(backend: string): string {
-  return backend === 'gemini' ? 'aionrs' : backend;
+  return backend === 'gemini' ? 'hermes' : backend;
 }
 
 async function resolvePreferredMode(backend: string): Promise<string | undefined> {
@@ -44,8 +50,8 @@ async function resolvePreferredMode(backend: string): Promise<string | undefined
 
   let preference: ModePreference | undefined;
 
-  if (normalizedBackend === 'aionrs') {
-    preference = await configService.get('aionrs.config');
+  if (isLokCliProviderBackend(normalizedBackend)) {
+    preference = await readLokCliConfig(configService.get);
   } else {
     const acpConfig = await configService.get('acp.config');
     preference = acpConfig?.[normalizedBackend as AcpBackend];
@@ -88,24 +94,27 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
 }
 
 /**
- * Get a model from configured providers that is compatible with aionrs.
- * aionrs supports all platforms via OpenAI-compatible protocol.
+ * Get a model from configured providers that is compatible with Lok CLI.
+ * Lok CLI supports all platforms via OpenAI-compatible protocol.
  * Throws if no compatible provider is configured.
  */
-export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
+export async function getDefaultLokCliModel(): Promise<TProviderWithModel> {
   const providers = await providerService.list();
 
   if (!providers || providers.length === 0) {
     throw new Error('No model provider configured');
   }
 
-  // aionrs supports all platforms via OpenAI-compatible protocol
+  // Lok CLI supports all platforms via OpenAI-compatible protocol
   const provider = providers.find((p) => p.enabled !== false);
   if (!provider) {
     throw new Error('No enabled model provider for Lok CLI');
   }
 
-  const enabledModel = provider.model.find((m) => provider.modelEnabled?.[m] !== false);
+  const preferredModelId = getStoredProviderModelId(await readLokCliDefaultModel(configService.get));
+  const enabledModel =
+    (preferredModelId && provider.model.includes(preferredModelId) ? preferredModelId : undefined) ||
+    provider.model.find((m) => provider.modelEnabled?.[m] !== false);
 
   return {
     id: provider.id,
@@ -130,7 +139,7 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
  * Gemini sessions now run through Lok CLI, so they share the same provider resolution.
  */
 export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
-  return getDefaultAionrsModel();
+  return getDefaultLokCliModel();
 }
 
 /**
@@ -147,9 +156,9 @@ export async function buildCliAgentParams(
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agent.backend) : undefined;
 
   let model: TProviderWithModel;
-  if (type === 'aionrs') {
+  if (type === 'lokcli' || type === 'aionrs') {
     // Lok CLI needs a real model from configured providers (anthropic, openai, ali-intl, aws)
-    model = await getDefaultAionrsModel();
+    model = await getDefaultLokCliModel();
   } else {
     model = {} as TProviderWithModel;
   }
@@ -195,7 +204,7 @@ export async function buildPresetAssistantParams(
   const type = getConversationTypeForBackend(presetAgentType);
   const preferredMode = await resolvePreferredMode(presetAgentType);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(presetAgentType) : undefined;
-  const model = type === 'aionrs' ? await getDefaultAionrsModel() : ({} as TProviderWithModel);
+  const model = type === 'lokcli' || type === 'aionrs' ? await getDefaultLokCliModel() : ({} as TProviderWithModel);
 
   return buildAgentConversationParams({
     backend: agent.backend,

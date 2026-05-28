@@ -9,7 +9,7 @@ const AgentSettings = React.lazy(() => import('@renderer/pages/settings/AgentSet
 const AssistantSettings = React.lazy(() => import('@renderer/pages/settings/AssistantSettings'));
 const CapabilitiesSettings = React.lazy(() => import('@renderer/pages/settings/CapabilitiesSettings'));
 const DisplaySettings = React.lazy(() => import('@renderer/pages/settings/DisplaySettings'));
-const AionrsSettings = React.lazy(() => import('@renderer/pages/settings/AionrsSettings'));
+const LokCliSettings = React.lazy(() => import('@renderer/pages/settings/LokCliSettings'));
 const ModeSettings = React.lazy(() => import('@renderer/pages/settings/ModeSettings'));
 const SystemSettings = React.lazy(() => import('@renderer/pages/settings/SystemSettings'));
 const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/WebuiSettings'));
@@ -54,7 +54,8 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route index element={<Navigate to='/guid' replace />} />
           <Route path='/guid' element={withRouteFallback(Guid)} />
           <Route path='/conversation/:id' element={withRouteFallback(Conversation)} />
-          <Route path='/settings/aionrs' element={withRouteFallback(AionrsSettings)} />
+          <Route path='/settings/aionrs' element={withRouteFallback(LokCliSettings)} />
+          <Route path='/settings/lokcli' element={withRouteFallback(LokCliSettings)} />
           <Route
             path='/team/:id'
             element={TEAM_MODE_ENABLED ? withRouteFallback(TeamIndex) : <Navigate to='/guid' replace />}

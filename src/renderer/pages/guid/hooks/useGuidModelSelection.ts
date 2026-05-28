@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { readLokCliDefaultModel, writeLokCliDefaultModel } from '@/common/config/lokcliCompatibility';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -24,13 +25,6 @@ const isModelKeyAvailable = (key: string | null, providers?: IProvider[]) => {
   });
 };
 
-type ProviderAgentKey = 'gemini' | 'aionrs';
-
-const MODEL_STORAGE_KEY: Record<ProviderAgentKey, 'gemini.defaultModel' | 'aionrs.defaultModel'> = {
-  gemini: 'gemini.defaultModel',
-  aionrs: 'aionrs.defaultModel',
-};
-
 export type GuidModelSelectionResult = {
   modelList: IProvider[];
   currentModel: TProviderWithModel | undefined;
@@ -38,11 +32,9 @@ export type GuidModelSelectionResult = {
 };
 
 /**
- * Hook that manages provider-backed model selection for the Guid page.
- * `gemini` is kept only as a legacy storage namespace; both agent keys now
- * share the same provider list.
+ * Hook that manages LokCLI model selection for the Guid page.
  */
-export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): GuidModelSelectionResult => {
+export const useGuidModelSelection = (): GuidModelSelectionResult => {
   const { data: modelConfig } = useSWR('model.config.welcome', () =>
     ipcBridge.mode.getModelConfig.invoke().then((data) => (data || []).filter((platform) => !!platform.model.length))
   );
@@ -53,17 +45,17 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
   const selectedModelKeyRef = useRef<string | null>(null);
   const prevStorageKeyRef = useRef<string | null>(null);
 
-  const storageKey = MODEL_STORAGE_KEY[agentKey];
-
   const setCurrentModel = useCallback(
     async (modelInfo: TProviderWithModel) => {
       selectedModelKeyRef.current = buildModelKey(modelInfo.id, modelInfo.useModel);
-      await configService.set(storageKey, { id: modelInfo.id, useModel: modelInfo.useModel }).catch((error) => {
+      await writeLokCliDefaultModel(configService.set, { id: modelInfo.id, useModel: modelInfo.useModel }).catch(
+        (error) => {
         console.error('Failed to save default model:', error);
-      });
+        }
+      );
       _setCurrentModel(modelInfo);
     },
-    [storageKey]
+    []
   );
 
   useEffect(() => {
@@ -72,8 +64,9 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
         return;
       }
 
-      const agentChanged = prevStorageKeyRef.current !== null && prevStorageKeyRef.current !== storageKey;
-      prevStorageKeyRef.current = storageKey;
+      const providerNamespace = 'lokcli';
+      const agentChanged = prevStorageKeyRef.current !== null && prevStorageKeyRef.current !== providerNamespace;
+      prevStorageKeyRef.current = providerNamespace;
       if (agentChanged) {
         selectedModelKeyRef.current = null;
       }
@@ -86,7 +79,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
         return;
       }
 
-      const savedModel = await configService.get(storageKey);
+      const savedModel = await readLokCliDefaultModel(configService.get);
       const isNewFormat = savedModel && typeof savedModel === 'object' && 'id' in savedModel;
 
       let defaultModel: IProvider | undefined;
@@ -121,7 +114,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
     setDefaultModel().catch((error) => {
       console.error('Failed to set default model:', error);
     });
-  }, [currentModel?.id, currentModel?.useModel, modelList, setCurrentModel, storageKey]);
+  }, [currentModel?.id, currentModel?.useModel, modelList, setCurrentModel]);
 
   return {
     modelList,

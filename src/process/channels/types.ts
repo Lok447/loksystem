@@ -182,7 +182,7 @@ export interface IChannelUserRow {
 /**
  * Agent types supported in assistant sessions
  */
-export type ChannelAgentType = 'gemini' | 'aionrs' | 'acp' | 'codex' | 'openclaw-gateway';
+export type ChannelAgentType = 'gemini' | 'aionrs' | 'lokcli' | 'acp' | 'codex' | 'openclaw-gateway';
 
 /**
  * User session in the assistant system
@@ -565,8 +565,7 @@ export function resolveChannelConvType(backend: string): {
   convBackend?: string;
 } {
   if (backend === 'codex') return { convType: 'codex' };
-  if (backend === 'gemini' || backend === 'aionrs') return { convType: 'aionrs' };
-  if (backend === 'aionrs') return { convType: 'aionrs' };
+  if (backend === 'gemini' || backend === 'aionrs' || backend === 'hermes') return { convType: 'lokcli' };
   if (backend === 'openclaw-gateway') return { convType: 'openclaw-gateway' };
   return { convType: 'acp', convBackend: backend };
 }

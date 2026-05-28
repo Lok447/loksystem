@@ -1,6 +1,6 @@
 ---
 name: morph-ppt
-description: "Use this skill when the user wants a .pptx with smooth cross-slide animation — PowerPoint Morph transitions, Keynote-style continuous motion, shapes that grow / move / rotate as the slide advances. Trigger on: 'morph', 'morph transition', 'smooth transition', 'continuous animation across slides', 'Keynote-style transition', 'animated slide sequence', 'shape continuity across slides'. Output is a single .pptx. This skill is a scene layer on top of officecli-pptx — inherits every pptx v2 rule (visual floor, grid, palettes, connector canon, Delivery Gate 1–5a). DO NOT invoke for a generic deck, pitch deck, or board review without cross-slide motion — route those to officecli-pptx base or officecli-pitch-deck."
+description: "用于生成带跨页平滑动画的 .pptx，支持 PowerPoint Morph 转场、类似 Keynote 的连续运动，以及形状在翻页中的移动、缩放和旋转；适合需要跨页连续动画的演示文稿，输出单个 .pptx。"
 ---
 
 # OfficeCLI Morph-PPT Skill

@@ -28,6 +28,7 @@ import { mirrorConversationStreamMessage } from '@process/core/sessions';
 import { getCronSkillDir, hasCronSkillFile } from './cronSkillFile';
 import { AcpSkillManager } from '@process/task/AcpSkillManager';
 import { skillSuggestWatcher } from './SkillSuggestWatcher';
+import { getStoredProviderModelId } from '@/common/config/lokcliCompatibility';
 
 /** Lazy-import to break circular dependency: cronServiceSingleton ↔ conversationServiceSingleton */
 async function getConversationService() {
@@ -374,20 +375,14 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     const providerList = (providers && Array.isArray(providers) ? providers : []) as unknown as TProviderWithModel[];
 
     // Read preferred model ID from user config.
-    // Lok CLI stores its default model in 'aionrs.defaultModel'.
-    // Legacy Gemini cron jobs may still have gemini.defaultModel persisted.
-    // ACP backends store in 'acp.config.<backend>.preferredModelId'.
+    // Lok CLI reads from 'lokcli.defaultModel'. Legacy Gemini jobs may still
+    // have gemini.defaultModel persisted. ACP backends use acp.config.
     let preferredModelId: string | undefined;
     if (normalizedBackend === 'aionrs') {
-      const savedModel = await ProcessConfig.get('aionrs.defaultModel');
-      preferredModelId = savedModel?.useModel;
+      preferredModelId = getStoredProviderModelId(await ProcessConfig.get('lokcli.defaultModel'));
       if (!preferredModelId && backend === 'gemini') {
         const legacySavedModel = await ProcessConfig.get('gemini.defaultModel');
-        if (legacySavedModel && typeof legacySavedModel === 'object' && 'useModel' in legacySavedModel) {
-          preferredModelId = legacySavedModel.useModel;
-        } else if (typeof legacySavedModel === 'string') {
-          preferredModelId = legacySavedModel;
-        }
+        preferredModelId = getStoredProviderModelId(legacySavedModel);
       }
     } else {
       const acpConfig = await ProcessConfig.get('acp.config');

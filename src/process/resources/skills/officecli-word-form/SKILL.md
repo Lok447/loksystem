@@ -1,6 +1,6 @@
 ---
 name: officecli-word-form
-description: "Use this skill to create fillable Word forms (.docx) with real Content Controls (SDT) + legacy FormField checkboxes + MERGEFIELD mail-merge placeholders + document protection. Trigger on: 'fillable form', 'form fields', 'content controls', 'SDT', 'word form', 'fill in', 'only editable fields', 'protect document', 'onboarding form', 'HR intake', 'survey template', 'contract / SOW template', 'mail-merge template', 'compliance checklist', 'medical intake questionnaire'. Output is a single .docx where specific fields are editable and the rest is locked. This skill is INDEPENDENT, not a scene layer on docx — payload is `<w:sdt>` + `<w:ffData>` + `<w:fldChar>` + `documentProtection`, none of which docx base skill covers. Do NOT trigger for regular reports, letters, memos, academic papers, pitch decks, or any document with no user-fillable fields — route those to officecli-docx or its scene layers."
+description: "用于创建可填写的 Word 表单（.docx）：支持内容控件 SDT、传统 FormField 复选框、MERGEFIELD 邮件合并占位符和文档保护，适合入职表、HR 表单、问卷、合同模板等。"
 ---
 
 # OfficeCLI Word-Form Skill

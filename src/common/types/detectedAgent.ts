@@ -24,7 +24,7 @@ export type RemoteAgentProtocol = 'openclaw' | 'zeroclaw' | 'acp';
 export type RemoteAgentAuthType = 'bearer' | 'password' | 'none';
 
 /** Execution engine kinds — each uses a different protocol or runtime */
-export type DetectedAgentKind = 'gemini' | 'acp' | 'remote' | 'aionrs' | 'openclaw-gateway' | 'nanobot';
+export type DetectedAgentKind = 'gemini' | 'acp' | 'remote' | 'aionrs' | 'lokcli' | 'openclaw-gateway' | 'nanobot';
 
 /** Kind-specific fields mapping */
 type KindFields = {
@@ -61,6 +61,13 @@ type KindFields = {
     version?: string;
   };
 
+  lokcli: {
+    /** Resolved runtime binary path */
+    cliPath?: string;
+    /** Runtime version string */
+    version?: string;
+  };
+
   'openclaw-gateway': {
     /** Resolved CLI binary path */
     cliPath?: string;
@@ -94,6 +101,7 @@ export type AcpDetectedAgent = DetectedAgent<'acp'>;
 export type GeminiDetectedAgent = DetectedAgent<'gemini'>;
 export type RemoteDetectedAgent = DetectedAgent<'remote'>;
 export type AionrsDetectedAgent = DetectedAgent<'aionrs'>;
+export type LokCliDetectedAgent = DetectedAgent<'lokcli'>;
 export type NanobotDetectedAgent = DetectedAgent<'nanobot'>;
 export type OpenClawDetectedAgent = DetectedAgent<'openclaw-gateway'>;
 

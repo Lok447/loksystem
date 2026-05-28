@@ -46,7 +46,7 @@ export class TeamSessionService {
     return '';
   }
 
-  private async resolveDefaultAionrsModel(): Promise<TProviderWithModel> {
+  private async resolveDefaultLokCliModel(): Promise<TProviderWithModel> {
     const configuredProviders = await ProcessConfig.get('model.config');
     const providers = Array.isArray(configuredProviders) ? configuredProviders.filter((p) => p.enabled !== false) : [];
 
@@ -70,8 +70,8 @@ export class TeamSessionService {
     const { backend, isPreset, presetAgentType } = params;
     const type = getConversationTypeForBackend(isPreset ? presetAgentType || backend : backend);
 
-    if (type === 'aionrs') {
-      return this.resolveDefaultAionrsModel();
+    if (type === 'lokcli' || type === 'aionrs') {
+      return this.resolveDefaultLokCliModel();
     }
 
     return {} as TProviderWithModel;
@@ -212,7 +212,7 @@ export class TeamSessionService {
     // Override useModel for Gemini/Aionrs when agent has an explicit model
     if (agent.model) {
       const type = getConversationTypeForBackend(backend);
-      if (type === 'gemini' || type === 'aionrs') {
+      if (type === 'gemini' || type === 'aionrs' || type === 'lokcli') {
         model = { ...model, useModel: agent.model };
       }
     }
@@ -252,6 +252,8 @@ export class TeamSessionService {
     switch (conversation.type) {
       case 'gemini':
         return 'gemini';
+      case 'lokcli':
+        return 'lokcli';
       case 'aionrs':
         return 'aionrs';
       case 'remote':
@@ -589,8 +591,9 @@ export class TeamSessionService {
   }
 
   private resolveConversationType(agentType: string): AgentType {
-    if (agentType === 'gemini') return 'gemini';
-    if (agentType === 'aionrs') return 'aionrs';
+    if (agentType === 'gemini') return 'lokcli';
+    if (agentType === 'hermes') return 'lokcli';
+    if (agentType === 'aionrs') return 'lokcli';
     if (agentType === 'codex') return 'acp';
     if (agentType === 'openclaw-gateway') return 'openclaw-gateway';
     if (agentType === 'nanobot') return 'nanobot';

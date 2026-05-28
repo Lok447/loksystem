@@ -1,6 +1,6 @@
 ---
 name: loksystem-webui-setup
-description: 'LokSystem WebUI configuration expert: Helps users configure LokSystem WebUI mode for remote access through the settings interface. Supports LAN connection, Tailscale VPN, and server deployment. Use when users need to set up LokSystem WebUI, configure remote access, troubleshoot WebUI issues, or deploy LokSystem on servers.'
+description: "LokSystem WebUI 配置助手：帮助通过设置界面配置 WebUI 远程访问，支持局域网、Tailscale VPN 和服务器部署；适用于 WebUI 安装、远程连接配置、故障排查和服务端部署。"
 ---
 
 # LokSystem WebUI 配置专家

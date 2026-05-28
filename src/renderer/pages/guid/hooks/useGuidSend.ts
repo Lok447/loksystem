@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { isLokCliProviderBackend } from '@/common/config/lokcliCompatibility';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { TChatConversation } from '@/common/config/storage';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
@@ -38,6 +39,8 @@ export type GuidSendDeps = {
   pendingConfigOptions: Record<string, string>;
   cachedConfigOptions: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   currentModel: TProviderWithModel | undefined;
+  hasConfiguredModels: boolean;
+  onRequireModelSetup?: () => void;
 
   // Agent helpers
   findAgentByKey: (key: string) => AvailableAgent | undefined;
@@ -95,6 +98,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     pendingConfigOptions,
     cachedConfigOptions,
     currentModel,
+    hasConfiguredModels,
+    onRequireModelSetup,
     findAgentByKey,
     getEffectiveAgentType,
     resolvePresetRulesAndSkills,
@@ -130,15 +135,22 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     const finalEffectiveAgentType = effectiveAgentType;
 
-    // Legacy Gemini selections are migrated to Lok CLI / aionrs.
-    if (selectedAgent === 'gemini' || (isPreset && finalEffectiveAgentType === 'gemini')) {
+    const isLokCliFlow =
+      isLokCliProviderBackend(selectedAgent) ||
+      selectedAgent === 'gemini' ||
+      (isPreset && (isLokCliProviderBackend(finalEffectiveAgentType) || finalEffectiveAgentType === 'gemini'));
+
+    if (isLokCliFlow) {
       if (!currentModel) {
-        Message.warning(t('conversation.noModelConfigured'));
+        onRequireModelSetup?.();
+        if (!onRequireModelSetup) {
+          Message.warning(t('conversation.noModelConfigured'));
+        }
         return;
       }
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
-          type: 'aionrs',
+          type: 'lokcli',
           name: input,
           model: currentModel,
           extra: {
@@ -154,7 +166,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         });
 
         if (!conversation || !conversation.id) {
-          throw new Error('Failed to create conversation - conversation object is null or missing id');
+          alert('Failed to create LokCLI conversation. Please check your model service configuration and try again.');
+          return;
         }
 
         if (isCustomWorkspace) {
@@ -171,11 +184,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           input: displayMessage,
           files: files.length > 0 ? files : undefined,
         };
-        sessionStorage.setItem(`aionrs_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+        sessionStorage.setItem(`lokcli_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
         void navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
-        console.error('Failed to create Lok CLI conversation:', error);
+        console.error('Failed to create LokCLI conversation:', error);
         throw error;
       }
       return;
@@ -285,57 +298,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         alert(`Failed to create Nanobot conversation: ${errorMessage}`);
-        throw error;
-      }
-      return;
-    }
-
-    // Aionrs path (direct selection or preset assistant with aionrs as main agent)
-    if (selectedAgent === 'aionrs' || (isPreset && finalEffectiveAgentType === 'aionrs')) {
-      if (!currentModel) {
-        Message.warning(t('conversation.noModelConfigured'));
-        return;
-      }
-      try {
-        const conversation = await ipcBridge.conversation.create.invoke({
-          type: 'aionrs',
-          name: input,
-          model: currentModel,
-          extra: {
-            defaultFiles: files,
-            workspace: finalWorkspace,
-            customWorkspace: isCustomWorkspace,
-            presetRules: isPreset ? presetRules : undefined,
-            enabledSkills: isPreset ? enabledSkills : undefined,
-            excludeBuiltinSkills,
-            presetAssistantId,
-            sessionMode: selectedMode,
-          },
-        });
-
-        if (!conversation || !conversation.id) {
-          alert('Failed to create Lok CLI conversation. Please ensure aionrs is installed.');
-          return;
-        }
-
-        if (isCustomWorkspace) {
-          closeAllTabs();
-          updateWorkspaceTime(finalWorkspace);
-          openTab(conversation);
-        }
-
-        emitter.emit('chat.history.refresh');
-
-        const initialMessage = {
-          input,
-          files: files.length > 0 ? files : undefined,
-        };
-        sessionStorage.setItem(`aionrs_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
-
-        await navigate(`/conversation/${conversation.id}`);
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        alert(`Failed to create Lok CLI conversation: ${errorMessage}`);
         throw error;
       }
       return;
@@ -461,6 +423,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     closeAllTabs,
     openTab,
     t,
+    hasConfiguredModels,
+    onRequireModelSetup,
   ]);
 
   const sendMessageHandler = useCallback(() => {
@@ -497,13 +461,18 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     setDir,
   ]);
 
+  const requiresProviderModel =
+    ((!selectedAgent || selectedAgent === 'gemini' || isLokCliProviderBackend(selectedAgent)) && !isPresetAgent) ||
+    (isPresetAgent &&
+      (currentEffectiveAgentInfo.agentType === 'gemini' ||
+        isLokCliProviderBackend(currentEffectiveAgentInfo.agentType)) &&
+      currentEffectiveAgentInfo.isAvailable);
+
   // Calculate button disabled state
   const isButtonDisabled =
     loading ||
     !input.trim() ||
-    ((((!selectedAgent || selectedAgent === 'aionrs') && !isPresetAgent) ||
-      (isPresetAgent && currentEffectiveAgentInfo.agentType === 'aionrs' && currentEffectiveAgentInfo.isAvailable)) &&
-      !currentModel);
+    (requiresProviderModel && hasConfiguredModels && !currentModel);
 
   return {
     handleSend,

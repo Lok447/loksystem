@@ -18,7 +18,7 @@ const useOpenClawDraft = getSendBoxDraftHook('openclaw-gateway', {
 });
 const useNanobotDraft = getSendBoxDraftHook('nanobot', { _type: 'nanobot', atPath: [], content: '', uploadFile: [] });
 const useRemoteDraft = getSendBoxDraftHook('remote', { _type: 'remote', atPath: [], content: '', uploadFile: [] });
-const useAionrsDraft = getSendBoxDraftHook('aionrs', { _type: 'aionrs', atPath: [], content: '', uploadFile: [] });
+const useLokCliDraft = getSendBoxDraftHook('lokcli', { _type: 'lokcli', atPath: [], content: '', uploadFile: [] });
 
 type Props = {
   conversationId: string;
@@ -36,11 +36,11 @@ const SUGGESTION_DEFAULTS: Record<string, string> = {
   expert_review: 'Have multiple experts analyze the same problem',
 };
 
-/** Map a conversation.type onto a DetectedAgentKind so draft hooks stay exhaustive. */
-const toDetectedKind = (type: TChatConversation['type']): Exclude<DetectedAgentKind, 'gemini'> => {
+/** Map a conversation.type onto a draft storage kind so draft hooks stay exhaustive. */
+const toDetectedKind = (type: TChatConversation['type']): Exclude<DetectedAgentKind, 'gemini' | 'aionrs'> => {
   // Codex conversations are rendered via the ACP pipeline and share the acp draft store.
   if (type === 'codex') return 'acp';
-  if (type === 'gemini' || type === 'aionrs') return 'aionrs';
+  if (type === 'gemini' || type === 'aionrs' || type === 'lokcli') return 'lokcli';
   return type;
 };
 
@@ -78,17 +78,17 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversationId }) => {
   // `satisfies Record<DetectedAgentKind, ...>` keeps the map exhaustive — adding a new
   // DetectedAgentKind without wiring up a draft setter here becomes a typecheck error.
   const acpDraft = useAcpDraft(conversationId);
-  const aionrsDraft = useAionrsDraft(conversationId);
+  const lokcliDraft = useLokCliDraft(conversationId);
   const nanobotDraft = useNanobotDraft(conversationId);
   const remoteDraft = useRemoteDraft(conversationId);
   const openClawDraft = useOpenClawDraft(conversationId);
   const setContentByKind = {
     acp: (text: string) => acpDraft.mutate((prev) => ({ ...prev, content: text })),
-    aionrs: (text: string) => aionrsDraft.mutate((prev) => ({ ...prev, content: text })),
+    lokcli: (text: string) => lokcliDraft.mutate((prev) => ({ ...prev, content: text })),
     nanobot: (text: string) => nanobotDraft.mutate((prev) => ({ ...prev, content: text })),
     remote: (text: string) => remoteDraft.mutate((prev) => ({ ...prev, content: text })),
     'openclaw-gateway': (text: string) => openClawDraft.mutate((prev) => ({ ...prev, content: text })),
-  } satisfies Record<Exclude<DetectedAgentKind, 'gemini'>, (text: string) => void>;
+  } satisfies Record<Exclude<DetectedAgentKind, 'gemini' | 'aionrs'>, (text: string) => void>;
 
   const fillDraft = useCallback(
     (text: string) => {

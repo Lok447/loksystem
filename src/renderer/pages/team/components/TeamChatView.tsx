@@ -2,21 +2,21 @@ import { ipcBridge } from '@/common';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { Spin } from '@arco-design/web-react';
 import React, { Suspense, useCallback } from 'react';
-import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
+import { useLokCliModelSelection } from '@/renderer/pages/conversation/platforms/lokcli/useLokCliModelSelection';
 import TeamChatEmptyState from './TeamChatEmptyState';
 
 const AcpChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/acp/AcpChat'));
-const AionrsChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/aionrs/AionrsChat'));
+const LokCliChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/lokcli/LokCliChat'));
 const OpenClawChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/openclaw/OpenClawChat'));
 const NanobotChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/nanobot/NanobotChat'));
 const RemoteChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/remote/RemoteChat'));
 
-// Narrow to Lok CLI conversations so model field is always available.
-type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' | 'gemini' }>;
+// Keep legacy shells flowing through the LokCLI renderer so model state stays available.
+type LokCliCompatibleConversation = Extract<TChatConversation, { type: 'lokcli' | 'aionrs' | 'gemini' }>;
 
-/** Aionrs sub-component manages model selection state without adding a ChatLayout wrapper */
-const AionrsTeamChat: React.FC<{
-  conversation: AionrsConversation;
+/** LokCLI sub-component manages model selection state without adding a ChatLayout wrapper */
+const LokCliTeamChat: React.FC<{
+  conversation: LokCliCompatibleConversation;
   teamId?: string;
   agentSlotId?: string;
   emptySlot?: React.ReactNode;
@@ -31,10 +31,10 @@ const AionrsTeamChat: React.FC<{
     [conversation.id]
   );
 
-  const modelSelection = useAionrsModelSelection({ initialModel: conversation.model, onSelectModel });
+  const modelSelection = useLokCliModelSelection({ initialModel: conversation.model, onSelectModel });
 
   return (
-    <AionrsChat
+    <LokCliChat
       conversation_id={conversation.id}
       workspace={conversation.extra.workspace}
       modelSelection={modelSelection}
@@ -95,12 +95,13 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, 
             emptySlot={emptySlot}
           />
         );
+      case 'lokcli':
       case 'aionrs':
       case 'gemini':
         return (
-          <AionrsTeamChat
+          <LokCliTeamChat
             key={conversation.id}
-            conversation={conversation as AionrsConversation}
+            conversation={conversation as LokCliCompatibleConversation}
             teamId={teamId}
             agentSlotId={agentSlotId}
             emptySlot={emptySlot}

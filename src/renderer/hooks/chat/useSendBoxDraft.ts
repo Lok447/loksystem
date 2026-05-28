@@ -46,15 +46,24 @@ type Draft =
       uploadFile: string[];
     }
   | {
+      _type: 'lokcli';
+      content: string;
+      atPath: Array<string | FileOrFolderItem>;
+      uploadFile: string[];
+    }
+  | {
       _type: 'aionrs';
       content: string;
       atPath: Array<string | FileOrFolderItem>;
       uploadFile: string[];
     };
 
-type DraftStoreKey = Exclude<TChatConversation['type'], 'gemini'>;
-type DraftByType<K extends TChatConversation['type']> =
-  K extends 'gemini' ? Extract<Draft, { _type: 'gemini' | 'aionrs' }> : Extract<Draft, { _type: K }>;
+type DraftStoreKey = Exclude<TChatConversation['type'], 'gemini' | 'aionrs'>;
+type DraftByType<K extends TChatConversation['type']> = K extends 'gemini'
+  ? Extract<Draft, { _type: 'gemini' | 'aionrs' | 'lokcli' }>
+  : K extends 'lokcli'
+    ? Extract<Draft, { _type: 'lokcli' | 'aionrs' }>
+    : Extract<Draft, { _type: K }>;
 
 /**
  * 当前支持的对话类型以及对应的草稿对象
@@ -65,10 +74,14 @@ const store: Record<DraftStoreKey, Map<string, Draft>> = {
   'openclaw-gateway': new Map(),
   nanobot: new Map(),
   remote: new Map(),
-  aionrs: new Map(),
+  lokcli: new Map(),
 };
 
-const normalizeDraftType = (type: TChatConversation['type']): DraftStoreKey => (type === 'gemini' ? 'aionrs' : type);
+const normalizeDraftType = (type: TChatConversation['type']): DraftStoreKey => {
+  if (type === 'gemini') return 'lokcli';
+  if (type === 'aionrs') return 'lokcli';
+  return type;
+};
 
 const setDraft = (
   type: TChatConversation['type'],
@@ -79,7 +92,9 @@ const setDraft = (
   if (draft) {
     const draftType = (draft as { _type?: string })._type;
     const normalizedDraft =
-      normalizedType === 'aionrs' && draftType === 'gemini' ? ({ ...draft, _type: 'aionrs' } as Draft) : (draft as Draft);
+      normalizedType === 'lokcli' && (draftType === 'gemini' || draftType === 'aionrs')
+        ? ({ ...draft, _type: 'lokcli' } as Draft)
+        : (draft as Draft);
     store[normalizedType].set(conversation_id, normalizedDraft as Draft);
   } else {
     store[normalizedType].delete(conversation_id);

@@ -59,7 +59,7 @@ export type TeamAgent = {
   role: TeammateRole;
   agentType: string;
   agentName: string;
-  conversationType: 'gemini' | 'acp' | 'codex' | 'aionrs' | 'openclaw-gateway' | 'nanobot' | 'remote';
+  conversationType: 'gemini' | 'acp' | 'codex' | 'lokcli' | 'aionrs' | 'openclaw-gateway' | 'nanobot' | 'remote';
   status: TeammateStatus;
   cliPath?: string;
   customAgentId?: string;

@@ -49,7 +49,7 @@ import './workspace.css';
 const ChatWorkspace: React.FC<WorkspaceProps> = ({
   conversation_id,
   workspace,
-  eventPrefix = 'aionrs',
+  eventPrefix = 'lokcli',
   messageApi: externalMessageApi,
   teamId,
 }) => {

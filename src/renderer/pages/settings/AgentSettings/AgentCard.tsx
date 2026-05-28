@@ -15,6 +15,9 @@ import type { AcpBackendConfig } from '@/common/types/acpTypes';
 type DetectedAgent = {
   backend: string;
   name: string;
+  productKey?: string;
+  runtimeKey?: string;
+  isBuiltinRuntime?: boolean;
   customAgentId?: string;
   isExtension?: boolean;
   avatar?: string;
@@ -78,9 +81,16 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
             <Typography.Text className='block text-13px font-medium leading-18px line-clamp-2'>
               {agent.name}
             </Typography.Text>
-            <Typography.Text className='mt-4px block text-11px text-t-secondary'>
-              {t('settings.agentManagement.detected')}
-            </Typography.Text>
+            <div className='mt-4px flex flex-wrap items-center justify-center gap-4px'>
+              <Typography.Text className='block text-11px text-t-secondary'>
+                {agent.productKey === 'lokcli' ? '内置 LokCLI' : t('settings.agentManagement.detected')}
+              </Typography.Text>
+              {agent.isBuiltinRuntime && agent.runtimeKey === 'hermes' ? (
+                <span className='rounded-999px bg-[var(--color-fill-2)] px-6px py-1px text-10px text-t-secondary'>
+                  Hermes Runtime
+                </span>
+              ) : null}
+            </div>
           </div>
 
           {settingsButton}

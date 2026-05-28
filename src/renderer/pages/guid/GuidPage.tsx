@@ -6,8 +6,10 @@
 
 import { ipcBridge } from '@/common';
 import { assistantService } from '@/common/config/assistantService';
+import { isProviderBackedAgent } from '@/common/config/lokcliCompatibility';
 import { resolveLocaleKey } from '@/common/utils';
 
+import LokModal from '@/renderer/components/base/LokModal';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
@@ -28,7 +30,7 @@ import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import type { AcpBackendConfig } from './types';
-import { Button, ConfigProvider, Dropdown, Menu, Message } from '@arco-design/web-react';
+import { Button, ConfigProvider, Dropdown, Menu, Message, Typography } from '@arco-design/web-react';
 import { Down, Left, Robot, Write } from '@icon-park/react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -49,6 +51,7 @@ const GuidPage: React.FC = () => {
   // --- Skills state ---
   const [builtinAutoSkills, setBuiltinAutoSkills] = useState<Array<{ name: string; description: string }>>([]);
   const [guidDisabledBuiltinSkills, setGuidDisabledBuiltinSkills] = useState<string[] | undefined>(undefined);
+  const [modelSetupPromptVisible, setModelSetupPromptVisible] = useState(false);
 
   useEffect(() => {
     ipcBridge.fs.listBuiltinAutoSkills
@@ -65,9 +68,7 @@ const GuidPage: React.FC = () => {
   }, []);
 
   // --- Hooks ---
-  // Track which provider-based agent is selected so model selection persists per agent type
-  const [providerAgentKey, setProviderAgentKey] = useState<'gemini' | 'aionrs'>('aionrs');
-  const modelSelection = useGuidModelSelection(providerAgentKey);
+  const modelSelection = useGuidModelSelection();
 
   const resetAssistantRequested = (location.state as { resetAssistant?: boolean } | null)?.resetAssistant === true;
   const agentSelection = useGuidAgentSelection({
@@ -76,14 +77,6 @@ const GuidPage: React.FC = () => {
     resetAssistant: resetAssistantRequested,
     locationKey: location.key,
   });
-
-  // Sync providerAgentKey when selected agent changes
-  useEffect(() => {
-    const agent = agentSelection.selectedAgent;
-    if (agent === 'gemini' || agent === 'aionrs') {
-      setProviderAgentKey(agent);
-    }
-  }, [agentSelection.selectedAgent]);
 
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,
@@ -119,6 +112,8 @@ const GuidPage: React.FC = () => {
     pendingConfigOptions: agentSelection.pendingConfigOptions,
     cachedConfigOptions: agentSelection.cachedConfigOptions,
     currentModel: modelSelection.currentModel,
+    hasConfiguredModels: modelSelection.modelList.filter((provider) => provider.enabled !== false).length > 0,
+    onRequireModelSetup: () => setModelSetupPromptVisible(true),
 
     // Agent helpers
     findAgentByKey: agentSelection.findAgentByKey,
@@ -459,10 +454,11 @@ const GuidPage: React.FC = () => {
     : agentSelection.selectedAgent;
 
   // Agents that use configured model providers instead of ACP probe-based models
-  const PROVIDER_BASED_AGENTS = new Set(['gemini', 'aionrs']);
   const isGeminiMode =
-    PROVIDER_BASED_AGENTS.has(effectiveAgentType) &&
+    isProviderBackedAgent(effectiveAgentType) &&
     (!agentSelection.isPresetAgent || agentSelection.currentEffectiveAgentInfo.isAvailable);
+  const hasEnabledModels = modelSelection.modelList.some((provider) => provider.enabled !== false);
+  const shouldPromptModelSetup = isGeminiMode && !modelSelection.currentModel && !hasEnabledModels;
 
   // Build the mention dropdown node
   const mentionDropdownNode = (
@@ -686,6 +682,20 @@ const GuidPage: React.FC = () => {
             />
           ) : null}
 
+          {shouldPromptModelSetup ? (
+            <div className={styles.firstUseNotice}>
+              <div className={styles.firstUseNoticeBody}>
+                <div className={styles.firstUseNoticeTitle}>先配置一个模型服务，即可开始使用 LokCLI</div>
+                <div className={styles.firstUseNoticeText}>
+                  LokCLI 已内置完成，你只需要到模型管理里配置一个可用模型，就可以立即开始体验。
+                </div>
+              </div>
+              <Button type='primary' shape='round' onClick={() => navigate('/settings/model')}>
+                去配置模型
+              </Button>
+            </div>
+          ) : null}
+
           <GuidInputCard
             input={guidInput.input}
             onInputChange={handleInputChange}
@@ -734,6 +744,46 @@ const GuidPage: React.FC = () => {
           />
         </div>
 
+        <LokModal
+          visible={modelSetupPromptVisible}
+          onCancel={() => setModelSetupPromptVisible(false)}
+          header={{
+            title: '先配置模型服务，即可开始使用 LokCLI',
+            showClose: true,
+          }}
+          footer={null}
+          style={{ width: 520, maxWidth: '92vw', borderRadius: 16 }}
+          contentStyle={{
+            background: 'var(--dialog-fill-0)',
+            borderRadius: 16,
+            padding: '20px 24px 24px',
+            overflow: 'auto',
+          }}
+        >
+          <div className={styles.firstUseModalContent}>
+            <Typography.Paragraph className={styles.firstUseModalText}>
+              LokCLI 已内置完成。现在只需要到模型管理里配置一个可用的模型服务，就可以直接开始体验。
+            </Typography.Paragraph>
+            <Typography.Paragraph className={styles.firstUseModalSubText}>
+              推荐先添加一个你常用的模型服务，保存后回到首页即可开始。
+            </Typography.Paragraph>
+            <div className={styles.firstUseModalActions}>
+              <Button type='secondary' shape='round' onClick={() => setModelSetupPromptVisible(false)}>
+                稍后再说
+              </Button>
+              <Button
+                type='primary'
+                shape='round'
+                onClick={() => {
+                  setModelSetupPromptVisible(false);
+                  navigate('/settings/model');
+                }}
+              >
+                去配置模型
+              </Button>
+            </div>
+          </div>
+        </LokModal>
       </div>
     </ConfigProvider>
   );

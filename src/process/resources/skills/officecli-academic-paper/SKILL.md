@@ -1,6 +1,6 @@
 ---
 name: officecli-academic-paper
-description: "Use this skill to build academic-style .docx output: journal / conference / thesis chapters carrying formal citation style (APA, Chicago, IEEE, MLA), numbered equations, figure & table cross-references, footnotes/endnotes, bibliography, or multi-column journal layout. Trigger on: 'research paper', 'journal paper', 'conference paper', 'manuscript', 'thesis', 'APA', 'MLA', 'Chicago', 'IEEE two-column', 'bibliography', 'hanging indent', 'citation style', 'abstract + keywords', 'equation numbering', 'cross-reference', paper with footnotes/endnotes. Output is a single .docx."
+description: "用于生成学术风格 .docx 文档：支持论文、期刊、会议稿、学位论文、APA/Chicago/IEEE/MLA 引用、公式编号、图表交叉引用、脚注尾注、参考文献和双栏排版。"
 ---
 
 # OfficeCLI Academic Paper Skill

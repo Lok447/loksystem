@@ -50,16 +50,46 @@ const useAionrsSendBoxDraft = getSendBoxDraftHook('aionrs', {
   content: '',
   uploadFile: [],
 });
+const useLokCliSendBoxDraft = getSendBoxDraftHook('lokcli', {
+  _type: 'lokcli',
+  atPath: [],
+  content: '',
+  uploadFile: [],
+});
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
+const LOKCLI_EVENT_PREFIX = 'lokcli';
 
 const useSendBoxDraft = (conversation_id: string) => {
-  const { data, mutate } = useAionrsSendBoxDraft(conversation_id);
+  const lokcliDraft = useLokCliSendBoxDraft(conversation_id);
+  const aionrsDraft = useAionrsSendBoxDraft(conversation_id);
+  const data = lokcliDraft.data ?? aionrsDraft.data;
 
   const atPath = data?.atPath ?? EMPTY_AT_PATH;
   const uploadFile = data?.uploadFile ?? EMPTY_UPLOAD_FILES;
   const content = data?.content ?? '';
+
+  const mutate = useCallback(
+    (
+      updater: (
+        previous: {
+          _type: 'lokcli';
+          atPath: Array<string | FileOrFolderItem>;
+          content: string;
+          uploadFile: string[];
+        }
+      ) => {
+        _type: 'lokcli';
+        atPath: Array<string | FileOrFolderItem>;
+        content: string;
+        uploadFile: string[];
+      }
+    ) => {
+      lokcliDraft.mutate((prev) => updater((prev ?? { _type: 'lokcli', atPath: [], content: '', uploadFile: [] }) as any));
+    },
+    [lokcliDraft]
+  );
 
   const setAtPath = useCallback(
     (nextAtPath: Array<string | FileOrFolderItem>) => {
@@ -105,7 +135,7 @@ const AionrsSendBox: React.FC<{
       onConfigChanged: (capabilities) => {
         const modes = (capabilities as { modes?: string[] })?.modes;
         if (modes && modes.length > 0) {
-          setDynamicModes(mergeWithCapabilities('aionrs', modes));
+          setDynamicModes(mergeWithCapabilities('lokcli', modes));
         }
       },
     });
@@ -209,7 +239,7 @@ const AionrsSendBox: React.FC<{
         }
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
-          emitter.emit('aionrs.workspace.refresh');
+          emitter.emit(`${LOKCLI_EVENT_PREFIX}.workspace.refresh`);
         }
       } catch (error) {
         removeMessageByMsgId(msg_id);
@@ -256,13 +286,20 @@ const AionrsSendBox: React.FC<{
   useEffect(() => {
     if (!conversation_id) return;
 
-    const storageKey = `aionrs_initial_message_${conversation_id}`;
-    const processedKey = `aionrs_initial_processed_${conversation_id}`;
+    const storageKeys = [`lokcli_initial_message_${conversation_id}`, `aionrs_initial_message_${conversation_id}`];
+    const processedKeys = [`lokcli_initial_processed_${conversation_id}`, `aionrs_initial_processed_${conversation_id}`];
 
     const processInitialMessage = async () => {
-      if (sessionStorage.getItem(processedKey)) return;
+      if (processedKeys.some((key) => sessionStorage.getItem(key))) return;
+
+      const storageKey = storageKeys.find((key) => sessionStorage.getItem(key));
+      if (!storageKey) return;
+
       const storedMessage = sessionStorage.getItem(storageKey);
       if (!storedMessage) return;
+
+      const processedKey =
+        storageKey === storageKeys[0] ? processedKeys[0] : processedKeys[1];
 
       sessionStorage.setItem(processedKey, '1');
       sessionStorage.removeItem(storageKey);
@@ -272,7 +309,7 @@ const AionrsSendBox: React.FC<{
         await executeCommand({ input, files: initialFiles || [] });
       } catch (error) {
         console.error('[AionrsSendBox] Failed to send initial message:', error);
-        sessionStorage.removeItem(processedKey);
+        processedKeys.forEach((key) => sessionStorage.removeItem(key));
       }
     };
 
@@ -287,7 +324,7 @@ const AionrsSendBox: React.FC<{
 
     const filesToSend = collectSelectedFiles(uploadFile, atPath);
     clearFiles();
-    emitter.emit('aionrs.selected.file.clear');
+    emitter.emit(`${LOKCLI_EVENT_PREFIX}.selected.file.clear`);
 
     if (
       shouldEnqueueConversationCommand({
@@ -309,7 +346,7 @@ const AionrsSendBox: React.FC<{
       setContent(item.input);
       setUploadFile(Array.from(new Set(item.files)));
       setAtPath([]);
-      emitter.emit('aionrs.selected.file.clear');
+      emitter.emit(`${LOKCLI_EVENT_PREFIX}.selected.file.clear`);
     },
     [remove, setAtPath, setContent, setUploadFile]
   );
@@ -324,8 +361,8 @@ const AionrsSendBox: React.FC<{
     onFilesSelected: appendSelectedFiles,
   });
 
-  useAddEventListener('aionrs.selected.file', setAtPath);
-  useAddEventListener('aionrs.selected.file.append', (selectedItems: Array<string | FileOrFolderItem>) => {
+  useAddEventListener('lokcli.selected.file', setAtPath);
+  useAddEventListener('lokcli.selected.file.append', (selectedItems: Array<string | FileOrFolderItem>) => {
     const merged = mergeFileSelectionItems(atPathRef.current, selectedItems);
     if (merged !== atPathRef.current) {
       setAtPath(merged as Array<string | FileOrFolderItem>);
@@ -343,7 +380,7 @@ const AionrsSendBox: React.FC<{
   };
 
   const mobileActionEntries = React.useMemo<MobileActionSheetEntry[]>(() => {
-    const modeEntries = dynamicModes.length > 0 ? dynamicModes : mergeWithCapabilities('aionrs', []);
+    const modeEntries = dynamicModes.length > 0 ? dynamicModes : mergeWithCapabilities('lokcli', []);
     const currentMode = sessionMode || modeEntries[0]?.value;
     const modelOptions = modelSelection.providers.flatMap((provider) =>
       modelSelection.getAvailableModels(provider).map((modelName) => ({
@@ -426,7 +463,7 @@ const AionrsSendBox: React.FC<{
         onChange={setContent}
         selectedWorkspaceItems={atPath}
         onSelectedWorkspaceItemsChange={(items) => {
-          emitter.emit('aionrs.selected.file', items);
+          emitter.emit('lokcli.selected.file', items);
           setAtPath(items);
         }}
         loading={isBusy}
@@ -448,7 +485,7 @@ const AionrsSendBox: React.FC<{
           <div className='flex items-center gap-4px'>
             <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
             <AgentModeSelector
-              backend='aionrs'
+              backend='lokcli'
               conversationId={conversation_id}
               compact
               initialMode={sessionMode}
@@ -492,7 +529,7 @@ const AionrsSendBox: React.FC<{
                         closable
                         onClose={() => {
                           const newAtPath = atPath.filter((v) => (typeof v === 'string' ? true : v.path !== item.path));
-                          emitter.emit('aionrs.selected.file', newAtPath);
+                          emitter.emit('lokcli.selected.file', newAtPath);
                           setAtPath(newAtPath);
                         }}
                       >

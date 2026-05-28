@@ -1,6 +1,6 @@
 ---
 name: officecli-pptx
-description: "Use this skill any time a .pptx file is involved -- as input, output, or both. This includes: creating slide decks, pitch decks, or presentations; reading, parsing, or extracting text from any .pptx file; editing, modifying, or updating existing presentations; combining or splitting slide files; working with templates, layouts, speaker notes, or comments. Trigger whenever the user mentions 'deck', 'slides', 'presentation', 'pitch', or references a .pptx filename."
+description: "凡是涉及 .pptx 文件时都适用：可创建、读取、解析、提取、编辑、拆分和合并演示文稿，支持模板、版式、讲稿备注和评论。"
 ---
 
 # OfficeCLI PPTX Skill

@@ -468,9 +468,9 @@ export class ActionExecutor {
         const savedBackend = (
           savedAgent && typeof savedAgent === 'object' && typeof (savedAgent as any).backend === 'string'
             ? (savedAgent as any).backend
-            : 'aionrs'
+            : 'hermes'
         ) as string;
-        const backend = savedBackend === 'gemini' ? 'aionrs' : savedBackend;
+        const backend = savedBackend === 'gemini' ? 'hermes' : savedBackend;
         const customAgentId =
           savedAgent && typeof savedAgent === 'object'
             ? ((savedAgent as any).customAgentId as string | undefined)
@@ -499,9 +499,9 @@ export class ActionExecutor {
         let sessionConversation: TChatConversation | null = existing ?? null;
         if (!sessionConversation) {
           try {
-            if (backend === 'aionrs') {
+            if (backend === 'aionrs' || backend === 'hermes') {
               sessionConversation = await conversationServiceSingleton.createConversation({
-                type: 'aionrs',
+                type: 'lokcli',
                 model,
                 name: conversationName,
                 source,

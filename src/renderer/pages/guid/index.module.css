@@ -332,6 +332,68 @@
   box-sizing: border-box;
 }
 
+.firstUseNotice {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, rgb(var(--arcoblue-1)) 82%, white), color-mix(in srgb, var(--bg-2) 86%, white));
+  border: 1px solid color-mix(in srgb, rgb(var(--arcoblue-3)) 35%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+.firstUseNoticeBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.firstUseNoticeTitle {
+  color: var(--color-text-0);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.firstUseNoticeText {
+  color: var(--color-text-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.firstUseModalContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.firstUseModalText {
+  margin: 0 !important;
+  color: var(--color-text-1);
+  line-height: 1.7;
+}
+
+.firstUseModalSubText {
+  margin: 0 !important;
+  color: var(--color-text-3);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.firstUseModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
 .actionRow {
   display: flex;
   align-items: center;
@@ -507,6 +569,17 @@
   .actionSubmit {
     flex-shrink: 0;
     margin-left: 8px;
+  }
+
+  .firstUseNotice {
+    padding: 14px 14px 16px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .firstUseModalActions {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 

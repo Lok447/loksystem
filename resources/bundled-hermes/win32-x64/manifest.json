@@ -1,0 +1,14 @@
+{
+  "platform": "win32",
+  "arch": "x64",
+  "version": "Hermes Agent v0.11.0 (2026.4.23)\r\nProject: D:\\AI\\hermes-agent-main\r\nPython: 3.11.5\r\nOpenAI SDK: 2.36.0",
+  "generatedAt": "2026-05-28T09:32:44.263Z",
+  "sourceType": "cli_path",
+  "source": {
+    "path": "D:\\AI\\hermes-agent-main\\.venv\\Scripts\\hermes.exe"
+  },
+  "files": [
+    "Scripts/hermes.exe"
+  ],
+  "skipped": false
+}

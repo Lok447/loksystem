@@ -173,8 +173,8 @@ export const createGeminiAgent = async (
   extraSkillPaths?: string[],
   excludeBuiltinSkills?: string[]
 ): Promise<TChatConversation> => {
-  return createAionrsAgent({
-    type: 'aionrs',
+  return createLokCliAgent({
+    type: 'lokcli',
     model,
     extra: {
       workspace,
@@ -191,6 +191,42 @@ export const createGeminiAgent = async (
       excludeBuiltinSkills,
     },
   } as ICreateConversationParams);
+};
+export const createLokCliAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `lokcli-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
+
+  if (!customWorkspace) {
+    await setupAssistantWorkspace(workspace, {
+      agentType: 'hermes',
+      enabledSkills: extra.enabledSkills,
+      extraSkillPaths: extra.extraSkillPaths,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+    });
+  }
+
+  return {
+    type: 'lokcli',
+    model: options.model,
+    extra: {
+      workspace,
+      customWorkspace,
+      presetRules: extra.presetRules,
+      enabledSkills: extra.enabledSkills,
+      presetAssistantId: extra.presetAssistantId,
+      sessionMode: extra.sessionMode,
+    },
+    desc: customWorkspace ? workspace : '',
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
 };
 export const createAcpAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
@@ -312,40 +348,10 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
 };
 
 export const createAionrsAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
-  const { extra } = options;
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
-    `aionrs-temp-${Date.now()}`,
-    extra.workspace,
-    extra.defaultFiles,
-    extra.customWorkspace
-  );
-
-  // Set up skill symlinks for native discovery by aionrs CLI
-  if (!customWorkspace) {
-    await setupAssistantWorkspace(workspace, {
-      agentType: 'aionrs',
-      enabledSkills: extra.enabledSkills,
-      extraSkillPaths: extra.extraSkillPaths,
-      excludeBuiltinSkills: extra.excludeBuiltinSkills,
-    });
-  }
-
+  const conversation = await createLokCliAgent(options);
   return {
+    ...conversation,
     type: 'aionrs',
-    model: options.model,
-    extra: {
-      workspace,
-      customWorkspace,
-      presetRules: extra.presetRules,
-      enabledSkills: extra.enabledSkills,
-      presetAssistantId: extra.presetAssistantId,
-      sessionMode: extra.sessionMode,
-    },
-    desc: customWorkspace ? workspace : '',
-    createTime: Date.now(),
-    modifyTime: Date.now(),
-    name: workspace,
-    id: uuid(),
   };
 };
 

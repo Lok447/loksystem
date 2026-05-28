@@ -171,9 +171,9 @@ export const handleSessionNew: ActionHandler = async (context) => {
   const savedBackend = (
     savedAgent && typeof savedAgent === 'object' && typeof (savedAgent as any).backend === 'string'
       ? (savedAgent as any).backend
-      : 'aionrs'
+      : 'hermes'
   ) as string;
-  const backend = savedBackend === 'gemini' ? 'aionrs' : savedBackend;
+  const backend = savedBackend === 'gemini' ? 'hermes' : savedBackend;
   const customAgentId =
     savedAgent && typeof savedAgent === 'object'
       ? ((savedAgent as any).customAgentId as string | undefined)
@@ -197,9 +197,9 @@ export const handleSessionNew: ActionHandler = async (context) => {
 
   let newConversation: TChatConversation;
   try {
-    if (backend === 'aionrs') {
+    if (backend === 'aionrs' || backend === 'hermes') {
       newConversation = await conversationServiceSingleton.createConversation({
-        type: 'aionrs',
+        type: 'lokcli',
         model,
         source,
         name,
@@ -539,7 +539,7 @@ export const handleAgentShow: ActionHandler = async (context) => {
   // Get current agent type from session (scoped by chatId)
   const userId = context.channelUser?.id;
   const session = userId ? sessionManager.getSession(userId, context.chatId) : null;
-  const currentAgent = session?.agentType || 'aionrs';
+  const currentAgent = session?.agentType || 'lokcli';
 
   // Get available agents dynamically
   const availableAgents = getAvailableChannelAgents();
@@ -664,7 +664,7 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
  * Get display name for agent type
  */
 function getAgentDisplayName(agentType: ChannelAgentType): string {
-  if (agentType === 'aionrs') return 'Lok CLI';
+  if (agentType === 'aionrs' || agentType === 'lokcli') return 'Lok CLI';
   const names: Record<string, string> = {
     gemini: '🤖 Gemini',
     acp: '🧠 Claude',
@@ -679,8 +679,7 @@ function getAgentDisplayName(agentType: ChannelAgentType): string {
  * Only returns types that are supported by channels
  */
 function backendToChannelAgentType(backend: string): ChannelAgentType | null {
-  if (backend === 'aionrs' || backend === 'gemini') return 'aionrs';
-  if (backend === 'hermes') return 'acp';
+  if (backend === 'aionrs' || backend === 'gemini' || backend === 'hermes') return 'lokcli';
   const mapping: Record<string, ChannelAgentType> = {
     gemini: 'gemini',
     claude: 'acp',
@@ -713,10 +712,8 @@ function getAvailableChannelAgents(): AgentDisplayInfo[] {
   const availableAgents: AgentDisplayInfo[] = [];
   const seenTypes = new Set<ChannelAgentType>();
 
-  // Always include Gemini as it's built-in
-  availableAgents.push({ type: 'gemini', emoji: '🤖', name: 'Gemini' });
-  availableAgents[0] = { type: 'aionrs', emoji: '🧠', name: 'Lok CLI' };
-  seenTypes.add('aionrs');
+  availableAgents.push({ type: 'lokcli', emoji: '🧠', name: 'Lok CLI' });
+  seenTypes.add('lokcli');
 
   // Add detected ACP agents (claude, codex, etc.)
   for (const agent of detectedAgents) {

@@ -30,6 +30,37 @@ type CoreAcpSessionUpdatedInput = Omit<CoreAcpSessionUpdatedPayload, 'action' | 
 export class CoreAcpGatewayService {
   constructor(private readonly taskRuntimeService: CoreTaskRuntimeService) {}
 
+  private getCliUnavailableMessage(backend: string): string {
+    if (backend === 'hermes') {
+      return 'LokCLI runtime is unavailable. Please verify the bundled runtime or reinstall LokSystem.';
+    }
+    return `${backend} CLI not found. Please install it and ensure it's accessible.`;
+  }
+
+  private resolveRuntimeMetadata(agent: { backend: string; id?: string }) {
+    if (agent.backend === 'hermes') {
+      return {
+        productKey: 'lokcli',
+        runtimeKey: 'hermes',
+        isBuiltinRuntime: agent.id === 'hermes',
+      };
+    }
+
+    if (agent.backend === 'aionrs') {
+      return {
+        productKey: 'lokcli',
+        runtimeKey: 'aionrs',
+        isBuiltinRuntime: false,
+      };
+    }
+
+    return {
+      productKey: agent.backend,
+      runtimeKey: agent.backend,
+      isBuiltinRuntime: false,
+    };
+  }
+
   private async resolveAgentModelInfo(backend: string): Promise<CoreAcpAgentDescriptorDto['modelInfo']> {
     try {
       const cachedModels = await ProcessConfig.get('acp.cachedModels');
@@ -70,7 +101,7 @@ export class CoreAcpGatewayService {
 
     return {
       success: false as const,
-      msg: `${backend} CLI not found. Please install it and ensure it's accessible.`,
+      msg: this.getCliUnavailableMessage(backend),
     };
   }
 
@@ -80,6 +111,7 @@ export class CoreAcpGatewayService {
       const data: CoreAcpAgentDescriptorDto[] = await Promise.all(
         agents.map(async (agent) => ({
           ...agent,
+          ...this.resolveRuntimeMetadata(agent),
           displayName: agent.name,
           teamCapable: ['acp', 'aionrs', 'remote', 'openclaw-gateway', 'nanobot'].includes(agent.kind),
           conversationType: getConversationTypeForBackend(agent.backend),
@@ -115,7 +147,7 @@ export class CoreAcpGatewayService {
       this.emitHealthChecked({ backend, available: false, error: 'CLI not installed' });
       return {
         success: false as const,
-        msg: `${backend} CLI not found`,
+        msg: this.getCliUnavailableMessage(backend),
         data: { available: false, error: 'CLI not installed' },
       };
     }

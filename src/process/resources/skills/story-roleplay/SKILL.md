@@ -1,6 +1,6 @@
 ---
 name: story-roleplay
-description: Parse and apply character cards and world info files in multiple formats (PNG, WebP, JSON), fully compatible with SillyTavern format. Supports automatic parsing, keyword triggering, and dynamic updates.
+description: "角色扮演资料解析技能：支持解析和应用多种格式的角色卡与世界书文件（PNG、WebP、JSON），兼容 SillyTavern，支持自动解析、关键词触发和动态更新。"
 ---
 
 # Story Roleplay Skills

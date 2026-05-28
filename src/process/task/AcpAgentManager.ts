@@ -45,8 +45,7 @@ import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapabil
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 import { mirrorAcpStreamMessage } from '@process/core/acp';
-import { existsSync } from 'node:fs';
-import os from 'node:os';
+import { resolveHermesBinary } from '@process/agent/hermes/binaryResolver';
 import path from 'node:path';
 
 interface AcpAgentManagerData {
@@ -491,21 +490,6 @@ ${collectedResponses.join('\n')}`;
     };
   }
 
-  private resolveHermesCliPath(): string | undefined {
-    const candidates = [
-      process.env.HERMES_CLI_PATH,
-      path.join(
-        os.homedir(),
-        'hermes-agent-main',
-        '.venv',
-        process.platform === 'win32' ? 'Scripts' : 'bin',
-        process.platform === 'win32' ? 'hermes.exe' : 'hermes'
-      ),
-    ].filter((candidate): candidate is string => Boolean(candidate));
-
-    return candidates.find((candidate) => existsSync(candidate));
-  }
-
   /**
    * Resolve CLI config for a custom agent backend.
    * Looks up assistants config by UUID, falling back to extension-contributed adapters.
@@ -577,7 +561,7 @@ ${collectedResponses.join('\n')}`;
       cliPath = config[data.backend].cliPath;
     }
     if (!cliPath && data.backend === 'hermes') {
-      cliPath = this.resolveHermesCliPath();
+      cliPath = resolveHermesBinary() ?? undefined;
     }
 
     // yoloMode priority: data.yoloMode (from CronService) > config setting

@@ -79,7 +79,7 @@ export class SessionManager {
    */
   async createSession(
     user: IChannelUser,
-    agentType: ChannelAgentType = 'aionrs',
+    agentType: ChannelAgentType = 'lokcli',
     workspace?: string,
     chatId?: string
   ): Promise<IChannelSession> {
@@ -93,7 +93,7 @@ export class SessionManager {
   async createSessionWithConversation(
     user: IChannelUser,
     conversationId: string,
-    agentType: ChannelAgentType = 'aionrs',
+    agentType: ChannelAgentType = 'lokcli',
     workspace?: string,
     chatId?: string
   ): Promise<IChannelSession> {

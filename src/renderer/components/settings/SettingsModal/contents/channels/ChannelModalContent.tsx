@@ -10,8 +10,8 @@ import { channel, webui, type IWebUIStatus } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import LokScrollArea from '@/renderer/components/base/LokScrollArea';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
-import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
-import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
+import type { LokCliModelSelection } from '@/renderer/pages/conversation/platforms/lokcli/useLokCliModelSelection';
+import { useLokCliModelSelection } from '@/renderer/pages/conversation/platforms/lokcli/useLokCliModelSelection';
 import { Input, InputNumber, Message, Select, Switch } from '@arco-design/web-react';
 import { CheckOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -47,19 +47,19 @@ const BUILTIN_CHANNEL_TYPES = new Set(['lark', 'dingtalk', 'weixin', 'wecom']);
 const REMOVED_CHANNEL_TYPES = new Set(['telegram', 'slack', 'discord']);
 
 /**
- * Internal hook: wraps useAionrsModelSelection with configService-backed persistence
+ * Internal hook: wraps useLokCliModelSelection with configService-backed persistence
  * for a specific channel config key (e.g. 'assistant.lark.defaultModel').
  *
  * Restoration is done by resolving the saved model reference into a full
  * TProviderWithModel and passing it as `initialModel` — this avoids triggering
  * the onSelectModel callback (and its toast) on mount.
  */
-const useChannelModelSelection = (configKey: ChannelModelConfigKey): AionrsModelSelection => {
+const useChannelModelSelection = (configKey: ChannelModelConfigKey): LokCliModelSelection => {
   const { t } = useTranslation();
 
   // Resolve persisted model into a full TProviderWithModel for initialModel.
   // useModelProviderList is SWR-backed so the duplicate call inside
-  // useAionrsModelSelection is deduplicated automatically.
+  // useLokCliModelSelection is deduplicated automatically.
   const { providers } = useModelProviderList();
   const [resolvedInitialModel, setResolvedInitialModel] = useState<TProviderWithModel | undefined>(undefined);
   const [restored, setRestored] = useState(false);
@@ -134,7 +134,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): AionrsModel
               customAgentId?: string;
               name?: string;
             }) || {
-              backend: 'aionrs',
+              backend: 'hermes',
             },
             model: modelRef,
           })
@@ -151,7 +151,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): AionrsModel
     [configKey, t]
   );
 
-  return useAionrsModelSelection({
+  return useLokCliModelSelection({
     initialModel: resolvedInitialModel,
     onSelectModel,
   });

@@ -28,7 +28,11 @@ export type UseConversationAgentsResult = {
 function configToAvailableAgent(config: AcpBackendConfig): AvailableAgent {
   const backend = config.presetAgentType || 'hermes';
   const conversationType =
-    backend === 'gemini' ? 'gemini' : backend === 'aionrs' ? 'aionrs' : backend === 'codex' ? 'codex' : 'acp';
+    backend === 'gemini' || backend === 'aionrs' || backend === 'hermes'
+      ? 'lokcli'
+      : backend === 'codex'
+        ? 'codex'
+        : 'acp';
   return {
     backend,
     name: config.name,
