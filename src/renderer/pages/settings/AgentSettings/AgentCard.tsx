@@ -85,11 +85,6 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
               <Typography.Text className='block text-11px text-t-secondary'>
                 {agent.productKey === 'lokcli' ? '内置 LokCLI' : t('settings.agentManagement.detected')}
               </Typography.Text>
-              {agent.isBuiltinRuntime && agent.runtimeKey === 'hermes' ? (
-                <span className='rounded-999px bg-[var(--color-fill-2)] px-6px py-1px text-10px text-t-secondary'>
-                  Hermes Runtime
-                </span>
-              ) : null}
             </div>
           </div>
 

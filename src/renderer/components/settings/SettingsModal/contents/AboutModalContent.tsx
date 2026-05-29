@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import LokModal from '@/renderer/components/base/LokModal';
 import lokLogo from '@/renderer/assets/logos/brand/lok.png';
 import wechatQr from '@/renderer/assets/contact/wechat-qr.jpg';
+import { openExternalUrl } from '@/renderer/utils/platform';
 import { useSettingsViewMode } from '../settingsViewContext';
 
 const PHONE_NUMBER = '13434766647';
@@ -23,17 +24,6 @@ const getOfficialSiteUrl = () => {
 
   const baseHref = window.location.href.split('#')[0];
   return new URL('./official-site/index.html', baseHref).href;
-};
-
-const openBundledPage = (url: string) => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const opened = window.open(url, '_blank', 'noopener,noreferrer');
-  if (!opened) {
-    window.location.assign(url);
-  }
 };
 
 const SettingRow: React.FC<{
@@ -58,16 +48,14 @@ const AboutModalContent: React.FC = () => {
   const [qrLoadFailed, setQrLoadFailed] = React.useState(false);
 
   const handleOpenOfficialSite = React.useCallback(() => {
-    try {
-      openBundledPage(getOfficialSiteUrl());
-    } catch (error) {
+    void openExternalUrl(getOfficialSiteUrl()).catch((error) => {
       console.error('Failed to open official site:', error);
       Message.error(
         t('settings.aboutOpenOfficialSiteFailed', {
-          defaultValue: 'Unable to open the bundled official site page.',
+          defaultValue: 'Unable to open the official site page in your browser.',
         })
       );
-    }
+    });
   }, [t]);
 
   const handleCopyPhoneNumber = React.useCallback(async () => {

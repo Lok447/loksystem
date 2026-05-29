@@ -653,8 +653,8 @@ const ChannelModalContent: React.FC = () => {
   const channels: ChannelConfig[] = useMemo(() => {
     const larkChannel: ChannelConfig = {
       id: 'lark',
-      title: t('settings.channels.larkTitle', 'Lark / Feishu'),
-      description: t('settings.channels.larkDesc', 'Chat with LokSystem assistant via Lark or Feishu'),
+      title: t('settings.channels.larkTitle', 'Feishu'),
+      description: t('settings.channels.larkDesc', 'Reach LokSystem through Feishu or Lark.'),
       status: 'active',
       enabled: larkPluginStatus?.enabled || false,
       disabled: larkEnableLoading,
@@ -672,7 +672,7 @@ const ChannelModalContent: React.FC = () => {
     const dingtalkChannel: ChannelConfig = {
       id: 'dingtalk',
       title: t('settings.channels.dingtalkTitle', 'DingTalk'),
-      description: t('settings.channels.dingtalkDesc', 'Chat with LokSystem assistant via DingTalk'),
+      description: t('settings.channels.dingtalkDesc', 'Reach LokSystem through DingTalk.'),
       status: 'active',
       enabled: dingtalkPluginStatus?.enabled || false,
       disabled: dingtalkEnableLoading,
@@ -690,7 +690,7 @@ const ChannelModalContent: React.FC = () => {
     const weixinChannel: ChannelConfig = {
       id: 'weixin',
       title: t('settings.channels.weixinTitle', 'WeChat'),
-      description: t('settings.channels.weixinDesc', 'Chat with LokSystem assistant via WeChat'),
+      description: t('settings.channels.weixinDesc', 'Reach LokSystem through WeChat.'),
       status: 'active',
       enabled: weixinPluginStatus?.enabled || false,
       disabled: weixinEnableLoading,
@@ -708,7 +708,7 @@ const ChannelModalContent: React.FC = () => {
     const wecomChannel: ChannelConfig = {
       id: 'wecom',
       title: t('settings.channels.wecomTitle', 'WeCom'),
-      description: t('settings.channels.wecomDesc', 'Chat with LokSystem assistant via WeCom (Enterprise WeChat)'),
+      description: t('settings.channels.wecomDesc', 'Reach LokSystem through WeCom.'),
       status: 'active',
       enabled: wecomPluginStatus?.enabled || false,
       disabled: wecomEnableLoading,
