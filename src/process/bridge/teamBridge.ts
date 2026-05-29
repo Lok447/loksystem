@@ -50,6 +50,24 @@ export function initTeamBridge(teamSessionService: TeamSessionService): void {
     })
   );
 
+  ipcBridge.team.getRuntimeDiagnostics.provider(
+    safeProvider(async ({ teamId }) => {
+      return teamSessionService.getRuntimeDiagnostics(teamId);
+    })
+  );
+
+  ipcBridge.team.prepareRecoverySession.provider(
+    safeProvider(async ({ teamId }) => {
+      return teamSessionService.prepareRecoverySession(teamId);
+    })
+  );
+
+  ipcBridge.team.executeRecoveryPlan.provider(
+    safeProvider(async ({ teamId }) => {
+      return teamSessionService.executeRecoveryPlan(teamId);
+    })
+  );
+
   ipcBridge.team.remove.provider(
     safeProvider(async ({ id }) => {
       await teamSessionService.deleteTeam(id);

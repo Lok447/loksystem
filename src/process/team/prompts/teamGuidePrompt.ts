@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// ── Shared decision criteria (single source of truth) ───────────────────────
+import { TeamCapabilityResolver } from '@/common/team/TeamCapabilityResolver';
+import { formatTeamCapabilityGuidance } from './teamCapabilityText';
 
 const EXPLICIT_TEAM_REQUEST_CRITERIA = `- The user explicitly asks to create a Team
 - The user explicitly asks for multiple agents, teammates, or parallel workers
@@ -20,8 +21,6 @@ const STAY_SOLO_CRITERIA = `- Greetings, casual conversation, or general questio
 - Any task you can reasonably complete yourself, even if it takes multiple turns`;
 
 const SOLO_DEFAULT_RULE = `Handle the task yourself in the current chat by default. Do NOT proactively recommend Team just because the work spans multiple files, takes multiple rounds, or would benefit from specialization.`;
-
-// ── Exported prompt builders ────────────────────────────────────────────────
 
 export interface TeamGuidePromptOptions {
   /** Agent backend type, e.g. 'claude', 'gemini', 'codex' */
@@ -44,12 +43,22 @@ export function getTeamGuidePrompt(input?: string | TeamGuidePromptOptions): str
   const opts: TeamGuidePromptOptions = typeof input === 'string' ? { backend: input } : (input ?? {});
   const agentType = opts.backend || 'hermes';
   const rawLabel = opts.leaderLabel?.trim();
-  // When an assistant label is present, keep the backend in parentheses so the
-  // agent still knows which CLI/runtime is in use; fall back to plain backend.
   const leaderCell = rawLabel ? `${rawLabel} (${agentType})` : agentType;
+  const capabilities = TeamCapabilityResolver.resolve(agentType, null);
+  const runtimeFit = formatTeamCapabilityGuidance(capabilities);
+  const staffingHint = capabilities.leaderRecommended
+    ? 'When proposing a Team, keeping this runtime in the Leader role is usually a good default.'
+    : capabilities.workerRecommended
+      ? 'When proposing a Team, this runtime is usually a better fit for specialist teammate roles than the main coordinator.'
+      : 'When proposing a Team, do not assume this runtime should be the coordinator unless the current runtime explicitly supports that pattern.';
+
   return `## Team Mode
 
 You can create a multi-agent Team for the user.
+
+### Current runtime fit
+${runtimeFit}
+${staffingHint}
 
 ### Default behavior
 ${SOLO_DEFAULT_RULE}
@@ -65,21 +74,28 @@ ${STAY_SOLO_CRITERIA}
 
 If case 2 applies, ask at most once whether the user wants to bring in a Team. Keep it brief and optional. If the user says no, ignores it, or prefers solo help, continue solo and do not mention Team again.
 
-### How to proceed when Team is requested or approved (STRICT — follow every step, do NOT skip)
+### How to proceed when Team is requested or approved (STRICT 鈥?follow every step, do NOT skip)
 1. FIRST call \`aion_list_models\` to check available models for each agent type you plan to use.
 2. Explain in one sentence why the Team setup helps this task.
-3. Present a team configuration table: role name, responsibility, agent type, and recommended model (from aion_list_models results) for each member. Example format:
+3. Present a team configuration table: role name, responsibility, agent type, and recommended model (from aion_list_models results) for each member. Prefer leader-recommended runtimes for the coordinator role and worker-recommended runtimes for specialist roles when that guidance is available. Example format:
    | Role | Responsibility | Type | Model |
    | Leader | Coordinate and review | ${leaderCell} | (default) |
    | Developer | Implement features | ${agentType} | (model from list) |
    | Tester | Write and run tests | ${agentType} | (model from list) |
-4. **Output the table as a normal text message and END YOUR TURN.** Do NOT call \`aion_create_team\` or any other tool (including ask_user) in this turn. Wait for the user to reply in their next message with explicit confirmation (e.g. "ok", "go ahead", "确认") before proceeding.
-5. After user confirms → call \`aion_create_team\`. The summary MUST include both the goal and the confirmed team configuration. (The system automatically sets the correct agent type — you do NOT need to pass agentType.)
-6. After \`aion_create_team\` returns → the system navigates to the team page **automatically**. Read the \`next_step\` in the response and follow it. End your turn immediately.
-7. User declines or wants changes → adjust or proceed solo. Do not mention Team again unless the user asks.
+4. **Output the table as a normal text message and END YOUR TURN.** Do NOT call \`aion_create_team\` or any other tool (including ask_user) in this turn. Wait for the user to reply in their next message with explicit confirmation (e.g. "ok", "go ahead", "纭") before proceeding.
+5. After user confirms 鈫?call \`aion_create_team\`. The summary MUST include both the goal and the confirmed team configuration. (The system automatically sets the correct agent type 鈥?you do NOT need to pass agentType.)
+6. After \`aion_create_team\` returns 鈫?the system navigates to the team page **automatically**. Read the \`next_step\` in the response and follow it. End your turn immediately.
+7. User declines or wants changes 鈫?adjust or proceed solo. Do not mention Team again unless the user asks.
+
+### Recovery workflow
+If the user asks to recover a stopped, interrupted, or degraded team runtime:
+1. Call \`aion_prepare_team_recovery\` with the team id first.
+2. Summarize the returned recovery status, mode, blockers, and actions in plain language.
+3. Only call \`aion_execute_team_recovery\` after the user explicitly confirms recovery, unless the user directly instructed you to execute recovery immediately.
+4. After recovery executes, inspect the response and continue coordination from the recovered team state.
 
 ### Tool constraint
-Use **only** \`aion_create_team\` and \`aion_list_models\` for team operations. Do NOT use any built-in or other team/agent creation tools.`;
+Use **only** \`aion_create_team\`, \`aion_list_models\`, \`aion_prepare_team_recovery\`, and \`aion_execute_team_recovery\` for team operations. Do NOT use any built-in or other team/agent creation tools.`;
 }
 
 /**
@@ -94,15 +110,33 @@ export function getCreateTeamToolDescription(): string {
     `- The task is clearly beyond what one agent can reasonably handle well alone, you asked once whether the user wants a Team, and the user explicitly agreed.\n` +
     `Do NOT use just because the task is substantial, multi-file, iterative, or would benefit from specialization.\n` +
     `\n` +
-    `PRECONDITIONS (all must be true before calling — NEVER skip):\n` +
+    `PRECONDITIONS (all must be true before calling 鈥?NEVER skip):\n` +
     `1. Either the user explicitly asked for a Team, or the user explicitly accepted your one optional Team question for an exceptionally hard task.\n` +
     `2. You presented a team configuration (roles, responsibilities, agent types) to the user.\n` +
-    `3. The user explicitly confirmed in a PREVIOUS message (e.g. "ok", "go ahead", "确认").\n` +
-    `If ANY condition is not met, do NOT call this tool — present the configuration and wait.\n` +
+    `3. The user explicitly confirmed in a PREVIOUS message (e.g. "ok", "go ahead", "纭").\n` +
+    `If ANY condition is not met, do NOT call this tool 鈥?present the configuration and wait.\n` +
     `\n` +
-    `This is the ONLY way to create teams — do NOT use any built-in or other team/agent tools.\n` +
+    `This is the ONLY way to create teams 鈥?do NOT use any built-in or other team/agent tools.\n` +
     `The summary MUST include both the task goal and the confirmed team member roles.\n` +
     `\n` +
     `IMPORTANT: The system navigates to the team page automatically after creation. Read the response and follow the next_step instructions.`
+  );
+}
+
+export function getPrepareRecoveryToolDescription(): string {
+  return (
+    `Inspect the persisted team runtime state and prepare a recovery plan.\n` +
+    `\n` +
+    `Use this when the user wants to recover, inspect, or resume a team whose runtime may have stopped, degraded, or been interrupted.\n` +
+    `Always call this BEFORE attempting recovery execution so you can explain the status, replay mode, blockers, and next step.`
+  );
+}
+
+export function getExecuteRecoveryToolDescription(): string {
+  return (
+    `Execute the prepared team runtime recovery plan.\n` +
+    `\n` +
+    `Use this only after recovery has been prepared and the user explicitly confirmed that recovery should proceed, unless the user directly instructed immediate recovery.\n` +
+    `The tool may rebuild a legacy mailbox runtime or a Hermes-native replay shell depending on the persisted recovery plan.`
   );
 }

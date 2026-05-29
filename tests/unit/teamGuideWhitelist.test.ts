@@ -83,6 +83,8 @@ describe('team guide MCP injection capability check', () => {
     it('keeps solo work as the default and limits proactive team escalation', () => {
       const prompt = getTeamGuidePrompt('hermes');
 
+      expect(prompt).toContain('### Current runtime fit');
+      expect(prompt).toContain('leader recommended');
       expect(prompt).toContain('Handle the task yourself in the current chat by default.');
       expect(prompt).toContain('ask at most once whether the user wants to bring in a Team');
       expect(prompt).toContain('| Leader | Coordinate and review | hermes |');
@@ -100,6 +102,8 @@ describe('team guide MCP injection capability check', () => {
 
     it('accepts a legacy string backend for backward compatibility', () => {
       const prompt = getTeamGuidePrompt('qwen');
+      expect(prompt).toContain('### Current runtime fit');
+      expect(prompt).toContain('not enabled in the current runtime');
       expect(prompt).toContain('| Leader | Coordinate and review | qwen |');
     });
 

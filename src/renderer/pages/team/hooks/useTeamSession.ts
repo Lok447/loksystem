@@ -56,6 +56,19 @@ export function useTeamSession(team: TTeam) {
     });
   }, [team.id, mutateTeam]);
 
+  useEffect(() => {
+    if (!team.id) return;
+
+    // Pre-warm the team execution session when the team page opens so the
+    // leader runtime is already booting before the first user message arrives.
+    void getRendererCoreClient().teams.ensureSession(team.id).catch((error) => {
+      console.warn('[useTeamSession] Failed to pre-warm team session:', {
+        teamId: team.id,
+        error,
+      });
+    });
+  }, [team.id]);
+
   const sendMessage = useCallback(
     async (content: string) => {
       await getRendererCoreClient().teams.sendMessage({ teamId: team.id, content });

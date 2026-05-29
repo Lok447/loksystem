@@ -1,6 +1,9 @@
 // src/process/team/TaskManager.ts
 import type { ITeamRepository } from './repository/ITeamRepository';
 import type { TeamTask } from './types';
+import type { ProtocolEventSink } from '@process/team-runtime/protocol';
+import type { GatewayEventSink, GatewayWorkerEventType } from '@process/team-runtime/gateway';
+import type { GatewayRuntimeSnapshot } from '@process/team-runtime/gateway';
 
 /** Parameters for creating a new task */
 type CreateTaskParams = {
@@ -24,7 +27,173 @@ type UpdateTaskParams = {
  * Maintains bidirectional links between tasks via `blockedBy` / `blocks`.
  */
 export class TaskManager {
-  constructor(private readonly repo: ITeamRepository) {}
+  constructor(
+    private readonly repo: ITeamRepository,
+    private readonly protocolEventSink?: ProtocolEventSink,
+    private readonly gatewayEventSink?: GatewayEventSink,
+    private readonly resolveWorkerBackend?: (slotId?: string) => string | undefined,
+    private readonly resolveGatewayRuntime?: (slotId?: string) => GatewayRuntimeSnapshot | null
+  ) {}
+
+  private isGatewayBackend(slotId?: string): boolean {
+    return this.resolveWorkerBackend?.(slotId) === 'openclaw-gateway';
+  }
+
+  private getGatewayRuntime(slotId?: string): GatewayRuntimeSnapshot | null {
+    return this.resolveGatewayRuntime?.(slotId) ?? null;
+  }
+
+  private async emitDispatch(task: TeamTask): Promise<void> {
+    if (this.isGatewayBackend(task.owner)) {
+      const runtime = this.getGatewayRuntime(task.owner);
+      await this.gatewayEventSink?.emit('dispatch', {
+        slotId: task.owner,
+        taskId: task.id,
+        subject: task.subject,
+        owner: task.owner,
+        workerBackend: this.resolveWorkerBackend?.(task.owner),
+        gatewaySessionId: runtime?.gatewaySessionId,
+        lifecycleState: runtime?.lifecycleState ?? 'connecting',
+        runtimeStatus: runtime?.runtimeStatus,
+        message: `Gateway task dispatched: ${task.subject}`,
+        recoveryHint: task.owner ? 'Wait for gateway worker session to connect and acknowledge the task.' : undefined,
+        details: {
+          statusReason: runtime?.statusReason,
+        },
+      });
+      return;
+    }
+
+    await this.protocolEventSink?.emit('dispatch', {
+      slotId: task.owner,
+      taskId: task.id,
+      subject: task.subject,
+      owner: task.owner,
+      ownershipStatus: task.owner ? 'assigned' : 'unassigned',
+      taskStatus: task.status,
+      message: `Task dispatched: ${task.subject}`,
+      leaderSummary: task.owner
+        ? `Leader assigned "${task.subject}" to ${task.owner}.`
+        : `Leader created unassigned task "${task.subject}".`,
+      details: {
+        owner: task.owner,
+        blockedBy: task.blockedBy,
+      },
+    });
+  }
+
+  private async emitProgress(task: TeamTask): Promise<void> {
+    if (this.isGatewayBackend(task.owner)) {
+      const runtime = this.getGatewayRuntime(task.owner);
+      await this.gatewayEventSink?.emit('progress', {
+        slotId: task.owner,
+        taskId: task.id,
+        subject: task.subject,
+        owner: task.owner,
+        workerBackend: this.resolveWorkerBackend?.(task.owner),
+        gatewaySessionId: runtime?.gatewaySessionId,
+        lifecycleState: runtime?.lifecycleState ?? (runtime?.hasActiveSession ? 'session_active' : 'connected'),
+        runtimeStatus: runtime?.runtimeStatus,
+        message: `Gateway task in progress: ${task.subject}`,
+        details: {
+          statusReason: runtime?.statusReason,
+        },
+      });
+      return;
+    }
+
+    await this.protocolEventSink?.emit('progress', {
+      slotId: task.owner,
+      taskId: task.id,
+      subject: task.subject,
+      owner: task.owner,
+      ownershipStatus: task.owner ? 'assigned' : 'unassigned',
+      taskStatus: task.status,
+      message: `Task in progress: ${task.subject}`,
+      leaderSummary: task.owner
+        ? `${task.owner} is actively working on "${task.subject}".`
+        : `"${task.subject}" is now in progress.`,
+      details: {
+        owner: task.owner,
+      },
+    });
+  }
+
+  private async emitComplete(task: TeamTask): Promise<void> {
+    if (this.isGatewayBackend(task.owner)) {
+      const runtime = this.getGatewayRuntime(task.owner);
+      await this.gatewayEventSink?.emit('complete', {
+        slotId: task.owner,
+        taskId: task.id,
+        subject: task.subject,
+        owner: task.owner,
+        workerBackend: this.resolveWorkerBackend?.(task.owner),
+        gatewaySessionId: runtime?.gatewaySessionId,
+        lifecycleState: 'completed',
+        runtimeStatus: runtime?.runtimeStatus,
+        message: `Gateway task completed: ${task.subject}`,
+      });
+      return;
+    }
+
+    await this.protocolEventSink?.emit('complete', {
+      slotId: task.owner,
+      taskId: task.id,
+      subject: task.subject,
+      owner: task.owner,
+      ownershipStatus: task.owner ? 'assigned' : 'unassigned',
+      taskStatus: task.status,
+      message: `Task completed: ${task.subject}`,
+      leaderSummary: task.owner
+        ? `${task.owner} completed "${task.subject}".`
+        : `"${task.subject}" was completed.`,
+      details: {
+        owner: task.owner,
+      },
+    });
+  }
+
+  private async emitFailure(task: TeamTask, message: string): Promise<void> {
+    if (this.isGatewayBackend(task.owner)) {
+      const runtime = this.getGatewayRuntime(task.owner);
+      await this.gatewayEventSink?.emit('fail', {
+        slotId: task.owner,
+        taskId: task.id,
+        subject: task.subject,
+        owner: task.owner,
+        workerBackend: this.resolveWorkerBackend?.(task.owner),
+        gatewaySessionId: runtime?.gatewaySessionId,
+        lifecycleState: runtime?.lifecycleState ?? 'failed',
+        runtimeStatus: runtime?.runtimeStatus,
+        recoveryAction: 'replay_gateway_session',
+        recoveryMode: 'gateway_replay',
+        recoveryHint: 'Gateway worker should reconnect before the task is redispatched.',
+        message,
+        level: 'warning',
+        details: {
+          statusReason: runtime?.statusReason,
+        },
+      });
+      return;
+    }
+
+    await this.protocolEventSink?.emit('fail', {
+      slotId: task.owner,
+      taskId: task.id,
+      subject: task.subject,
+      owner: task.owner,
+      ownershipStatus: task.owner ? 'assigned' : 'unassigned',
+      taskStatus: task.status,
+      recoveryAction: 'restart_runtime',
+      message,
+      leaderSummary: `"${task.subject}" was removed from the active task graph.`,
+      recoveryHint: 'Leader should review whether the task needs to be recreated or reassigned.',
+      details: {
+        owner: task.owner,
+      },
+      level: 'warning',
+    });
+  }
 
   /**
    * Create a new task. Auto-generates ID and timestamps.
@@ -54,6 +223,8 @@ export class TaskManager {
       await Promise.all(created.blockedBy.map((upstreamId) => this.repo.appendToBlocks(upstreamId, created.id)));
     }
 
+    await this.emitDispatch(created);
+
     return created;
   }
 
@@ -61,10 +232,20 @@ export class TaskManager {
    * Update a task. Auto-updates `updatedAt`. Returns the merged task.
    */
   async update(taskId: string, updates: UpdateTaskParams): Promise<TeamTask> {
-    return this.repo.updateTask(taskId, {
+    const updated = await this.repo.updateTask(taskId, {
       ...updates,
       updatedAt: Date.now(),
     });
+
+    if (updates.status === 'in_progress') {
+      await this.emitProgress(updated);
+    } else if (updates.status === 'completed') {
+      await this.emitComplete(updated);
+    } else if (updates.status === 'deleted') {
+      await this.emitFailure(updated, `Task removed: ${updated.subject}`);
+    }
+
+    return updated;
   }
 
   /**
@@ -104,7 +285,7 @@ export class TaskManager {
     }
 
     const reassignedAt = Date.now();
-    return Promise.all(
+    const reassigned = await Promise.all(
       reassignableTasks.map((task) =>
         this.repo.updateTask(task.id, {
           owner: toOwnerId,
@@ -119,6 +300,71 @@ export class TaskManager {
         })
       )
     );
+
+    await Promise.all(
+      reassigned.map(async (task) => {
+        if (this.isGatewayBackend(task.owner ?? toOwnerId ?? fromOwnerId)) {
+          const runtime = this.getGatewayRuntime(task.owner ?? toOwnerId);
+          await this.gatewayEventSink?.emit('recover', {
+            slotId: task.owner ?? toOwnerId,
+            taskId: task.id,
+            subject: task.subject,
+            owner: task.owner,
+            workerBackend: this.resolveWorkerBackend?.(task.owner ?? toOwnerId),
+            gatewaySessionId: runtime?.gatewaySessionId,
+            lifecycleState: runtime?.lifecycleState ?? 'recovering',
+            runtimeStatus: runtime?.runtimeStatus,
+            recoveryAction: 'replay_gateway_session',
+            recoveryMode: 'gateway_replay',
+            recoveryHint: 'Leader should rebuild gateway session state before redispatching the task.',
+            message: `Gateway task reassigned: ${task.subject}`,
+            level: 'warning',
+            details: {
+              fromOwnerId,
+              toOwnerId,
+              reason,
+              statusReason: runtime?.statusReason,
+            },
+          });
+          return;
+        }
+
+        await this.protocolEventSink?.emit('reassign', {
+          slotId: task.owner,
+          taskId: task.id,
+          subject: task.subject,
+          owner: task.owner,
+          fromOwnerId,
+          toOwnerId,
+          ownershipStatus: toOwnerId
+            ? toOwnerId === task.owner && toOwnerId !== fromOwnerId
+              ? 'reassigned'
+              : 'assigned'
+            : 'unassigned',
+          taskStatus: task.status,
+          recoveryAction:
+            reason === 'member_crashed' || reason === 'member_inactive' ? 'replay_protocol_coordination' : undefined,
+          recoveryMode: reason === 'member_crashed' || reason === 'member_inactive' ? 'protocol_replay' : undefined,
+          message: `Task reassigned: ${task.subject}`,
+          leaderSummary: toOwnerId
+            ? `Leader reassigned "${task.subject}" from ${fromOwnerId} to ${toOwnerId}.`
+            : `Leader unassigned "${task.subject}" from ${fromOwnerId}.`,
+          recoveryHint:
+            reason === 'member_crashed' || reason === 'member_inactive'
+              ? 'Leader should review the reassigned task and decide whether to retry or replace the worker.'
+              : undefined,
+          details: {
+            owner: task.owner,
+            fromOwnerId,
+            toOwnerId,
+            reason,
+          },
+          level: 'warning',
+        });
+      })
+    );
+
+    return reassigned;
   }
 
   /**

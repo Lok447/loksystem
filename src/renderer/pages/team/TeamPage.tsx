@@ -1,5 +1,5 @@
 import { Message, Modal, Spin } from '@arco-design/web-react';
-import { CloseSmall, FullScreen, Left, OffScreen, Right } from '@icon-park/react';
+import { CloseSmall, FullScreen, Left, OffScreen, Right, Down, Up } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR, { useSWRConfig } from 'swr';
@@ -17,6 +17,8 @@ import { useLokCliModelSelection } from '@/renderer/pages/conversation/platforms
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import TeamAgentIdentity from './components/TeamAgentIdentity';
+import TeamExecutionOverview from './components/TeamExecutionOverview';
+import AddTeamMemberModal from './components/AddTeamMemberModal';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
@@ -159,6 +161,7 @@ const AgentChatSlot: React.FC<{
 /** Inner component that reads active tab from context and renders the chat layout */
 const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam }) => {
   const { t } = useTranslation();
+  const { addAgent } = useTeamSession(team);
   const { agents, activeSlotId, statusMap, switchTab } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
 
@@ -167,6 +170,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
   const [fullscreenSlotId, setFullscreenSlotId] = useState<string | null>(null);
+  const [showExecutionOverview, setShowExecutionOverview] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
 
   const activeAgent = agents.find((a) => a.slotId === activeSlotId);
   const leadAgent = agents.find((a) => a.role === 'leader');
@@ -337,8 +342,34 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   }, [agents, pendingCounts]);
 
   const tabsSlot = useMemo(
-    () => <TeamTabs onTabClick={handleTabClick} pendingCounts={slotPendingCounts} />,
-    [handleTabClick, slotPendingCounts]
+    () =>
+      agents.length > 1 ? <TeamTabs onTabClick={handleTabClick} pendingCounts={slotPendingCounts} /> : undefined,
+    [agents.length, handleTabClick, slotPendingCounts]
+  );
+
+  const headerExtra = useMemo(
+    () => (
+      <div className='flex items-center gap-8px'>
+        <button
+          type='button'
+          data-testid='team-add-member-toggle'
+          className='flex items-center gap-6px rounded-full border border-solid border-[color:var(--border-base)] bg-[var(--color-bg-1)] px-10px py-6px text-12px text-[color:var(--color-text-2)] transition-colors hover:bg-[var(--color-fill-1)] hover:text-[color:var(--color-text-1)]'
+          onClick={() => setShowAddMemberModal(true)}
+        >
+          <span>{t('team.memberAdd.trigger', { defaultValue: 'Add Member' })}</span>
+        </button>
+        <button
+          type='button'
+          data-testid='team-execution-overview-toggle'
+          className='flex items-center gap-6px rounded-full border border-solid border-[color:var(--border-base)] bg-[var(--color-bg-1)] px-10px py-6px text-12px text-[color:var(--color-text-2)] transition-colors hover:bg-[var(--color-fill-1)] hover:text-[color:var(--color-text-1)]'
+          onClick={() => setShowExecutionOverview((value) => !value)}
+        >
+          <span>{t('team.runtime.executionOverviewToggle', { defaultValue: 'Execution Overview' })}</span>
+          {showExecutionOverview ? <Up size='14' fill='currentColor' /> : <Down size='14' fill='currentColor' />}
+        </button>
+      </div>
+    ),
+    [showExecutionOverview, t]
   );
 
   return (
@@ -359,7 +390,14 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
         agentName={undefined}
         workspacePath={effectiveWorkspace}
         onRenameTitle={onRenameTeam}
+        headerExtra={headerExtra}
       >
+        <AddTeamMemberModal
+          visible={showAddMemberModal}
+          team={team}
+          onClose={() => setShowAddMemberModal(false)}
+          onAdd={addAgent}
+        />
         <div className='relative flex h-full'>
           {fullscreenSlotId ? (
             // Fullscreen: single agent fills the entire content area
@@ -401,37 +439,39 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                 className='flex h-full w-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
                 style={{ scrollSnapType: 'x proximity' }}
               >
-                {agents.map((agent) => {
-                  const isSingle = agents.length <= 2;
-                  const isLeaderSlot = agent.slotId === leadAgent?.slotId;
-                  return (
-                    <div
-                      key={agent.slotId}
-                      ref={(el) => {
-                        agentRefs.current[agent.slotId] = el;
-                      }}
-                      className='relative h-full border-r border-solid border-[color:var(--border-base)]'
-                      style={{
-                        // Always flex-grow to fill available space; each slot starts at 400px
-                        // basis so the layout is stable, but spare room is distributed evenly
-                        // instead of leaving empty gaps to the right. When the team is wider
-                        // than the viewport we preserve the 400px floor (prevents shrinking
-                        // into unreadable cards) so horizontal scroll kicks in naturally.
-                        flex: '1 1 400px',
-                        minWidth: isSingle ? '240px' : '400px',
-                        scrollSnapAlign: 'start',
-                      }}
-                    >
-                      <AgentChatSlot
-                        agent={agent}
-                        teamId={team.id}
-                        isLeader={isLeaderSlot}
-                        onToggleFullscreen={() => setFullscreenSlotId(agent.slotId)}
-                        onRemove={() => handleRemoveAgent(agent.slotId)}
-                      />
-                    </div>
-                  );
-                })}
+                <div className='flex h-full min-w-full flex-col'>
+                  {showExecutionOverview ? (
+                    <TeamExecutionOverview teamId={team.id} agents={agents} />
+                  ) : null}
+                  <div className='flex min-h-0 flex-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none]'>
+                    {agents.map((agent) => {
+                      const isSingle = agents.length <= 2;
+                      const isLeaderSlot = agent.slotId === leadAgent?.slotId;
+                      return (
+                        <div
+                          key={agent.slotId}
+                          ref={(el) => {
+                            agentRefs.current[agent.slotId] = el;
+                          }}
+                          className='relative h-full border-r border-solid border-[color:var(--border-base)]'
+                          style={{
+                            flex: '1 1 400px',
+                            minWidth: isSingle ? '240px' : '400px',
+                            scrollSnapAlign: 'start',
+                          }}
+                        >
+                          <AgentChatSlot
+                            agent={agent}
+                            teamId={team.id}
+                            isLeader={isLeaderSlot}
+                            onToggleFullscreen={() => setFullscreenSlotId(agent.slotId)}
+                            onRemove={() => handleRemoveAgent(agent.slotId)}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
               {showRightArrow && (
                 <div

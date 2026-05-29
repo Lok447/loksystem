@@ -217,6 +217,10 @@ export interface IConfigStorageRefer {
   'ambient.bubblePosition'?: { x: number; y: number; displayId: number };
   /** M3 placeholder: latest core task runtime records before moving to a DB table. */
   'core.taskRuntime.records'?: Record<string, unknown>;
+  /** Team runtime routing mode for Hermes native orchestration experiments. */
+  'team.runtime.hermesNativeRouting'?: 'off' | 'shadow' | 'enabled';
+  'team.runtime.gatewayNativeResume'?: 'off' | 'enabled';
+  'team.capabilityOverrides'?: Record<string, Record<string, unknown>>;
 }
 
 export interface IEnvStorageRefer {

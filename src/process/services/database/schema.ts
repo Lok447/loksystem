@@ -5,6 +5,7 @@
  */
 
 import type { ISqliteDriver } from './drivers/ISqliteDriver';
+import { ensureTeamRuntimeDiagnosticsSchema } from '@process/team-runtime/diagnostics/sqliteSchema';
 
 /**
  * Initialize database schema with all tables and indexes
@@ -108,6 +109,8 @@ export function initSchema(db: ISqliteDriver): void {
     workspace_mode TEXT NOT NULL DEFAULT 'shared',
     lead_agent_id TEXT NOT NULL DEFAULT '',
     agents TEXT NOT NULL DEFAULT '[]',
+    orchestration_mode TEXT,
+    execution_engine TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -147,6 +150,8 @@ export function initSchema(db: ISqliteDriver): void {
   )`);
   db.exec('CREATE INDEX IF NOT EXISTS idx_tasks_team ON team_tasks(team_id, status)');
 
+  ensureTeamRuntimeDiagnosticsSchema(db);
+
   console.log('[Database] Schema initialized successfully');
 }
 
@@ -175,4 +180,4 @@ export function setDatabaseVersion(db: ISqliteDriver, version: number): void {
  * Current database schema version
  * Update this when adding new migrations in migrations.ts
  */
-export const CURRENT_DB_VERSION = 28;
+export const CURRENT_DB_VERSION = 30;

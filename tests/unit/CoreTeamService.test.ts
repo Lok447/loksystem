@@ -19,6 +19,9 @@ describe('CoreTeamService', () => {
     renameTeam: vi.fn(),
     setSessionMode: vi.fn(),
     updateWorkspace: vi.fn(),
+    getRuntimeDiagnostics: vi.fn(),
+    prepareRecoverySession: vi.fn(),
+    executeRecoveryPlan: vi.fn(),
     getOrStartSession: vi.fn(),
     stopSession: vi.fn(),
   } as unknown as TeamSessionService;
@@ -123,5 +126,123 @@ describe('CoreTeamService', () => {
 
     expect(teamSessionService.getOrStartSession).toHaveBeenCalledWith('team-1');
     expect(teamSessionService.stopSession).toHaveBeenCalledWith('team-1');
+  });
+
+  it('delegates runtime diagnostics lookup', async () => {
+    vi.mocked((teamSessionService as any).getRuntimeDiagnostics).mockResolvedValue({
+      teamId: 'team-1',
+      capturedAt: 1,
+      executionInfo: {
+        teamId: 'team-1',
+        executionKind: 'legacy_mailbox',
+        orchestrationMode: 'legacy_mailbox',
+        state: 'running',
+      },
+      degradedMembers: [],
+      taskDiagnostics: {
+        pending: 0,
+        inProgress: 0,
+        completed: 0,
+        waiting: [],
+      },
+      timeline: [],
+      summary: ['execution_kind:legacy_mailbox'],
+    });
+    const service = new CoreTeamService(teamSessionService);
+
+    await expect(service.getRuntimeDiagnostics('team-1')).resolves.toEqual({
+      success: true,
+      data: {
+        teamId: 'team-1',
+        capturedAt: 1,
+        executionInfo: {
+          teamId: 'team-1',
+          executionKind: 'legacy_mailbox',
+          orchestrationMode: 'legacy_mailbox',
+          state: 'running',
+        },
+        degradedMembers: [],
+        taskDiagnostics: {
+          pending: 0,
+          inProgress: 0,
+          completed: 0,
+          waiting: [],
+        },
+        timeline: [],
+        summary: ['execution_kind:legacy_mailbox'],
+      },
+    });
+    expect((teamSessionService as any).getRuntimeDiagnostics).toHaveBeenCalledWith('team-1');
+  });
+
+  it('delegates recovery preparation and execution', async () => {
+    vi.mocked((teamSessionService as any).prepareRecoverySession).mockResolvedValue({
+      teamId: 'team-1',
+      executionInfo: {
+        teamId: 'team-1',
+        executionKind: 'legacy_mailbox',
+        orchestrationMode: 'legacy_mailbox',
+        state: 'stopped',
+      },
+      recoveryPlan: {
+        status: 'ready_for_replay',
+        mode: 'mailbox_replay',
+        steps: [],
+        blockers: [],
+        summary: ['recovery_plan:mailbox_replay'],
+      },
+      diagnostics: null,
+    });
+    vi.mocked((teamSessionService as any).executeRecoveryPlan).mockResolvedValue({
+      teamId: 'team-1',
+      status: 'executed',
+      executionInfo: {
+        teamId: 'team-1',
+        executionKind: 'legacy_mailbox',
+        orchestrationMode: 'legacy_mailbox',
+        state: 'running',
+      },
+      recoveryPlan: {
+        status: 'ready_for_replay',
+        mode: 'mailbox_replay',
+        steps: [],
+        blockers: [],
+        summary: ['recovery_plan:mailbox_replay'],
+      },
+      diagnostics: null,
+      actionsApplied: ['rebuild_mailbox_runtime', 'replay_mailbox_messages'],
+    });
+    const listener = vi.fn();
+    const unsubscribe = coreEventBus.on(listener);
+    const service = new CoreTeamService(teamSessionService);
+
+    await expect(service.prepareRecoverySession('team-1')).resolves.toEqual({
+      success: true,
+      data: expect.objectContaining({
+        teamId: 'team-1',
+        recoveryPlan: expect.objectContaining({
+          status: 'ready_for_replay',
+        }),
+      }),
+    });
+    await expect(service.executeRecoveryPlan('team-1')).resolves.toEqual({
+      success: true,
+      data: expect.objectContaining({
+        teamId: 'team-1',
+        status: 'executed',
+        actionsApplied: ['rebuild_mailbox_runtime', 'replay_mailbox_messages'],
+      }),
+    });
+    unsubscribe();
+
+    expect((teamSessionService as any).prepareRecoverySession).toHaveBeenCalledWith('team-1');
+    expect((teamSessionService as any).executeRecoveryPlan).toHaveBeenCalledWith('team-1');
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: 'team',
+        type: 'team.runtime.updated',
+        data: expect.objectContaining({ action: 'recovery_executed', teamId: 'team-1' }),
+      })
+    );
   });
 });

@@ -1,46 +1,48 @@
-// src/common/types/teamTypes.ts
 // Shared team types used by both main process and renderer.
 // Renderer code should import from here instead of @process/team/types.
 
 import type { AcpInitializeResult } from './acpTypes';
+import {
+  TeamCapabilityResolver,
+  type TeamBackendCapabilities,
+  type TeamCapabilityOverrides,
+  type TeamBackendMaturity,
+  type TeamExecutionKind,
+  type TeamRecommendedMode,
+} from '@/common/team/TeamCapabilityResolver';
 
-/**
- * Backends known to support team mode without needing a cached initialize result.
- * These are hardcoded so that team creation works even before the first conversation
- * populates cachedInitializeResult (e.g. right after an upgrade).
- *
- * TODO: temporary workaround — remove once cachedInitializeResult is populated
- * eagerly (e.g. at app startup or first backend detection) instead of lazily
- * after the first user conversation.
- */
-const KNOWN_TEAM_CAPABLE_BACKENDS = new Set(['hermes', 'codex']);
-const DISABLED_TEAM_BACKENDS = new Set(['aionrs', 'claude', 'gemini']);
+export type { TeamExecutionKind, TeamRecommendedMode, TeamBackendMaturity, TeamBackendCapabilities, TeamCapabilityOverrides };
 
-/**
- * Check if an agent backend is team-capable.
- * Known backends (hermes, codex) are always team-capable.
- * Other ACP agents are team-capable when their cached initialize response includes mcpCapabilities.stdio.
- */
-export function isTeamCapableBackend(
+export function getTeamBackendCapabilities(
   backend: string,
-  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined
-): boolean {
-  if (DISABLED_TEAM_BACKENDS.has(backend)) return false;
-  if (KNOWN_TEAM_CAPABLE_BACKENDS.has(backend)) return true;
-  const initResult = cachedInitResults?.[backend];
-  return initResult?.capabilities.mcpCapabilities.stdio === true;
+  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined,
+  overrides?: TeamCapabilityOverrides | null
+): TeamBackendCapabilities {
+  return TeamCapabilityResolver.resolve(backend, cachedInitResults, overrides);
 }
 
 /**
- * Get all team-capable backends from cached initialize results.
- * ACP backends included if their cached
- * initialize result shows mcpCapabilities.stdio === true.
+ * Conservative check used by the current team runtime.
+ * Phase 0 exposes richer capability data without enabling future gateway/managed
+ * modes in the existing implementation yet.
+ */
+export function isTeamCapableBackend(
+  backend: string,
+  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined,
+  overrides?: TeamCapabilityOverrides | null
+): boolean {
+  return TeamCapabilityResolver.isCurrentlySupported(backend, cachedInitResults, overrides);
+}
+
+/**
+ * Get backends that are currently selectable by the existing team runtime.
  */
 export function getTeamCapableBackends(
   detectedBackends: string[],
-  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined
+  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined,
+  overrides?: TeamCapabilityOverrides | null
 ): string[] {
-  return detectedBackends.filter((b) => isTeamCapableBackend(b, cachedInitResults));
+  return TeamCapabilityResolver.getCurrentlySupportedBackends(detectedBackends, cachedInitResults, overrides);
 }
 
 /** Role of a teammate within a team */
@@ -51,6 +53,15 @@ export type TeammateStatus = 'pending' | 'idle' | 'active' | 'completed' | 'fail
 
 /** Workspace sharing strategy for the team */
 export type WorkspaceMode = 'shared' | 'isolated';
+
+export type TeamOrchestrationMode =
+  | 'native_orchestrator'
+  | 'protocol_coordinated'
+  | 'gateway_coordinated'
+  | 'managed_mailbox'
+  | 'legacy_mailbox';
+
+export type TeamExecutionEngineId = 'legacy_mailbox' | 'hermes_native' | 'protocol' | 'gateway' | 'managed';
 
 /** Persisted agent configuration within a team */
 export type TeamAgent = {
@@ -75,6 +86,8 @@ export type TTeam = {
   workspaceMode: WorkspaceMode;
   leaderAgentId: string;
   agents: TeamAgent[];
+  orchestrationMode?: TeamOrchestrationMode;
+  executionEngine?: TeamExecutionEngineId;
   /** Current session permission mode (e.g. 'plan', 'auto'). Persisted so newly spawned agents inherit it. */
   sessionMode?: string;
   createdAt: number;

@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TaskManager } from '@process/team/TaskManager';
 import type { ITeamRepository } from '@process/team/repository/ITeamRepository';
 import type { TeamTask } from '@process/team/types';
+import type { ProtocolEventSink } from '@process/team-runtime/protocol';
+import type { GatewayEventSink, GatewayRuntimeSnapshot } from '@process/team-runtime/gateway';
 
 function makeTask(overrides: Partial<TeamTask> = {}): TeamTask {
   return {
@@ -49,10 +51,26 @@ function makeRepo(): ITeamRepository {
 describe('TaskManager', () => {
   let repo: ITeamRepository;
   let taskManager: TaskManager;
+  let protocolEventSink: ProtocolEventSink;
+  let gatewayEventSink: GatewayEventSink;
+  let gatewayRuntime: GatewayRuntimeSnapshot | null;
 
   beforeEach(() => {
     repo = makeRepo();
-    taskManager = new TaskManager(repo);
+    protocolEventSink = {
+      emit: vi.fn().mockResolvedValue(undefined),
+    };
+    gatewayEventSink = {
+      emit: vi.fn().mockResolvedValue(undefined),
+    };
+    gatewayRuntime = null;
+    taskManager = new TaskManager(
+      repo,
+      protocolEventSink,
+      gatewayEventSink,
+      (slotId) => (slotId === 'slot-gateway' ? 'openclaw-gateway' : 'codex'),
+      (slotId) => (slotId === 'slot-gateway' ? gatewayRuntime : null)
+    );
     vi.clearAllMocks();
   });
 
@@ -87,6 +105,45 @@ describe('TaskManager', () => {
 
       const arg = vi.mocked(repo.createTask).mock.calls[0][0];
       expect(arg.owner).toBe('slot-1');
+      expect(protocolEventSink.emit).toHaveBeenCalledWith(
+        'dispatch',
+        expect.objectContaining({
+          owner: 'slot-1',
+          leaderSummary: expect.stringContaining('slot-1'),
+        })
+      );
+    });
+
+    it('emits gateway dispatch with runtime session semantics for openclaw workers', async () => {
+      gatewayRuntime = {
+        slotId: 'slot-gateway',
+        conversationId: 'conv-gateway',
+        workerBackend: 'openclaw-gateway',
+        gatewaySessionId: 'sess-123',
+        managerStatus: 'running',
+        isConnected: true,
+        hasActiveSession: true,
+        runtimeStatus: 'session_active',
+        lifecycleState: 'session_active',
+        statusReason: 'gateway_session_active',
+      };
+      const createdTask = makeTask({ owner: 'slot-gateway', subject: 'Gateway task' });
+      vi.mocked(repo.createTask).mockResolvedValue(createdTask);
+
+      await taskManager.create({ teamId: 'team-1', subject: 'Gateway task', owner: 'slot-gateway' });
+
+      expect(gatewayEventSink.emit).toHaveBeenCalledWith(
+        'dispatch',
+        expect.objectContaining({
+          slotId: 'slot-gateway',
+          gatewaySessionId: 'sess-123',
+          lifecycleState: 'session_active',
+          runtimeStatus: 'session_active',
+          details: expect.objectContaining({
+            statusReason: 'gateway_session_active',
+          }),
+        })
+      );
     });
 
     it('creates task without blockedBy when not provided', async () => {
@@ -151,6 +208,59 @@ describe('TaskManager', () => {
       await taskManager.update('task-1', { owner: 'slot-2' });
 
       expect(repo.updateTask).toHaveBeenCalledWith('task-1', expect.objectContaining({ owner: 'slot-2' }));
+    });
+
+    it('emits structured progress and completion protocol events', async () => {
+      const task = makeTask({ id: 'task-1', owner: 'slot-2', subject: 'Build feature', status: 'in_progress' });
+      vi.mocked(repo.updateTask).mockResolvedValue(task);
+
+      await taskManager.update('task-1', { status: 'in_progress' });
+      expect(protocolEventSink.emit).toHaveBeenCalledWith(
+        'progress',
+        expect.objectContaining({
+          owner: 'slot-2',
+          leaderSummary: expect.stringContaining('slot-2'),
+        })
+      );
+
+      vi.mocked(repo.updateTask).mockResolvedValue({ ...task, status: 'completed' });
+      await taskManager.update('task-1', { status: 'completed' });
+      expect(protocolEventSink.emit).toHaveBeenCalledWith(
+        'complete',
+        expect.objectContaining({
+          owner: 'slot-2',
+          leaderSummary: expect.stringContaining('completed'),
+        })
+      );
+    });
+
+    it('emits gateway progress using resolved runtime state', async () => {
+      gatewayRuntime = {
+        slotId: 'slot-gateway',
+        conversationId: 'conv-gateway',
+        workerBackend: 'openclaw-gateway',
+        gatewaySessionId: 'sess-789',
+        managerStatus: 'running',
+        isConnected: true,
+        hasActiveSession: true,
+        runtimeStatus: 'session_active',
+        lifecycleState: 'session_active',
+        statusReason: 'gateway_session_active',
+      };
+      const task = makeTask({ id: 'task-gateway', owner: 'slot-gateway', subject: 'Run gateway worker', status: 'in_progress' });
+      vi.mocked(repo.updateTask).mockResolvedValue(task);
+
+      await taskManager.update('task-gateway', { status: 'in_progress' });
+
+      expect(gatewayEventSink.emit).toHaveBeenCalledWith(
+        'progress',
+        expect.objectContaining({
+          slotId: 'slot-gateway',
+          gatewaySessionId: 'sess-789',
+          lifecycleState: 'session_active',
+          runtimeStatus: 'session_active',
+        })
+      );
     });
   });
 
@@ -282,6 +392,28 @@ describe('TaskManager', () => {
       // With atomic operations, one of the two calls should see C as fully unblocked
       const allUnblocked = [...resultA, ...resultB];
       expect(allUnblocked.some((t) => t.blockedBy.length === 0)).toBe(true);
+    });
+  });
+
+  describe('reassignOpenTasks', () => {
+    it('emits structured reassignment details for protocol recovery', async () => {
+      vi.mocked(repo.findTasksByOwner).mockResolvedValue([
+        makeTask({ id: 'task-1', owner: 'slot-a', subject: 'Review output', status: 'in_progress' }),
+      ]);
+      vi.mocked(repo.updateTask).mockResolvedValue(
+        makeTask({ id: 'task-1', owner: 'slot-b', subject: 'Review output', status: 'pending' })
+      );
+
+      await taskManager.reassignOpenTasks('team-1', 'slot-a', 'slot-b', 'member_crashed');
+
+      expect(protocolEventSink.emit).toHaveBeenCalledWith(
+        'reassign',
+        expect.objectContaining({
+          fromOwnerId: 'slot-a',
+          toOwnerId: 'slot-b',
+          recoveryHint: expect.stringContaining('retry or replace'),
+        })
+      );
     });
   });
 });

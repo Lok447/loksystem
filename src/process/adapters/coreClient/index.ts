@@ -16,6 +16,9 @@ import type {
   CoreTeamAgentDto,
   CoreTeamCreateDto,
   CoreTeamDto,
+  CoreTeamRuntimeDiagnosticsDto,
+  CoreTeamRecoveryExecutionDto,
+  CoreTeamRecoveryPreparationDto,
   CoreTeamRenameAgentDto,
   CoreTeamRenameDto,
   CoreTeamSendMessageDto,
@@ -70,6 +73,9 @@ export interface CoreClientContract {
     create(params: CoreTeamCreateDto): Promise<CoreServiceResponse<CoreTeamDto>>;
     list(userId: string): Promise<CoreTeamDto[]>;
     get(id: string): Promise<CoreTeamDto | null>;
+    getRuntimeDiagnostics(teamId: string): Promise<CoreServiceResponse<CoreTeamRuntimeDiagnosticsDto>>;
+    prepareRecoverySession(teamId: string): Promise<CoreServiceResponse<CoreTeamRecoveryPreparationDto>>;
+    executeRecoveryPlan(teamId: string): Promise<CoreServiceResponse<CoreTeamRecoveryExecutionDto>>;
     remove(id: string): Promise<CoreServiceResponse>;
     addAgent(params: CoreTeamAddAgentDto): Promise<CoreServiceResponse<CoreTeamAgentDto>>;
     removeAgent(teamId: string, slotId: string): Promise<CoreServiceResponse>;
@@ -179,6 +185,15 @@ export function createInProcessCoreClient(services: CoreBackendServices): CoreCl
       },
       get(id) {
         return services.teams.get(id);
+      },
+      getRuntimeDiagnostics(teamId) {
+        return services.teams.getRuntimeDiagnostics(teamId);
+      },
+      prepareRecoverySession(teamId) {
+        return services.teams.prepareRecoverySession(teamId);
+      },
+      executeRecoveryPlan(teamId) {
+        return services.teams.executeRecoveryPlan(teamId);
       },
       remove(id) {
         return services.teams.remove(id);

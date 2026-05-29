@@ -5,6 +5,7 @@
  */
 
 import type { ISqliteDriver } from './drivers/ISqliteDriver';
+import { ensureTeamRuntimeDiagnosticsSchema } from '@process/team-runtime/diagnostics/sqliteSchema';
 
 /**
  * Migration script definition
@@ -1297,6 +1298,50 @@ const migration_v28: IMigration = {
 };
 
 /**
+ * Migration v28 -> v29: Add team execution metadata columns
+ * Persists the selected orchestration mode and execution engine so the
+ * execution plane can evolve without inferring everything from legacy state.
+ */
+const migration_v29: IMigration = {
+  version: 29,
+  name: 'Add orchestration_mode and execution_engine to teams table',
+  up: (db) => {
+    const columns = new Set((db.pragma('table_info(teams)') as Array<{ name: string }>).map((c) => c.name));
+    if (!columns.has('orchestration_mode')) {
+      db.exec('ALTER TABLE teams ADD COLUMN orchestration_mode TEXT');
+    }
+    if (!columns.has('execution_engine')) {
+      db.exec('ALTER TABLE teams ADD COLUMN execution_engine TEXT');
+    }
+    console.log('[Migration v29] Added orchestration_mode and execution_engine to teams table');
+  },
+  down: (_db) => {
+    console.warn('[Migration v29] Rollback skipped: cannot drop columns safely.');
+  },
+};
+
+/**
+ * Migration v29 -> v30: Add durable team runtime diagnostics tables
+ * Persists runtime events and snapshots so diagnostics survive restarts
+ * and can later support runtime recovery/replay.
+ */
+const migration_v30: IMigration = {
+  version: 30,
+  name: 'Add team runtime diagnostics persistence tables',
+  up: (db) => {
+    ensureTeamRuntimeDiagnosticsSchema(db);
+    console.log('[Migration v30] Added team runtime diagnostics persistence tables');
+  },
+  down: (db) => {
+    db.exec('DROP INDEX IF EXISTS idx_team_runtime_snapshots_updated');
+    db.exec('DROP TABLE IF EXISTS team_runtime_snapshots');
+    db.exec('DROP INDEX IF EXISTS idx_team_runtime_events_team_created');
+    db.exec('DROP TABLE IF EXISTS team_runtime_events');
+    console.log('[Migration v30] Rolled back: Removed team runtime diagnostics persistence tables');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1305,7 +1350,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
   migration_v19, migration_v20, migration_v21, migration_v22, migration_v23, migration_v24,
-  migration_v25, migration_v26, migration_v27, migration_v28,
+  migration_v25, migration_v26, migration_v27, migration_v28, migration_v29, migration_v30,
 ];
 
 /**

@@ -9,6 +9,8 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { ConversationSource } from '@/common/config/storage';
 import type { AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import type { TeamAgent, TTeam, WorkspaceMode } from '@/common/types/teamTypes';
+import type { TeamRecoveredRuntimeDiagnostics, TeamRuntimeDiagnostics } from '@process/team-runtime/diagnostics';
+import type { TeamRecoveryExecutionResult, TeamRecoveryPreparation } from '@process/team-runtime/recovery';
 import type { AcpSessionRow } from '@process/services/database/IAcpSessionRepository';
 import type { AgentStatus, AgentType } from '@process/task/agentTypes';
 
@@ -155,6 +157,9 @@ export interface CoreTeamUpdateWorkspaceDto extends CoreTeamMutationDto {
 
 export type CoreTeamDto = TTeam;
 export type CoreTeamAgentDto = TeamAgent;
+export type CoreTeamRuntimeDiagnosticsDto = TeamRuntimeDiagnostics | TeamRecoveredRuntimeDiagnostics;
+export type CoreTeamRecoveryPreparationDto = TeamRecoveryPreparation;
+export type CoreTeamRecoveryExecutionDto = TeamRecoveryExecutionResult;
 
 export interface CoreUploadCreateFileDto {
   fileName: string;

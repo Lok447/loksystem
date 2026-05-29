@@ -43,6 +43,9 @@ import type {
   CoreTeamDto,
   CoreTeamRenameAgentDto,
   CoreTeamRenameDto,
+  CoreTeamRecoveryExecutionDto,
+  CoreTeamRecoveryPreparationDto,
+  CoreTeamRuntimeDiagnosticsDto,
   CoreTeamSendMessageDto,
   CoreTeamSendMessageToAgentDto,
   CoreTeamSetSessionModeDto,
@@ -191,6 +194,15 @@ export const core = {
     create: bridge.buildProvider<CoreServiceResponse<CoreTeamDto>, CoreTeamCreateDto>('core.teams.create'),
     list: bridge.buildProvider<CoreTeamDto[], { userId: string }>('core.teams.list'),
     get: bridge.buildProvider<CoreTeamDto | null, { id: string }>('core.teams.get'),
+    getRuntimeDiagnostics: bridge.buildProvider<CoreServiceResponse<CoreTeamRuntimeDiagnosticsDto>, { teamId: string }>(
+      'core.teams.get-runtime-diagnostics'
+    ),
+    prepareRecoverySession: bridge.buildProvider<CoreServiceResponse<CoreTeamRecoveryPreparationDto>, { teamId: string }>(
+      'core.teams.prepare-recovery-session'
+    ),
+    executeRecoveryPlan: bridge.buildProvider<CoreServiceResponse<CoreTeamRecoveryExecutionDto>, { teamId: string }>(
+      'core.teams.execute-recovery-plan'
+    ),
     remove: bridge.buildProvider<CoreServiceResponse, { id: string }>('core.teams.remove'),
     addAgent: bridge.buildProvider<CoreServiceResponse<CoreTeamAgentDto>, CoreTeamAddAgentDto>('core.teams.add-agent'),
     removeAgent: bridge.buildProvider<CoreServiceResponse, { teamId: string; slotId: string }>(
@@ -1426,6 +1438,18 @@ export const team = {
   create: bridge.buildProvider<import('@process/team/types').TTeam, ICreateTeamParams>('team.create'),
   list: bridge.buildProvider<import('@process/team/types').TTeam[], { userId: string }>('team.list'),
   get: bridge.buildProvider<import('@process/team/types').TTeam | null, { id: string }>('team.get'),
+  getRuntimeDiagnostics: bridge.buildProvider<
+    import('@process/team-runtime/diagnostics').TeamRuntimeDiagnostics,
+    { teamId: string }
+  >('team.get-runtime-diagnostics'),
+  prepareRecoverySession: bridge.buildProvider<
+    import('@process/team-runtime/recovery').TeamRecoveryPreparation,
+    { teamId: string }
+  >('team.prepare-recovery-session'),
+  executeRecoveryPlan: bridge.buildProvider<
+    import('@process/team-runtime/recovery').TeamRecoveryExecutionResult,
+    { teamId: string }
+  >('team.execute-recovery-plan'),
   remove: bridge.buildProvider<void, { id: string }>('team.remove'),
   addAgent: bridge.buildProvider<import('@process/team/types').TeamAgent, IAddTeamAgentParams>('team.add-agent'),
   removeAgent: bridge.buildProvider<void, { teamId: string; slotId: string }>('team.remove-agent'),

@@ -230,6 +230,30 @@ export function registerCoreHttpClientAdapter(app: Express, options: CoreHttpCli
     }
   });
 
+  app.get('/api/core/teams/:teamId/runtime-diagnostics', async (req: Request, res: Response) => {
+    try {
+      sendSuccess(res, await client.teams.getRuntimeDiagnostics(getStringParam(req, 'teamId')));
+    } catch (error) {
+      sendCoreHttpErrorResponse(res, error);
+    }
+  });
+
+  app.post('/api/core/teams/:teamId/recovery/prepare', async (req: Request, res: Response) => {
+    try {
+      sendSuccess(res, await client.teams.prepareRecoverySession(getStringParam(req, 'teamId')));
+    } catch (error) {
+      sendCoreHttpErrorResponse(res, error);
+    }
+  });
+
+  app.post('/api/core/teams/:teamId/recovery/execute', async (req: Request, res: Response) => {
+    try {
+      sendSuccess(res, await client.teams.executeRecoveryPlan(getStringParam(req, 'teamId')));
+    } catch (error) {
+      sendCoreHttpErrorResponse(res, error);
+    }
+  });
+
   app.post('/api/core/teams/:teamId/delete', async (req: Request, res: Response) => {
     try {
       sendSuccess(res, await client.teams.remove(getStringParam(req, 'teamId')));

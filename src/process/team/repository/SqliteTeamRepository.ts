@@ -16,6 +16,8 @@ type TeamRow = {
   workspace_mode: string;
   lead_agent_id: string;
   agents: string;
+  orchestration_mode: string | null;
+  execution_engine: string | null;
   session_mode: string | null;
   created_at: number;
   updated_at: number;
@@ -61,6 +63,8 @@ function rowToTeam(row: TeamRow): TTeam {
     workspaceMode: row.workspace_mode as TTeam['workspaceMode'],
     leaderAgentId: row.lead_agent_id,
     agents: JSON.parse(row.agents) as TeamAgent[],
+    orchestrationMode: row.orchestration_mode as TTeam['orchestrationMode'],
+    executionEngine: row.execution_engine as TTeam['executionEngine'],
     sessionMode: row.session_mode ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -126,8 +130,11 @@ export class SqliteTeamRepository implements ITeamRepository {
   async create(team: TTeam): Promise<TTeam> {
     const db = await this.getDb();
     db.prepare(
-      `INSERT INTO teams (id, user_id, name, workspace, workspace_mode, lead_agent_id, agents, session_mode, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO teams (
+        id, user_id, name, workspace, workspace_mode, lead_agent_id, agents,
+        orchestration_mode, execution_engine, session_mode, created_at, updated_at
+      )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       team.id,
       team.userId,
@@ -136,6 +143,8 @@ export class SqliteTeamRepository implements ITeamRepository {
       team.workspaceMode,
       team.leaderAgentId,
       JSON.stringify(team.agents),
+      team.orchestrationMode ?? null,
+      team.executionEngine ?? null,
       team.sessionMode ?? null,
       team.createdAt,
       team.updatedAt
@@ -162,7 +171,8 @@ export class SqliteTeamRepository implements ITeamRepository {
     const db = await this.getDb();
     db.prepare(
       `UPDATE teams
-       SET name = ?, workspace = ?, workspace_mode = ?, lead_agent_id = ?, agents = ?, session_mode = ?, updated_at = ?
+       SET name = ?, workspace = ?, workspace_mode = ?, lead_agent_id = ?, agents = ?,
+           orchestration_mode = ?, execution_engine = ?, session_mode = ?, updated_at = ?
        WHERE id = ?`
     ).run(
       merged.name,
@@ -170,6 +180,8 @@ export class SqliteTeamRepository implements ITeamRepository {
       merged.workspaceMode,
       merged.leaderAgentId,
       JSON.stringify(merged.agents),
+      merged.orchestrationMode ?? null,
+      merged.executionEngine ?? null,
       merged.sessionMode ?? null,
       merged.updatedAt,
       id

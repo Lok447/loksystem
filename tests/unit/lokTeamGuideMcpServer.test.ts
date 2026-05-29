@@ -67,11 +67,17 @@ vi.mock('../../src/process/utils/initStorage', () => ({
 const mockCreateTeam = vi.fn();
 const mockGetOrStartSession = vi.fn();
 const mockSendMessageToAgent = vi.fn();
+const mockGetExecutionInfo = vi.fn();
+const mockPrepareRecoverySession = vi.fn();
+const mockExecuteRecoveryPlan = vi.fn();
 
 function makeTeamSessionService() {
   return {
     createTeam: mockCreateTeam,
     getOrStartSession: mockGetOrStartSession,
+    getExecutionInfo: mockGetExecutionInfo,
+    prepareRecoverySession: mockPrepareRecoverySession,
+    executeRecoveryPlan: mockExecuteRecoveryPlan,
   } as unknown as import('../../src/process/team/TeamSessionService').TeamSessionService;
 }
 
@@ -275,6 +281,12 @@ describe('aion_create_team handler', () => {
     mockGetOrStartSession.mockResolvedValue({
       sendMessageToAgent: mockSendMessageToAgent,
     });
+    mockGetExecutionInfo.mockResolvedValue({
+      teamId: 'team-abc-123',
+      executionKind: 'legacy_mailbox',
+      orchestrationMode: 'legacy_mailbox',
+      state: 'created',
+    });
 
     mockSendMessageToAgent.mockResolvedValue(undefined);
   });
@@ -295,6 +307,12 @@ describe('aion_create_team handler', () => {
       teamId: 'team-abc-123',
       name: '电商网站全栈开发',
       route: '/team/team-abc-123',
+      executionInfo: {
+        teamId: 'team-abc-123',
+        executionKind: 'legacy_mailbox',
+        orchestrationMode: 'legacy_mailbox',
+        state: 'created',
+      },
       status: 'team_created',
     });
   });
@@ -427,5 +445,401 @@ describe('unknown tool', () => {
     })) as Record<string, unknown>;
 
     expect(response.error).toContain('Unknown tool');
+  });
+});
+
+describe('team recovery handlers', () => {
+  let service: TeamGuideMcpServer;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    service = new TeamGuideMcpServer(makeTeamSessionService());
+    await service.start();
+    mockPrepareRecoverySession.mockResolvedValue({
+      teamId: 'team-recovery-1',
+      executionInfo: {
+        teamId: 'team-recovery-1',
+        executionKind: 'legacy_mailbox',
+        orchestrationMode: 'legacy_mailbox',
+        state: 'stopped',
+      },
+      recoveryPlan: {
+        status: 'ready_for_replay',
+        mode: 'mailbox_replay',
+        steps: [],
+        blockers: [],
+        summary: ['recovery_plan:mailbox_replay'],
+      },
+      diagnostics: null,
+      protocolReplayContext: undefined,
+      protocolReplayExecutionPlan: undefined,
+      gatewayReplayContext: undefined,
+      gatewayReplayExecutionPlan: undefined,
+    });
+    mockExecuteRecoveryPlan.mockResolvedValue({
+      teamId: 'team-recovery-1',
+      status: 'executed',
+      executionInfo: {
+        teamId: 'team-recovery-1',
+        executionKind: 'legacy_mailbox',
+        orchestrationMode: 'legacy_mailbox',
+        state: 'running',
+      },
+      recoveryPlan: {
+        status: 'ready_for_replay',
+        mode: 'mailbox_replay',
+        steps: [],
+        blockers: [],
+        summary: ['recovery_plan:mailbox_replay'],
+      },
+      diagnostics: null,
+      actionsApplied: ['rebuild_mailbox_runtime', 'replay_mailbox_messages'],
+      replayMessage: 'Recovered team "Recovery Team" using legacy mailbox replay.',
+      protocolReplayContext: undefined,
+      protocolReplayExecutionPlan: undefined,
+      gatewayReplayContext: undefined,
+      gatewayReplayExecutionPlan: undefined,
+      gatewayReplayExecution: undefined,
+    });
+  });
+
+  afterEach(async () => {
+    await service.stop();
+  });
+
+  it('returns prepared team recovery details', async () => {
+    const response = (await tcpRequest(getPort(service), {
+      tool: 'aion_prepare_team_recovery',
+      args: { team_id: 'team-recovery-1' },
+      auth_token: getAuthToken(service),
+    })) as Record<string, unknown>;
+
+    const data = JSON.parse(response.result as string) as Record<string, unknown>;
+    expect(data).toMatchObject({
+      teamId: 'team-recovery-1',
+      status: 'ready_for_replay',
+      mode: 'mailbox_replay',
+    });
+    expect(mockPrepareRecoverySession).toHaveBeenCalledWith('team-recovery-1');
+  });
+
+  it('returns executed team recovery details', async () => {
+    const response = (await tcpRequest(getPort(service), {
+      tool: 'aion_execute_team_recovery',
+      args: { team_id: 'team-recovery-1' },
+      auth_token: getAuthToken(service),
+    })) as Record<string, unknown>;
+
+    const data = JSON.parse(response.result as string) as Record<string, unknown>;
+    expect(data).toMatchObject({
+      teamId: 'team-recovery-1',
+      status: 'executed',
+      actionsApplied: ['rebuild_mailbox_runtime', 'replay_mailbox_messages'],
+    });
+    expect(mockExecuteRecoveryPlan).toHaveBeenCalledWith('team-recovery-1');
+  });
+
+  it('returns error when recovery tool is missing team_id', async () => {
+    const response = (await tcpRequest(getPort(service), {
+      tool: 'aion_prepare_team_recovery',
+      args: {},
+      auth_token: getAuthToken(service),
+    })) as Record<string, unknown>;
+
+    expect(String(response.error)).toContain('team_id is required');
+  });
+
+  it('includes protocol replay execution plan in recovery tool output when available', async () => {
+    mockPrepareRecoverySession.mockResolvedValueOnce({
+      teamId: 'team-protocol',
+      executionInfo: {
+        teamId: 'team-protocol',
+        executionKind: 'protocol',
+        orchestrationMode: 'protocol_coordinated',
+        state: 'stopped',
+      },
+      recoveryPlan: {
+        status: 'ready_for_replay',
+        mode: 'protocol_replay',
+        steps: [],
+        blockers: [],
+        summary: ['recovery_plan:protocol_replay'],
+      },
+      diagnostics: null,
+      protocolReplayContext: {
+        kind: 'protocol',
+        leaderSlotId: 'slot-lead',
+        generatedAt: 1,
+        summary: ['protocol_targets:1'],
+        replaySteps: ['Review Worker ownership'],
+        targets: [],
+        executionPlan: {
+          kind: 'protocol_replay_execution',
+          leaderSlotId: 'slot-lead',
+          generatedAt: 1,
+          targetCount: 1,
+          replayTaskCount: 1,
+          summary: ['protocol_replay_targets:1'],
+          steps: ['slot-worker: task-1'],
+          targets: [
+            {
+              slotId: 'slot-worker',
+              role: 'worker',
+              agentName: 'Worker',
+              backend: 'codex',
+              conversationId: 'conv-worker',
+              supportsResume: true,
+              supportsStructuredTasks: true,
+              replayTaskCount: 1,
+              replayTasks: [
+                {
+                  taskId: 'task-1',
+                  subject: 'Investigate regression',
+                  recoveryAction: 'replay_protocol_coordination',
+                  recoveryMode: 'protocol_replay',
+                },
+              ],
+              replayActions: [
+                {
+                  action: 'replay_protocol_coordination',
+                  mode: 'protocol_replay',
+                  taskIds: ['task-1'],
+                },
+              ],
+              replayInstructions: ['Investigate regression (task-1) -> replay_protocol_coordination'],
+            },
+          ],
+        },
+      },
+      protocolReplayExecutionPlan: {
+        kind: 'protocol_replay_execution',
+        leaderSlotId: 'slot-lead',
+        generatedAt: 1,
+        targetCount: 1,
+        replayTaskCount: 1,
+        summary: ['protocol_replay_targets:1'],
+        steps: ['slot-worker: task-1'],
+        targets: [
+          {
+            slotId: 'slot-worker',
+            role: 'worker',
+            agentName: 'Worker',
+            backend: 'codex',
+            conversationId: 'conv-worker',
+            supportsResume: true,
+            supportsStructuredTasks: true,
+            replayTaskCount: 1,
+            replayTasks: [
+              {
+                taskId: 'task-1',
+                subject: 'Investigate regression',
+                recoveryAction: 'replay_protocol_coordination',
+                recoveryMode: 'protocol_replay',
+              },
+            ],
+            replayActions: [
+              {
+                action: 'replay_protocol_coordination',
+                mode: 'protocol_replay',
+                taskIds: ['task-1'],
+              },
+            ],
+            replayInstructions: ['Investigate regression (task-1) -> replay_protocol_coordination'],
+          },
+        ],
+      },
+    });
+
+    const response = (await tcpRequest(getPort(service), {
+      tool: 'aion_prepare_team_recovery',
+      args: { team_id: 'team-protocol' },
+      auth_token: getAuthToken(service),
+    })) as Record<string, unknown>;
+
+    const data = JSON.parse(response.result as string) as Record<string, unknown>;
+    expect(data).toMatchObject({
+      teamId: 'team-protocol',
+      mode: 'protocol_replay',
+      protocolReplayExecutionPlan: {
+        kind: 'protocol_replay_execution',
+        targetCount: 1,
+        replayTaskCount: 1,
+      },
+    });
+  });
+
+  it('includes gateway replay execution plan and execution details in recovery tool output when available', async () => {
+    mockPrepareRecoverySession.mockResolvedValueOnce({
+      teamId: 'team-gateway',
+      executionInfo: {
+        teamId: 'team-gateway',
+        executionKind: 'gateway',
+        orchestrationMode: 'gateway_coordinated',
+        state: 'stopped',
+      },
+      recoveryPlan: {
+        status: 'ready_for_replay',
+        mode: 'gateway_replay',
+        steps: [],
+        blockers: [],
+        summary: ['recovery_plan:gateway_replay'],
+      },
+      diagnostics: null,
+      protocolReplayContext: undefined,
+      protocolReplayExecutionPlan: undefined,
+      gatewayReplayContext: {
+        kind: 'gateway',
+        leaderSlotId: 'slot-lead',
+        generatedAt: 1,
+        summary: ['gateway_targets:1'],
+        replaySteps: ['Review Gateway Worker ownership'],
+        targets: [],
+      },
+      gatewayReplayExecutionPlan: {
+        kind: 'gateway',
+        generatedAt: 1,
+        summary: ['gateway_replay_targets:1'],
+        targets: [
+          {
+            slotId: 'slot-worker',
+            role: 'worker',
+            agentName: 'Gateway Worker',
+            backend: 'openclaw-gateway',
+            gatewaySessionId: 'sess-1',
+            lifecycleState: 'reconnecting',
+            replayStrategy: 'rebuild_session_then_wait',
+            resumeSupported: false,
+            structuredTasksSupported: false,
+            requiresLeaderRedispatch: true,
+            recoveryActions: ['replay_gateway_session'],
+            recoveryModes: ['gateway_replay'],
+            taskIds: ['task-1'],
+            taskSubjects: ['Recover gateway task'],
+            latestRecoveryHint: 'Replay the saved session before redispatching work.',
+          },
+        ],
+      },
+    });
+    mockExecuteRecoveryPlan.mockResolvedValueOnce({
+      teamId: 'team-gateway',
+      status: 'executed',
+      executionInfo: {
+        teamId: 'team-gateway',
+        executionKind: 'gateway',
+        orchestrationMode: 'gateway_coordinated',
+        state: 'running',
+      },
+      recoveryPlan: {
+        status: 'ready_for_replay',
+        mode: 'gateway_replay',
+        steps: [],
+        blockers: [],
+        summary: ['recovery_plan:gateway_replay'],
+      },
+      diagnostics: null,
+      actionsApplied: ['rebuild_gateway_runtime', 'replay_gateway_session'],
+      replayMessage: 'Recovered team "Gateway Team" using gateway coordination replay.',
+      protocolReplayContext: undefined,
+      protocolReplayExecutionPlan: undefined,
+      gatewayReplayContext: {
+        kind: 'gateway',
+        leaderSlotId: 'slot-lead',
+        generatedAt: 1,
+        summary: ['gateway_targets:1'],
+        replaySteps: ['Review Gateway Worker ownership'],
+        targets: [],
+      },
+      gatewayReplayExecutionPlan: {
+        kind: 'gateway',
+        generatedAt: 1,
+        summary: ['gateway_replay_targets:1'],
+        targets: [
+          {
+            slotId: 'slot-worker',
+            role: 'worker',
+            agentName: 'Gateway Worker',
+            backend: 'openclaw-gateway',
+            gatewaySessionId: 'sess-1',
+            lifecycleState: 'reconnecting',
+            replayStrategy: 'rebuild_session_then_wait',
+            resumeSupported: false,
+            structuredTasksSupported: false,
+            requiresLeaderRedispatch: true,
+            recoveryActions: ['replay_gateway_session'],
+            recoveryModes: ['gateway_replay'],
+            taskIds: ['task-1'],
+            taskSubjects: ['Recover gateway task'],
+            latestRecoveryHint: 'Replay the saved session before redispatching work.',
+          },
+        ],
+      },
+      gatewayReplayExecution: {
+        replayPlan: {
+          kind: 'gateway',
+          generatedAt: 1,
+          summary: ['gateway_replay_targets:1'],
+          targets: [
+            {
+              slotId: 'slot-worker',
+              role: 'worker',
+              agentName: 'Gateway Worker',
+              backend: 'openclaw-gateway',
+              gatewaySessionId: 'sess-1',
+              lifecycleState: 'reconnecting',
+              replayStrategy: 'rebuild_session_then_wait',
+              resumeSupported: false,
+              structuredTasksSupported: false,
+              requiresLeaderRedispatch: true,
+              recoveryActions: ['replay_gateway_session'],
+              recoveryModes: ['gateway_replay'],
+              taskIds: ['task-1'],
+              taskSubjects: ['Recover gateway task'],
+              latestRecoveryHint: 'Replay the saved session before redispatching work.',
+            },
+          ],
+        },
+        workerResults: [
+          {
+            slotId: 'slot-worker',
+            gatewaySessionId: 'sess-1',
+            replayStrategy: 'rebuild_session_then_wait',
+            taskIds: ['task-1'],
+            status: 'queued',
+          },
+        ],
+      },
+    });
+
+    const prepareResponse = (await tcpRequest(getPort(service), {
+      tool: 'aion_prepare_team_recovery',
+      args: { team_id: 'team-gateway' },
+      auth_token: getAuthToken(service),
+    })) as Record<string, unknown>;
+    const prepareData = JSON.parse(prepareResponse.result as string) as Record<string, unknown>;
+    expect(prepareData).toMatchObject({
+      teamId: 'team-gateway',
+      mode: 'gateway_replay',
+      gatewayReplayExecutionPlan: {
+        kind: 'gateway',
+        targets: [expect.objectContaining({ slotId: 'slot-worker', taskIds: ['task-1'] })],
+      },
+    });
+
+    const executeResponse = (await tcpRequest(getPort(service), {
+      tool: 'aion_execute_team_recovery',
+      args: { team_id: 'team-gateway' },
+      auth_token: getAuthToken(service),
+    })) as Record<string, unknown>;
+    const executeData = JSON.parse(executeResponse.result as string) as Record<string, unknown>;
+    expect(executeData).toMatchObject({
+      teamId: 'team-gateway',
+      status: 'executed',
+      gatewayReplayExecutionPlan: {
+        kind: 'gateway',
+      },
+      gatewayReplayExecution: {
+        workerResults: [expect.objectContaining({ slotId: 'slot-worker', status: 'queued' })],
+      },
+    });
   });
 });

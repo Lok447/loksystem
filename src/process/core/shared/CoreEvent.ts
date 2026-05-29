@@ -101,6 +101,7 @@ export interface CoreEventPayloadMap {
       | 'workspace_updated'
       | 'message_sent'
       | 'message_sent_to_agent'
+      | 'recovery_executed'
       | 'stopped'
       | 'session_ensured';
     teamId: string;

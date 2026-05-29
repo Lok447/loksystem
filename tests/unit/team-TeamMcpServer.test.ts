@@ -10,6 +10,9 @@ vi.mock('electron', () => ({
 const mockAssistants = vi.hoisted(() => ({
   value: null as Array<Record<string, unknown>> | null,
 }));
+const mockCapabilityOverrides = vi.hoisted(() => ({
+  value: null as Record<string, Record<string, unknown>> | null,
+}));
 vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: {
     get: vi.fn(async (key: string) => {
@@ -44,6 +47,9 @@ vi.mock('@process/utils/initStorage', () => ({
       if (key === 'assistants') {
         return mockAssistants.value;
       }
+      if (key === 'team.capabilityOverrides') {
+        return mockCapabilityOverrides.value;
+      }
       return null;
     }),
   },
@@ -63,6 +69,8 @@ import { TeamMcpServer } from '@process/team/mcp/team/TeamMcpServer';
 import type { Mailbox } from '@process/team/Mailbox';
 import type { TaskManager } from '@process/team/TaskManager';
 import type { TeamAgent } from '@process/team/types';
+import type { ProtocolEventSink } from '@process/team-runtime/protocol';
+import type { GatewayEventSink, GatewayRuntimeSnapshot } from '@process/team-runtime/gateway';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -148,11 +156,15 @@ describe('TeamMcpServer', () => {
   let spawnAgent: ReturnType<typeof vi.fn>;
   let renameAgent: ReturnType<typeof vi.fn>;
   let removeAgent: ReturnType<typeof vi.fn>;
+  let protocolEventSink: ProtocolEventSink;
+  let gatewayEventSink: GatewayEventSink;
+  let gatewayRuntime: GatewayRuntimeSnapshot | null;
   let authToken: string;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     mockAssistants.value = null;
+    mockCapabilityOverrides.value = null;
     agents = [
       makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader' }),
       makeAgent({ slotId: 'slot-member', agentName: 'Alice', role: 'teammate' }),
@@ -163,12 +175,22 @@ describe('TeamMcpServer', () => {
     spawnAgent = vi.fn().mockResolvedValue(makeAgent({ slotId: 'slot-new', agentName: 'NewBot' }));
     renameAgent = vi.fn();
     removeAgent = vi.fn();
+    protocolEventSink = {
+      emit: vi.fn().mockResolvedValue(undefined),
+    };
+    gatewayEventSink = {
+      emit: vi.fn().mockResolvedValue(undefined),
+    };
+    gatewayRuntime = null;
 
     server = new TeamMcpServer({
       teamId: 'team-1',
       getAgents: () => agents,
       mailbox,
       taskManager,
+      protocolEventSink,
+      gatewayEventSink,
+      resolveGatewayRuntime: (slotId) => (slotId === 'slot-member' ? gatewayRuntime : null),
       spawnAgent,
       renameAgent,
       removeAgent,
@@ -406,6 +428,14 @@ describe('TeamMcpServer', () => {
         })
       );
       expect(wakeAgent).toHaveBeenCalledWith('slot-member');
+      expect(protocolEventSink.emit).toHaveBeenCalledWith(
+        'progress',
+        expect.objectContaining({
+          slotId: 'slot-member',
+          owner: 'slot-member',
+          leaderSummary: expect.stringContaining('Leader routed'),
+        })
+      );
       expect(response.result).toContain('Alice');
     });
 
@@ -462,6 +492,50 @@ describe('TeamMcpServer', () => {
       );
       expect(response.result).toContain('Refusal sent');
     });
+
+    it('emits gateway runtime details when messaging an openclaw worker', async () => {
+      agents[1] = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        agentName: 'Alice',
+        role: 'teammate',
+        agentType: 'openclaw-gateway',
+        conversationType: 'openclaw-gateway',
+      });
+      gatewayRuntime = {
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        workerBackend: 'openclaw-gateway',
+        gatewaySessionId: 'sess-openclaw',
+        managerStatus: 'running',
+        isConnected: true,
+        hasActiveSession: true,
+        runtimeStatus: 'session_active',
+        lifecycleState: 'session_active',
+        statusReason: 'gateway_session_active',
+      };
+
+      const response = (await tcpRequest(server.getPort(), {
+        tool: 'team_send_message',
+        args: { to: 'Alice', message: 'Please continue', summary: 'Leader follow-up' },
+        from_slot_id: 'slot-lead',
+        auth_token: authToken,
+      })) as Record<string, unknown>;
+
+      expect(gatewayEventSink.emit).toHaveBeenCalledWith(
+        'progress',
+        expect.objectContaining({
+          slotId: 'slot-member',
+          gatewaySessionId: 'sess-openclaw',
+          lifecycleState: 'session_active',
+          runtimeStatus: 'session_active',
+          details: expect.objectContaining({
+            statusReason: 'gateway_session_active',
+          }),
+        })
+      );
+      expect(response.result).toContain('Alice');
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -502,6 +576,40 @@ describe('TeamMcpServer', () => {
       })) as Record<string, unknown>;
 
       expect(response.error).toContain('not supported in team mode');
+      expect(response.error).toContain('Supported now: hermes (leader recommended), codex (worker recommended).');
+    });
+
+    it('rejects spawning a managed backend that is not worker-capable by default', async () => {
+      const response = (await tcpRequest(server.getPort(), {
+        tool: 'team_spawn_agent',
+        args: { name: 'ManagedBot', agent_type: 'custom' },
+        from_slot_id: 'slot-lead',
+        auth_token: authToken,
+      })) as Record<string, unknown>;
+
+      expect(response.error).toContain('not supported in team mode');
+      expect(spawnAgent).not.toHaveBeenCalled();
+    });
+
+    it('allows spawning a custom worker when capability override enables it', async () => {
+      mockCapabilityOverrides.value = {
+        custom: {
+          currentlySupported: true,
+          workerRecommended: true,
+          leaderRecommended: false,
+          recommendedTeamMode: 'managed_mailbox',
+        },
+      };
+
+      const response = (await tcpRequest(server.getPort(), {
+        tool: 'team_spawn_agent',
+        args: { name: 'CustomWorker', agent_type: 'custom' },
+        from_slot_id: 'slot-lead',
+        auth_token: authToken,
+      })) as Record<string, unknown>;
+
+      expect(response.error).toBeUndefined();
+      expect(spawnAgent).toHaveBeenCalledWith('CustomWorker', 'custom', undefined, undefined);
     });
 
     it('spawns a preset teammate using custom_agent_id and derives backend from the preset', async () => {

@@ -10,7 +10,7 @@
  */
 
 import { getTeamAvailableModels } from '@/common/utils/teamModelUtils';
-import { isTeamCapableBackend } from '@/common/types/teamTypes';
+import { TeamCapabilityResolver } from '@/common/team/TeamCapabilityResolver';
 import { agentRegistry } from '@process/agent/AgentRegistry';
 import { getMergedModelProviders } from '@process/bridge/modelBridge';
 import { ProcessConfig } from '@process/utils/initStorage';
@@ -32,7 +32,11 @@ export async function handleListModels(args: Record<string, unknown>): Promise<s
   const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
   const detectedAgents = agentRegistry
     .getDetectedAgents()
-    .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults));
+    .map((agent) => ({
+      ...agent,
+      teamCapabilities: TeamCapabilityResolver.resolve(agent.backend, cachedInitResults),
+    }))
+    .filter((agent) => agent.teamCapabilities.currentlySupported);
 
   if (detectedAgents.length === 0) {
     return 'No team-capable agent types detected.';
@@ -41,7 +45,12 @@ export async function handleListModels(args: Record<string, unknown>): Promise<s
   const sections = detectedAgents.map((agent) => {
     const models = getTeamAvailableModels(agent.backend, cachedModels, providers);
     const modelLines = models.length > 0 ? models.map((m) => `  - ${m.id}`).join('\n') : '  (no models available)';
-    return `### ${agent.name} (\`${agent.backend}\`)\n${modelLines}`;
+    const recommendation = agent.teamCapabilities.leaderRecommended
+      ? 'leader recommended'
+      : agent.teamCapabilities.workerRecommended
+        ? 'worker recommended'
+        : 'supported';
+    return `### ${agent.name} (\`${agent.backend}\`, ${recommendation})\n${modelLines}`;
   });
 
   return `## Available Models by Agent Type\n\n${sections.join('\n\n')}`;

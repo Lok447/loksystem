@@ -10,6 +10,9 @@ import { Mailbox } from './Mailbox';
 import { TaskManager } from './TaskManager';
 import { TeammateManager } from './TeammateManager';
 import { TeamMcpServer, type StdioMcpConfig } from './mcp/team/TeamMcpServer';
+import type { ProtocolEventSink } from '@process/team-runtime/protocol';
+import type { GatewayEventSink } from '@process/team-runtime/gateway';
+import { resolveGatewayRuntimeSnapshot } from '@process/team-runtime/gateway';
 
 type SpawnAgentFn = (
   agentName: string,
@@ -25,6 +28,7 @@ type SpawnAgentFn = (
  */
 export class TeamSession extends EventEmitter {
   readonly teamId: string;
+  readonly executionKind = 'legacy_mailbox';
   private readonly team: TTeam;
   private readonly repo: ITeamRepository;
   private readonly mailbox: Mailbox;
@@ -34,20 +38,38 @@ export class TeamSession extends EventEmitter {
   private readonly mcpServer: TeamMcpServer;
   private mcpStdioConfig: StdioMcpConfig | null = null;
 
-  constructor(team: TTeam, repo: ITeamRepository, workerTaskManager: IWorkerTaskManager, spawnAgent?: SpawnAgentFn) {
+  constructor(
+    team: TTeam,
+    repo: ITeamRepository,
+    workerTaskManager: IWorkerTaskManager,
+    spawnAgent?: SpawnAgentFn,
+    protocolEventSink?: ProtocolEventSink,
+    gatewayEventSink?: GatewayEventSink
+  ) {
     super();
     this.team = team;
     this.teamId = team.id;
     this.repo = repo;
     this.workerTaskManager = workerTaskManager;
     this.mailbox = new Mailbox(repo);
-    this.taskManager = new TaskManager(repo);
+    this.taskManager = new TaskManager(
+      repo,
+      protocolEventSink,
+      gatewayEventSink,
+      (slotId) => this.teammateManager?.getAgents().find((agent) => agent.slotId === slotId)?.agentType,
+      (slotId) => {
+        const agent = this.teammateManager?.getAgents().find((item) => item.slotId === slotId);
+        return agent ? resolveGatewayRuntimeSnapshot(this.workerTaskManager, agent) : null;
+      }
+    );
     this.teammateManager = new TeammateManager({
       teamId: team.id,
       agents: team.agents,
       mailbox: this.mailbox,
       taskManager: this.taskManager,
       workerTaskManager,
+      protocolEventSink,
+      gatewayEventSink,
       teamWorkspace: team.workspace || undefined,
       onAgentRemoved: (teamId, agents) => {
         void this.repo.update(teamId, { agents, updatedAt: Date.now() });
@@ -60,6 +82,12 @@ export class TeamSession extends EventEmitter {
       getAgents: () => this.teammateManager.getAgents(),
       mailbox: this.mailbox,
       taskManager: this.taskManager,
+      protocolEventSink,
+      gatewayEventSink,
+      resolveGatewayRuntime: (slotId) => {
+        const agent = this.teammateManager.getAgents().find((item) => item.slotId === slotId);
+        return agent ? resolveGatewayRuntimeSnapshot(this.workerTaskManager, agent) : null;
+      },
       spawnAgent,
       renameAgent: (slotId: string, newName: string) => {
         this.teammateManager.renameAgent(slotId, newName);
@@ -82,6 +110,10 @@ export class TeamSession extends EventEmitter {
       this.mcpStdioConfig = await this.mcpServer.start();
     }
     return this.mcpStdioConfig;
+  }
+
+  async start(): Promise<void> {
+    await this.startMcpServer();
   }
 
   /** Get the MCP stdio config, optionally tagged with a specific agent's slotId */

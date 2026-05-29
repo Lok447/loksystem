@@ -13,27 +13,214 @@ import type { ITeamRepository } from './repository/ITeamRepository';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { AgentType } from '@process/task/agentTypes';
-import type { AgentBackend } from '@/common/types/acpTypes';
+import type { AcpInitializeResult, AgentBackend } from '@/common/types/acpTypes';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getAssistantsDir } from '@process/utils/initStorage';
-import { TeamSession } from './TeamSession';
+import { TeamCapabilityResolver } from '@/common/team/TeamCapabilityResolver';
+import type { TeamCapabilityOverrides } from '@/common/team/TeamCapabilityResolver';
+import { CompatibilityMailboxSessionBootstrap } from '@process/team-runtime/compat';
+import {
+  TeamDiagnosticsService,
+  TeamEventStore,
+  TeamRuntimeSnapshotStore,
+  type TeamRuntimeDiagnostics,
+} from '@process/team-runtime/diagnostics';
+import {
+  attachExecutionRecovery,
+  TeamRecoveryCoordinator,
+  type TeamRecoveryExecutionResult,
+  type TeamRecoveryPreparation,
+} from '@process/team-runtime/recovery';
+import { HermesNativeOrchestrationEngine } from '@process/team-runtime/HermesNativeOrchestrationEngine';
+import { ProtocolCoordinatedEngine } from '@process/team-runtime/ProtocolCoordinatedEngine';
+import { GatewayCoordinatedEngine } from '@process/team-runtime/GatewayCoordinatedEngine';
+import {
+  HermesNativeSessionBootstrap,
+  HermesNativeSessionFactory,
+} from '@process/team-runtime/hermes';
+import type { ITeamExecutionSession, TeamExecutionContext } from '@process/team-runtime/ITeamExecutionSession';
+import type { TeamEngineSelection } from '@process/team-runtime/TeamOrchestrationEngineSelector';
+import { LegacyMailboxEngine } from '@process/team-runtime/LegacyMailboxEngine';
+import { TeamExecutionPlane } from '@process/team-runtime/TeamExecutionPlane';
+import { TeamOrchestrationEngineSelector } from '@process/team-runtime/TeamOrchestrationEngineSelector';
+import {
+  LegacyMailboxSessionBootstrap,
+  LegacyMailboxSessionFactory,
+} from '@process/team-runtime/legacy';
+import { AcpMemberAdapter, type ProtocolEventSink, ProtocolSessionFactory } from '@process/team-runtime/protocol';
+import {
+  OpenClawMemberAdapter,
+  GatewaySessionFactory,
+  GatewayNativeSessionBootstrapDriver,
+  GatewaySessionBootstrap,
+  OpenClawGatewayRuntimeAdapter,
+  type GatewayEventSink,
+} from '@process/team-runtime/gateway';
+import type { TeamExecutionInfo } from '@process/team-runtime/ITeamExecutionSession';
 import type { TTeam, TeamAgent } from './types';
-import { mirrorTeamListChanged, mirrorTeamMcpStatus } from '@process/core/team';
+import { mirrorTeamListChanged } from '@process/core/team';
 import fs from 'fs/promises';
 import path from 'path';
 import { resolveLocaleKey } from '@/common/utils';
 
 export class TeamSessionService {
-  private readonly sessions: Map<string, TeamSession> = new Map();
   /** Per-team mutex to serialize addAgent calls, preventing read-modify-write race conditions */
   private readonly addAgentLocks: Map<string, Promise<unknown>> = new Map();
+  private readonly pendingExecutionSelections: Map<string, TeamEngineSelection> = new Map();
+  private cachedTeamCapabilityInitResults: Awaited<ReturnType<typeof ProcessConfig.get>> | undefined;
+  private readonly legacyMailboxEngine: LegacyMailboxEngine;
+  private readonly hermesNativeEngine: HermesNativeOrchestrationEngine;
+  private readonly protocolEngine: ProtocolCoordinatedEngine;
+  private readonly gatewayEngine: GatewayCoordinatedEngine;
+  private readonly engineSelector: TeamOrchestrationEngineSelector;
+  private readonly executionPlane: TeamExecutionPlane<ITeamExecutionSession>;
+  private readonly legacySessionFactory: LegacyMailboxSessionFactory;
+  private readonly hermesNativeSessionFactory: HermesNativeSessionFactory;
+  private readonly protocolSessionFactory: ProtocolSessionFactory;
+  private readonly gatewaySessionFactory: GatewaySessionFactory;
+  private readonly compatibilitySessionBootstrap: CompatibilityMailboxSessionBootstrap;
+  private readonly legacySessionBootstrap: LegacyMailboxSessionBootstrap;
+  private readonly hermesNativeSessionBootstrap: HermesNativeSessionBootstrap;
+  private readonly gatewaySessionBootstrap: GatewaySessionBootstrap;
+  private readonly gatewayNativeSessionBootstrapDriver: GatewayNativeSessionBootstrapDriver;
+  private readonly diagnosticsService: TeamDiagnosticsService;
+  private readonly recoveryCoordinator: TeamRecoveryCoordinator;
+  private readonly acpMemberAdapter: AcpMemberAdapter;
+  private readonly openClawMemberAdapter: OpenClawMemberAdapter;
+  private readonly openClawGatewayRuntimeAdapter: OpenClawGatewayRuntimeAdapter;
+  private gatewayNativeResumeMode: 'off' | 'enabled' = 'off';
+  private teamCapabilityOverrides: TeamCapabilityOverrides | null = null;
 
   constructor(
     private readonly repo: ITeamRepository,
     private readonly workerTaskManager: IWorkerTaskManager,
-    private readonly conversationService: IConversationService
-  ) {}
+    private readonly conversationService: IConversationService,
+    options?: {
+      diagnosticsService?: TeamDiagnosticsService;
+    }
+  ) {
+    this.acpMemberAdapter = new AcpMemberAdapter();
+    this.openClawMemberAdapter = new OpenClawMemberAdapter();
+    this.openClawGatewayRuntimeAdapter = new OpenClawGatewayRuntimeAdapter(this.workerTaskManager);
+    this.legacySessionFactory = new LegacyMailboxSessionFactory({
+      repo: this.repo,
+      workerTaskManager: this.workerTaskManager,
+      conversationService: this.conversationService,
+      addAgent: (teamId, agent) => this.addAgent(teamId, agent),
+      resolveWorkerBackend: (agentType, agents) => this.resolveWorkerBackend(agentType, agents),
+      resolveConversationType: (agentType) => this.resolveConversationType(agentType),
+      createProtocolEventSink: (teamId) => this.createProtocolEventSink(teamId),
+      createGatewayEventSink: (teamId) => this.createGatewayEventSink(teamId),
+    });
+    this.compatibilitySessionBootstrap = new CompatibilityMailboxSessionBootstrap({
+      conversationService: this.conversationService,
+      workerTaskManager: this.workerTaskManager,
+    });
+    this.diagnosticsService =
+      options?.diagnosticsService ??
+      new TeamDiagnosticsService({
+        repo: this.repo,
+        eventStore: new TeamEventStore(),
+        snapshotStore: new TeamRuntimeSnapshotStore(),
+      });
+    this.legacyMailboxEngine = new LegacyMailboxEngine({
+      createExecutionSession: (params) =>
+        this.legacySessionFactory.create(params.team, {
+          executionKind: 'legacy_mailbox',
+          orchestrationMode: 'legacy_mailbox',
+          context: params.executionMetadata?.context,
+          diagnostics: this.mergeExecutionDiagnostics(params.executionMetadata),
+        }),
+    });
+    this.legacySessionBootstrap = new LegacyMailboxSessionBootstrap({
+      repo: this.repo,
+      compatibilityBootstrap: this.compatibilitySessionBootstrap,
+      executionEngine: this.legacyMailboxEngine.kind,
+      orchestrationMode: this.legacyMailboxEngine.orchestrationMode,
+    });
+    this.hermesNativeSessionFactory = new HermesNativeSessionFactory({
+      createCompatibilitySession: (params) =>
+        this.legacySessionFactory.create(params.team, {
+          executionKind: 'legacy_mailbox',
+          orchestrationMode: 'legacy_mailbox',
+          context: {
+            compatibilityMode: 'native_compatibility_bridge',
+            ...params.executionMetadata?.context,
+          },
+          diagnostics: this.mergeExecutionDiagnostics(params.executionMetadata),
+        }),
+    });
+    this.protocolSessionFactory = new ProtocolSessionFactory({
+      acpAdapter: this.acpMemberAdapter,
+      createCompatibilitySession: (params) =>
+        this.legacySessionFactory.create(params.team, {
+          executionKind: 'protocol',
+          orchestrationMode: 'protocol_coordinated',
+          context: {
+            ...params.executionMetadata?.context,
+          },
+          diagnostics: this.mergeExecutionDiagnostics(params.executionMetadata),
+        }),
+    });
+    this.gatewaySessionFactory = new GatewaySessionFactory({
+      gatewayAdapter: this.openClawMemberAdapter,
+      gatewayRuntimeAdapter: this.openClawGatewayRuntimeAdapter,
+      createCompatibilitySession: (params) =>
+        this.legacySessionFactory.create(params.team, {
+          executionKind: 'gateway',
+          orchestrationMode: 'gateway_coordinated',
+          context: {
+            ...params.executionMetadata?.context,
+          },
+          diagnostics: this.mergeExecutionDiagnostics(params.executionMetadata),
+        }),
+    });
+    this.hermesNativeEngine = new HermesNativeOrchestrationEngine({
+      sessionFactory: this.hermesNativeSessionFactory,
+    });
+    this.protocolEngine = new ProtocolCoordinatedEngine({
+      sessionFactory: this.protocolSessionFactory,
+    });
+    this.gatewayEngine = new GatewayCoordinatedEngine({
+      sessionFactory: this.gatewaySessionFactory,
+    });
+    this.hermesNativeSessionBootstrap = new HermesNativeSessionBootstrap({
+      repo: this.repo,
+      compatibilityBootstrap: this.compatibilitySessionBootstrap,
+    });
+    this.gatewayNativeSessionBootstrapDriver = new GatewayNativeSessionBootstrapDriver({
+      conversationService: this.conversationService,
+      workerTaskManager: this.workerTaskManager,
+      gatewayRuntimeAdapter: this.openClawGatewayRuntimeAdapter,
+    });
+    this.gatewaySessionBootstrap = new GatewaySessionBootstrap({
+      repo: this.repo,
+      nativeDriver: this.gatewayNativeSessionBootstrapDriver,
+      createGatewayEventSink: (teamId) => this.createGatewayEventSink(teamId),
+    });
+    this.engineSelector = new TeamOrchestrationEngineSelector({
+      legacyEngine: this.legacyMailboxEngine,
+      hermesNativeEngine: this.hermesNativeEngine,
+      protocolEngine: this.protocolEngine,
+      gatewayEngine: this.gatewayEngine,
+    });
+    this.executionPlane = new TeamExecutionPlane<ITeamExecutionSession>({
+      loadTeam: async (teamId) => {
+        const team = await this.getTeam(teamId);
+        if (!team) throw new Error(`Team "${teamId}" not found`);
+        return team;
+      },
+      createSession: async (team) => this.createSelectedRuntimeSession(team),
+      initializeSession: async (team, session) => this.initializeSelectedRuntimeSession(team, session),
+    });
+    this.recoveryCoordinator = new TeamRecoveryCoordinator({
+      getLiveSession: (teamId) => this.executionPlane.getSession(teamId),
+      startSession: async (teamId) => this.getOrStartSession(teamId),
+      loadExecutionInfo: async (teamId) => this.getExecutionInfo(teamId),
+      getGatewayNativeResumeMode: () => this.gatewayNativeResumeMode,
+    });
+  }
 
   /**
    * Returns the workspace path as-is, or empty string when not specified.
@@ -179,6 +366,99 @@ export class TeamSessionService {
     };
   }
 
+  private async getTeamCapabilityInitResults() {
+    if (this.cachedTeamCapabilityInitResults === undefined) {
+      this.cachedTeamCapabilityInitResults = (await ProcessConfig.get(
+        'acp.cachedInitializeResult'
+      )) as Record<string, AcpInitializeResult> | null | undefined;
+    }
+    return this.cachedTeamCapabilityInitResults as Record<string, AcpInitializeResult> | null | undefined;
+  }
+
+  private normalizeLegacyTeamBackend(agentType: string | undefined): string | undefined {
+    const normalized = agentType?.trim();
+    if (!normalized) return normalized;
+    if (normalized === 'gemini' || normalized === 'aionrs') {
+      return 'hermes';
+    }
+    if (normalized === 'openclaw') {
+      return 'openclaw-gateway';
+    }
+    return normalized;
+  }
+
+  private async refreshTeamRuntimeConfig(): Promise<void> {
+    this.gatewayNativeResumeMode =
+      ((await ProcessConfig.get('team.runtime.gatewayNativeResume')) as 'off' | 'enabled' | undefined) ?? 'off';
+    this.teamCapabilityOverrides =
+      ((await ProcessConfig.get('team.capabilityOverrides')) as TeamCapabilityOverrides | null | undefined) ?? null;
+  }
+
+  private async resolveLeaderBackend(agentType: string | undefined): Promise<string> {
+    await this.refreshTeamRuntimeConfig();
+    const normalized = this.normalizeLegacyTeamBackend(agentType);
+    if (normalized && normalized !== 'acp') {
+      return normalized;
+    }
+    const cachedInitResults = await this.getTeamCapabilityInitResults();
+    return TeamCapabilityResolver.pickPreferredLeaderBackend(
+      undefined,
+      cachedInitResults,
+      this.teamCapabilityOverrides,
+      'hermes'
+    );
+  }
+
+  private async resolveWorkerBackend(agentType: string | undefined, agents: TeamAgent[]): Promise<string> {
+    await this.refreshTeamRuntimeConfig();
+    const normalized = this.normalizeLegacyTeamBackend(agentType);
+    if (normalized && normalized !== 'acp') {
+      return normalized;
+    }
+    const leader = agents.find((a) => a.role === 'leader');
+    const cachedInitResults = await this.getTeamCapabilityInitResults();
+    return TeamCapabilityResolver.pickPreferredWorkerBackend({
+      backend: undefined,
+      leaderBackend: leader?.agentType,
+      cachedInitResults,
+      overrides: this.teamCapabilityOverrides,
+      fallback: 'hermes',
+    });
+  }
+
+  private async validateRuntimeAgentRole(agent: Pick<TeamAgent, 'role' | 'agentType' | 'agentName'>): Promise<void> {
+    const cachedInitResults = await this.getTeamCapabilityInitResults();
+    const capabilities = TeamCapabilityResolver.resolve(
+      agent.agentType,
+      cachedInitResults,
+      this.teamCapabilityOverrides
+    );
+
+    if (!capabilities.currentlySupported) {
+      throw new Error(
+        `Agent "${agent.agentName}" (${agent.agentType}) is not supported in the current team runtime. ${TeamCapabilityResolver.formatSupportHint(
+          capabilities
+        )}`
+      );
+    }
+
+    if (agent.role === 'leader' && !capabilities.leaderRecommended) {
+      throw new Error(
+        `Agent "${agent.agentName}" (${agent.agentType}) cannot act as a team leader. ${TeamCapabilityResolver.formatSupportHint(
+          capabilities
+        )}`
+      );
+    }
+
+    if (agent.role !== 'leader' && !capabilities.workerRecommended) {
+      throw new Error(
+        `Agent "${agent.agentName}" (${agent.agentType}) cannot act as a teammate worker. ${TeamCapabilityResolver.formatSupportHint(
+          capabilities
+        )}`
+      );
+    }
+  }
+
   private async buildConversationParams(params: {
     teamId: string;
     teamName: string;
@@ -195,7 +475,10 @@ export class TeamSessionService {
     extra: Record<string, unknown>;
   }> {
     const { teamId, teamName, workspace, agent, agents, inheritedSessionMode, isInheritedWorkspace } = params;
-    const backend = this.resolveBackend(agent.agentType, agents) as AgentBackend;
+    const backend =
+      agent.role === 'leader'
+        ? ((await this.resolveLeaderBackend(agent.agentType)) as AgentBackend)
+        : ((await this.resolveWorkerBackend(agent.agentType, agents)) as AgentBackend);
     // remote agents use customAgentId as remoteAgentId, not as a preset indicator
     const isPreset = Boolean(agent.customAgentId) && backend !== 'remote';
     const preferredModelId =
@@ -388,10 +671,23 @@ export class TeamSessionService {
     const now = Date.now();
     const teamId = uuid(36);
     let workspace = this.resolveWorkspace(params.workspace);
+    await this.refreshTeamRuntimeConfig();
+    const normalizedAgents = await Promise.all(
+      params.agents.map(async (agent) => ({
+        ...agent,
+        agentType:
+          agent.role === 'leader'
+            ? await this.resolveLeaderBackend(agent.agentType)
+            : await this.resolveWorkerBackend(agent.agentType, params.agents),
+        }))
+    );
+    for (const agent of normalizedAgents) {
+      await this.validateRuntimeAgentRole(agent);
+    }
 
     // Create a real conversation for each agent (or reuse an existing one for the leader)
     const agentsWithConversations = await Promise.all(
-      params.agents.map(async (agent) => {
+      normalizedAgents.map(async (agent) => {
         const slotId = agent.slotId || `slot-${uuid(8)}`;
 
         // If the agent already has a conversationId (e.g., leader reusing caller's conversation),
@@ -421,7 +717,7 @@ export class TeamSessionService {
           teamName: params.name,
           workspace,
           agent,
-          agents: params.agents,
+          agents: normalizedAgents,
           inheritedSessionMode: params.sessionMode,
           isInheritedWorkspace: !params.workspace,
         });
@@ -455,6 +751,8 @@ export class TeamSessionService {
       workspaceMode: params.workspaceMode,
       leaderAgentId: leadAgent.slotId,
       agents: agentsWithConversations,
+      orchestrationMode: this.legacyMailboxEngine.orchestrationMode,
+      executionEngine: this.legacyMailboxEngine.kind,
       sessionMode: params.sessionMode,
       createdAt: now,
       updatedAt: now,
@@ -493,8 +791,7 @@ export class TeamSessionService {
       });
     }
 
-    await this.sessions.get(id)?.dispose();
-    this.sessions.delete(id);
+    await this.executionPlane.stopSession(id);
 
     // Delete conversations owned by this team's agents
     if (team) {
@@ -540,6 +837,16 @@ export class TeamSessionService {
   private async addAgentUnsafe(teamId: string, agent: Omit<TeamAgent, 'slotId'>): Promise<TeamAgent> {
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
+    await this.refreshTeamRuntimeConfig();
+    const resolvedAgentType =
+      agent.role === 'leader'
+        ? await this.resolveLeaderBackend(agent.agentType)
+        : await this.resolveWorkerBackend(agent.agentType, team.agents);
+    await this.validateRuntimeAgentRole({
+      role: agent.role,
+      agentType: resolvedAgentType,
+      agentName: agent.agentName,
+    });
 
     const workspace = this.resolveWorkspace(team.workspace);
     // Inherit sessionMode: prefer persisted team.sessionMode, fallback to leader agent's conversation extra
@@ -559,7 +866,7 @@ export class TeamSessionService {
       teamId,
       teamName: team.name,
       workspace,
-      agent,
+      agent: { ...agent, agentType: resolvedAgentType },
       agents: team.agents,
       inheritedSessionMode,
       isInheritedWorkspace: true,
@@ -570,24 +877,18 @@ export class TeamSessionService {
 
     const newAgent: TeamAgent = {
       ...agent,
-      agentType: this.resolveBackend(agent.agentType, team.agents),
+      agentType: resolvedAgentType,
       slotId: `slot-${uuid(8)}`,
       conversationId: conversation.id,
     };
     const updatedAgents = [...team.agents, newAgent];
     await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
-    this.sessions.get(teamId)?.addAgent(newAgent);
+    this.executionPlane.getSession(teamId)?.addAgent(newAgent);
     // Notify renderer so SWR caches (useTeamList, useSiderTeamBadges) revalidate
     const listEvent = { teamId, action: 'agent_added' as const };
     ipcBridge.team.listChanged.emit(listEvent);
     mirrorTeamListChanged(listEvent);
     return newAgent;
-  }
-
-  private resolveBackend(agentType: string, agents: TeamAgent[]): string {
-    if (agentType !== 'acp') return agentType;
-    const leader = agents.find((a) => a.role === 'leader');
-    return leader && leader.agentType !== 'acp' ? leader.agentType : 'hermes';
   }
 
   private resolveConversationType(agentType: string): AgentType {
@@ -601,9 +902,172 @@ export class TeamSessionService {
     return 'acp';
   }
 
+  private async createLegacyRuntimeSession(team: TTeam): Promise<ITeamExecutionSession> {
+    return this.legacySessionFactory.create(team);
+  }
+
+  private createProtocolEventSink(teamId: string): ProtocolEventSink {
+    return this.diagnosticsService.createProtocolEventSink(teamId);
+  }
+
+  private createGatewayEventSink(teamId: string): GatewayEventSink {
+    return this.diagnosticsService.createGatewayEventSink(teamId);
+  }
+
+  private buildExecutionContext(team: TTeam, selection: TeamEngineSelection): TeamExecutionContext {
+    const leaderBackend = team.agents.find((agent) => agent.role === 'leader')?.agentType;
+    return {
+      runtimeVersion: 'phase2',
+      leaderBackend,
+      memberCount: team.agents.length,
+      engineReadiness: selection.engine.readiness,
+      routingMode: selection.routingMode,
+      requestedExecutionKind: selection.requestedEngine,
+      compatibilityMode:
+        selection.engine.kind === this.hermesNativeEngine.kind ? 'native_compatibility_bridge' : 'legacy_mailbox',
+    };
+  }
+
+  private buildExecutionDiagnostics(team: TTeam, selection: TeamEngineSelection) {
+    const leaderBackend = team.agents.find((agent) => agent.role === 'leader')?.agentType ?? 'unknown';
+    const summary = [
+      `selected_engine:${selection.engine.kind}`,
+      `routing_mode:${selection.routingMode}`,
+      `engine_readiness:${selection.engine.readiness}`,
+      `leader_backend:${leaderBackend}`,
+    ];
+
+    if (selection.requestedEngine) {
+      summary.push(`requested_engine:${selection.requestedEngine}`);
+    }
+    if (selection.fallbackReason) {
+      summary.push(`fallback_reason:${selection.fallbackReason}`);
+    }
+
+    return {
+      summary,
+      fallbackReason: selection.fallbackReason,
+    };
+  }
+
+  private mergeExecutionDiagnostics(
+    executionMetadata:
+      | {
+          diagnostics?: {
+            summary?: string[];
+            fallbackReason?: string;
+          };
+          fallbackReason?: string;
+        }
+      | undefined
+  ) {
+    if (!executionMetadata?.diagnostics && !executionMetadata?.fallbackReason) return undefined;
+
+    return {
+      summary: executionMetadata?.diagnostics?.summary ?? [],
+      fallbackReason: executionMetadata?.diagnostics?.fallbackReason ?? executionMetadata?.fallbackReason,
+    };
+  }
+
+  private async createSelectedRuntimeSession(team: TTeam): Promise<ITeamExecutionSession> {
+    const selection = await this.resolveExecutionRouting(team);
+    this.pendingExecutionSelections.set(team.id, selection);
+    await this.diagnosticsService.recordEvent(team.id, {
+      at: Date.now(),
+      type: 'routing_selected',
+      level: selection.fallbackReason ? 'warning' : 'info',
+      message: `Runtime routing selected ${selection.engine.kind}`,
+      details: {
+        requestedEngine: selection.requestedEngine,
+        routingMode: selection.routingMode,
+        fallbackReason: selection.fallbackReason,
+      },
+    });
+
+    if (selection.engine.kind === this.hermesNativeEngine.kind) {
+      console.info(
+        `[TeamSessionService] Hermes native routing selected for team ${team.id} (mode=${selection.routingMode})`
+      );
+    } else if (selection.fallbackReason) {
+      console.info(
+        `[TeamSessionService] Falling back to ${selection.engine.kind} for team ${team.id}: ${selection.fallbackReason}`
+      );
+    }
+
+    try {
+      return await selection.engine.createSession({
+        team,
+        repo: this.repo,
+        workerTaskManager: this.workerTaskManager,
+        executionMetadata: {
+          routingMode: selection.routingMode,
+          requestedExecutionKind: selection.requestedEngine,
+          fallbackReason: selection.fallbackReason,
+          context: this.buildExecutionContext(team, selection),
+          diagnostics: this.buildExecutionDiagnostics(team, selection),
+        },
+      });
+    } catch (error) {
+      this.pendingExecutionSelections.delete(team.id);
+      throw error;
+    }
+  }
+
+  private async resolveExecutionRouting(team: TTeam) {
+    await this.refreshTeamRuntimeConfig();
+    const cachedInitResults = await this.getTeamCapabilityInitResults();
+    const hermesNativeRouting =
+      ((await ProcessConfig.get('team.runtime.hermesNativeRouting')) as 'off' | 'shadow' | 'enabled' | undefined) ??
+      'off';
+    return this.engineSelector.select({
+      team,
+      cachedInitResults,
+      hermesNativeRouting,
+    });
+  }
+
+  private async initializeLegacyRuntimeSession(team: TTeam, session: ITeamExecutionSession): Promise<void> {
+    await this.legacySessionBootstrap.initialize(team, session);
+  }
+
+  private async initializeSelectedRuntimeSession(team: TTeam, session: ITeamExecutionSession): Promise<void> {
+    const selection = this.pendingExecutionSelections.get(team.id) ?? (await this.resolveExecutionRouting(team));
+
+    try {
+      await this.repo.update(team.id, {
+        executionEngine: selection.engine.kind,
+        orchestrationMode: selection.engine.orchestrationMode,
+        updatedAt: Date.now(),
+      });
+      if (selection.engine.kind === this.hermesNativeEngine.kind) {
+        await this.hermesNativeSessionBootstrap.initialize(team, session);
+      } else if (selection.engine.kind === this.gatewayEngine.kind) {
+        await this.gatewaySessionBootstrap.initialize(team, session);
+      } else {
+        await this.initializeLegacyRuntimeSession(team, session);
+      }
+
+      const executionInfo = session.getExecutionInfo();
+      await this.diagnosticsService.recordEvent(team.id, {
+        at: Date.now(),
+        type: 'session_started',
+        level: 'info',
+        message: `Execution session started in ${executionInfo.executionKind}`,
+        details: {
+          executionKind: executionInfo.executionKind,
+          orchestrationMode: executionInfo.orchestrationMode,
+          state: executionInfo.state,
+        },
+      });
+      await this.diagnosticsService.refreshSnapshot(team, executionInfo);
+    } finally {
+      this.pendingExecutionSelections.delete(team.id);
+    }
+  }
+
   async renameAgent(teamId: string, slotId: string, newName: string): Promise<void> {
     // Update in-memory session if running
-    const session = this.sessions.get(teamId);
+    const session = this.executionPlane.getSession(teamId);
     if (session) {
       session.renameAgent(slotId, newName);
       return; // TeamSession.renameAgent already persists
@@ -650,7 +1114,7 @@ export class TeamSessionService {
     if (!team) throw new Error(`Team "${teamId}" not found`);
 
     // removeAgent handles: kill process + clear in-memory state + persist via onAgentRemoved callback
-    const session = this.sessions.get(teamId);
+    const session = this.executionPlane.getSession(teamId);
     if (session) {
       session.removeAgent(slotId);
     } else {
@@ -664,92 +1128,220 @@ export class TeamSessionService {
     mirrorTeamListChanged(listEvent);
   }
 
-  async getOrStartSession(teamId: string): Promise<TeamSession> {
-    const existing = this.sessions.get(teamId);
-    if (existing) return existing;
-    const team = await this.getTeam(teamId);
-    if (!team) throw new Error(`Team "${teamId}" not found`);
-    let session!: TeamSession;
-    const spawnAgent = async (agentName: string, agentType?: string, model?: string, customAgentId?: string) => {
-      // Default to the leader's agent type instead of hardcoding 'claude'
-      const leadAgent = team.agents.find((a) => a.role === 'leader');
-      const resolvedType = agentType || leadAgent?.agentType || 'hermes';
-      const newAgent = await this.addAgent(teamId, {
-        conversationId: '',
-        role: 'teammate',
-        agentType: resolvedType,
-        agentName,
-        status: 'pending',
-        conversationType: this.resolveConversationType(resolvedType) as 'acp',
-        model,
-        customAgentId,
-      });
-      // Inject team MCP stdio config into the new agent's conversation (with agent identity)
-      const stdioConfig = session?.getStdioConfig(newAgent.slotId);
-      if (stdioConfig && newAgent.conversationId) {
-        await this.conversationService.updateConversation(
-          newAgent.conversationId,
-          { extra: { teamMcpStdioConfig: stdioConfig } } as any,
-          true
-        );
-      }
-      return newAgent;
-    };
-    session = new TeamSession(team, this.repo, this.workerTaskManager, spawnAgent);
-    // Do NOT add to sessions map yet — only add after MCP server is running and
-    // teamMcpStdioConfig is written to DB. If we add early and then fail, a
-    // subsequent getOrStartSession call would return a broken session (no MCP config).
-
+  async getOrStartSession(teamId: string): Promise<ITeamExecutionSession> {
     try {
-      // Start MCP server and inject per-agent stdio config into all agent conversations.
-      // After DB update, rebuild cached agent tasks so they pick up teamMcpStdioConfig.
-      await session.startMcpServer();
-      await Promise.all(
-        team.agents.map(async (agent) => {
-          if (agent.conversationId) {
-            const agentStdioConfig = session.getStdioConfig(agent.slotId);
-            try {
-              await this.conversationService.updateConversation(
-                agent.conversationId,
-                { extra: { teamMcpStdioConfig: agentStdioConfig } } as any,
-                true
-              );
-              // Force-rebuild cached agent task so it reads the updated extra from DB
-              await this.workerTaskManager.getOrBuildTask(agent.conversationId, { skipCache: true });
-            } catch (err) {
-              const error = err instanceof Error ? err.message : String(err);
-              console.error(`[TeamSessionService] Failed to write MCP config for agent ${agent.slotId}:`, error);
-              const mcpEvent = {
-                teamId: team.id,
-                slotId: agent.slotId,
-                phase: 'config_write_failed' as const,
-                error,
-              };
-              ipcBridge.team.mcpStatus.emit(mcpEvent);
-              mirrorTeamMcpStatus(mcpEvent);
-            }
-          }
-        })
-      );
+      return await this.executionPlane.getOrStartSession(teamId);
     } catch (err) {
-      // MCP server failed to start — do not cache the broken session so next call can retry
       console.error(`[TeamSessionService] Failed to start session for team ${teamId}:`, err);
       throw err;
     }
+  }
 
-    // Only register the session after full initialization so that getOrStartSession
-    // always returns a session with a live MCP server and injected DB config.
-    this.sessions.set(teamId, session);
+  async getExecutionInfo(teamId: string): Promise<TeamExecutionInfo> {
+    const session = this.executionPlane.getSession(teamId);
+    if (session) {
+      const liveInfo = session.getExecutionInfo();
+      const cachedSnapshot = await this.diagnosticsService.getCachedSnapshot(teamId);
+      const lastEventAt = cachedSnapshot?.timeline.reduce<number | undefined>((latest, event) => {
+        return latest === undefined || event.at > latest ? event.at : latest;
+      }, undefined);
+      return attachExecutionRecovery(liveInfo, {
+        source: 'live_session',
+        snapshotAvailable: Boolean(cachedSnapshot),
+        snapshotCapturedAt: cachedSnapshot?.capturedAt,
+        lastEventAt,
+        lastKnownState: liveInfo.state,
+      });
+    }
 
-    return session;
+    const team = await this.getTeam(teamId);
+    if (!team) throw new Error(`Team "${teamId}" not found`);
+
+    const recoveredDiagnostics = await this.diagnosticsService.getRecoveredDiagnostics(team);
+    if (recoveredDiagnostics) {
+      return recoveredDiagnostics.executionInfo;
+    }
+
+    return attachExecutionRecovery(
+      {
+      teamId,
+      executionKind: team.executionEngine ?? this.legacyMailboxEngine.kind,
+      orchestrationMode: team.orchestrationMode ?? this.legacyMailboxEngine.orchestrationMode,
+      state: 'created',
+      context: {
+        runtimeVersion: 'phase2',
+        leaderBackend: team.agents.find((agent) => agent.role === 'leader')?.agentType,
+        memberCount: team.agents.length,
+        compatibilityMode:
+          (team.executionEngine ?? this.legacyMailboxEngine.kind) === this.hermesNativeEngine.kind
+            ? 'native_compatibility_bridge'
+            : 'legacy_mailbox',
+      },
+      diagnostics: {
+        summary: [
+          `selected_engine:${team.executionEngine ?? this.legacyMailboxEngine.kind}`,
+          `persisted_orchestration_mode:${team.orchestrationMode ?? this.legacyMailboxEngine.orchestrationMode}`,
+        ],
+      },
+      },
+      {
+        source: 'fresh',
+        snapshotAvailable: false,
+        lastKnownState: 'created',
+      }
+    );
+  }
+
+  async getRuntimeDiagnostics(teamId: string): Promise<TeamRuntimeDiagnostics> {
+    const session = this.executionPlane.getSession(teamId);
+    const team = await this.getTeam(teamId);
+    if (!team) throw new Error(`Team "${teamId}" not found`);
+
+    if (!session) {
+      const recoveredDiagnostics = await this.diagnosticsService.getRecoveredDiagnostics(team);
+      if (recoveredDiagnostics) {
+        return recoveredDiagnostics;
+      }
+    }
+
+    const executionInfo = await this.getExecutionInfo(teamId);
+    const diagnostics = await this.diagnosticsService.getDiagnostics(team, executionInfo);
+    await this.diagnosticsService.recordEvent(team.id, {
+      at: Date.now(),
+      type: 'diagnostics_refreshed',
+      level: 'info',
+      message: 'Runtime diagnostics refreshed',
+      details: {
+        executionKind: diagnostics.executionInfo.executionKind,
+        degradedMembers: diagnostics.degradedMembers.length,
+        waitingTasks: diagnostics.taskDiagnostics.waiting.length,
+      },
+    });
+    return diagnostics;
+  }
+
+  async warmDiagnosticsRecovery(teamId: string): Promise<TeamRuntimeDiagnostics | null> {
+    const session = this.executionPlane.getSession(teamId);
+    if (session) {
+      return this.getRuntimeDiagnostics(teamId);
+    }
+
+    const team = await this.getTeam(teamId);
+    if (!team) throw new Error(`Team "${teamId}" not found`);
+
+    const recoveredDiagnostics = await this.diagnosticsService.getRecoveredDiagnostics(team);
+    if (!recoveredDiagnostics) {
+      return null;
+    }
+
+    await this.diagnosticsService.recordEvent(team.id, {
+      at: Date.now(),
+      type: 'snapshot_recovered',
+      level: 'info',
+      message: 'Recovered runtime diagnostics from persisted snapshot',
+      details: {
+        executionKind: recoveredDiagnostics.executionInfo.executionKind,
+        preferredMode: recoveredDiagnostics.executionInfo.recovery?.preferredMode,
+        snapshotCapturedAt: recoveredDiagnostics.recoveredFromSnapshotAt,
+      },
+    });
+
+    return recoveredDiagnostics;
+  }
+
+  async prepareRecoverySession(teamId: string): Promise<TeamRecoveryPreparation> {
+    const team = await this.getTeam(teamId);
+    if (!team) throw new Error(`Team "${teamId}" not found`);
+
+    const executionInfo = await this.getExecutionInfo(teamId);
+    const diagnostics = await this.loadRecoveryDiagnostics(teamId, team);
+    const preparation = this.recoveryCoordinator.prepare({
+      team,
+      executionInfo,
+      diagnostics,
+    });
+
+    await this.diagnosticsService.recordEvent(team.id, {
+      at: Date.now(),
+      type: 'recovery_plan_prepared',
+      level: preparation.recoveryPlan.status === 'not_available' ? 'warning' : 'info',
+      message: `Recovery plan prepared in ${preparation.recoveryPlan.mode}`,
+      details: {
+        status: preparation.recoveryPlan.status,
+        mode: preparation.recoveryPlan.mode,
+        blockers: preparation.recoveryPlan.blockers,
+      },
+    });
+
+    return preparation;
+  }
+
+  async executeRecoveryPlan(teamId: string): Promise<TeamRecoveryExecutionResult> {
+    const team = await this.getTeam(teamId);
+    if (!team) throw new Error(`Team "${teamId}" not found`);
+
+    const executionInfo = await this.getExecutionInfo(teamId);
+    const diagnostics = await this.loadRecoveryDiagnostics(teamId, team);
+
+    try {
+      const result = await this.recoveryCoordinator.execute({
+        team,
+        executionInfo,
+        diagnostics,
+      });
+      const refreshedDiagnostics = await this.loadRecoveryDiagnostics(teamId, team);
+      const finalResult: TeamRecoveryExecutionResult = {
+        ...result,
+        diagnostics: refreshedDiagnostics,
+      };
+
+      await this.diagnosticsService.recordEvent(team.id, {
+        at: Date.now(),
+        type: 'recovery_plan_executed',
+        level: finalResult.status === 'not_available' ? 'warning' : 'info',
+        message: `Recovery execution completed with status ${finalResult.status}`,
+        details: {
+          status: finalResult.status,
+          mode: finalResult.recoveryPlan.mode,
+          actionsApplied: finalResult.actionsApplied,
+        },
+      });
+
+      return finalResult;
+    } catch (error) {
+      await this.diagnosticsService.recordEvent(team.id, {
+        at: Date.now(),
+        type: 'recovery_plan_failed',
+        level: 'error',
+        message: error instanceof Error ? error.message : 'Recovery execution failed',
+        details: {
+          teamId,
+        },
+      });
+      throw error;
+    }
   }
 
   async stopSession(teamId: string): Promise<void> {
-    await this.sessions.get(teamId)?.dispose();
-    this.sessions.delete(teamId);
+    await this.diagnosticsService.recordEvent(teamId, {
+      at: Date.now(),
+      type: 'session_stopped',
+      level: 'info',
+      message: 'Execution session stopped',
+    });
+    await this.executionPlane.stopSession(teamId);
   }
 
   async stopAllSessions(): Promise<void> {
-    await Promise.all(Array.from(this.sessions.keys()).map((id) => this.stopSession(id)));
+    await this.executionPlane.stopAllSessions();
+  }
+
+  private async loadRecoveryDiagnostics(teamId: string, team: TTeam): Promise<TeamRuntimeDiagnostics | null> {
+    const session = this.executionPlane.getSession(teamId);
+    if (!session) {
+      return this.diagnosticsService.getRecoveredDiagnostics(team);
+    }
+
+    return this.getRuntimeDiagnostics(teamId);
   }
 }

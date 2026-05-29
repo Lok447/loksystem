@@ -20,7 +20,8 @@ import { ipcBridge } from '@/common';
 import type { TeamSessionService } from '@process/team/TeamSessionService';
 import { mirrorTeamListChanged } from '@process/core/team';
 import type { StdioMcpConfig } from '../team/TeamMcpServer';
-import { isTeamCapableBackend } from '@/common/types/teamTypes';
+import { TeamCapabilityResolver } from '@/common/team/TeamCapabilityResolver';
+import type { TeamCapabilityOverrides } from '@/common/team/TeamCapabilityResolver';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getConversationTypeForBackend } from '@/common/utils/buildAgentConversationParams';
 import { handleListModels } from '../modelListHandler';
@@ -156,6 +157,10 @@ export class TeamGuideMcpServer {
     switch (toolName) {
       case 'aion_create_team':
         return this.handleCreateTeam(args, backend, callerConversationId);
+      case 'aion_prepare_team_recovery':
+        return this.handlePrepareRecovery(args);
+      case 'aion_execute_team_recovery':
+        return this.handleExecuteRecovery(args);
       case 'aion_list_models':
         return handleListModels(args);
       default:
@@ -190,7 +195,14 @@ export class TeamGuideMcpServer {
     // Use system-injected backend (from LOK_MCP_BACKEND env var) as the authoritative agent type.
     // Falls back to Hermes/Lok CLI when the backend is unknown or not in the whitelist.
     const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
-    const agentType = backend && isTeamCapableBackend(backend, cachedInitResults) ? backend : 'hermes';
+    const capabilityOverrides =
+      ((await ProcessConfig.get('team.capabilityOverrides')) as TeamCapabilityOverrides | null | undefined) ?? null;
+    const agentType = TeamCapabilityResolver.pickPreferredLeaderBackend(
+      backend,
+      cachedInitResults,
+      capabilityOverrides,
+      'hermes'
+    );
 
     const teamName = name || summary.split(/\s+/).slice(0, 5).join(' ');
     const userId = 'system_default_user';
@@ -240,6 +252,7 @@ export class TeamGuideMcpServer {
     // getOrStartSession rebuilds the leader's agent task with team MCP tools (skipCache).
     // Always send the summary to the leader so it can propose/spawn teammates.
     const leaderIsReused = Boolean(callerConversationId && leadAgent?.conversationId === callerConversationId);
+    const executionInfo = await this.teamSessionService.getExecutionInfo(team.id);
     void (async () => {
       try {
         const session = await this.teamSessionService.getOrStartSession(team.id);
@@ -258,8 +271,62 @@ export class TeamGuideMcpServer {
       name: team.name,
       route,
       leadAgent: leadAgent ? { slotId: leadAgent.slotId, conversationId: leadAgent.conversationId } : null,
+      executionInfo,
       status: 'team_created',
       next_step: 'The team page has been opened automatically. End your turn now — do not add extra commentary.',
+    });
+  }
+  private async handlePrepareRecovery(args: Record<string, unknown>): Promise<string> {
+    const teamId = String(args.team_id ?? '').trim();
+    if (!teamId) {
+      throw new Error('team_id is required');
+    }
+
+    const preparation = await this.teamSessionService.prepareRecoverySession(teamId);
+    return JSON.stringify({
+      teamId: preparation.teamId,
+      status: preparation.recoveryPlan.status,
+      mode: preparation.recoveryPlan.mode,
+      executionInfo: preparation.executionInfo,
+      recoveryPlan: preparation.recoveryPlan,
+      diagnostics: preparation.diagnostics,
+      protocolReplayContext: preparation.protocolReplayContext,
+      protocolReplayExecutionPlan: preparation.protocolReplayExecutionPlan,
+      gatewayReplayContext: preparation.gatewayReplayContext,
+      gatewayReplayExecutionPlan: preparation.gatewayReplayExecutionPlan,
+      next_step:
+        preparation.recoveryPlan.status === 'not_available'
+          ? 'Inspect runtime diagnostics and persisted snapshot availability before attempting recovery again.'
+          : 'If the user confirms recovery, call aion_execute_team_recovery with the same team_id.',
+    });
+  }
+
+  private async handleExecuteRecovery(args: Record<string, unknown>): Promise<string> {
+    const teamId = String(args.team_id ?? '').trim();
+    if (!teamId) {
+      throw new Error('team_id is required');
+    }
+
+    const result = await this.teamSessionService.executeRecoveryPlan(teamId);
+    return JSON.stringify({
+      teamId: result.teamId,
+      status: result.status,
+      executionInfo: result.executionInfo,
+      recoveryPlan: result.recoveryPlan,
+      diagnostics: result.diagnostics,
+      actionsApplied: result.actionsApplied,
+      replayMessage: result.replayMessage,
+      protocolReplayContext: result.protocolReplayContext,
+      protocolReplayExecutionPlan: result.protocolReplayExecutionPlan,
+      gatewayReplayContext: result.gatewayReplayContext,
+      gatewayReplayExecutionPlan: result.gatewayReplayExecutionPlan,
+      gatewayReplayExecution: result.gatewayReplayExecution,
+      next_step:
+        result.status === 'executed'
+          ? 'The runtime recovery flow has been executed. Review diagnostics, then continue coordinating work in the team page.'
+          : result.status === 'already_running'
+            ? 'The team runtime is already active. Continue work directly or inspect diagnostics before sending more instructions.'
+            : 'Recovery is not available yet. Inspect diagnostics and persisted snapshot state first.',
     });
   }
 }

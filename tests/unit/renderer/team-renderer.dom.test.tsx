@@ -17,6 +17,134 @@ const mockRemoveAgentInvoke = vi.fn();
 const mockConversationGetInvoke = vi.fn();
 const mockConversationUpdateInvoke = vi.fn();
 const mockRenameTeamInvoke = vi.fn();
+const coreClientMock = vi.hoisted(() => ({
+  teams: {
+    get: vi.fn().mockResolvedValue({ id: 'team-1' }),
+    ensureSession: vi.fn().mockResolvedValue({ success: true }),
+    renameTeam: vi.fn((...args: unknown[]) => mockRenameTeamInvoke(...args)),
+    removeAgent: vi.fn((...args: unknown[]) => mockRemoveAgentInvoke({ teamId: args[0], slotId: args[1] })),
+    getRuntimeDiagnostics: vi.fn().mockResolvedValue({
+      success: true,
+      data: {
+        teamId: 'team-1',
+        capturedAt: 1,
+        executionInfo: {
+          teamId: 'team-1',
+          executionKind: 'legacy_mailbox',
+          orchestrationMode: 'legacy_mailbox',
+          state: 'stopped',
+          context: {
+            leaderBackend: 'acp',
+            memberCount: 2,
+          },
+          recovery: {
+            source: 'persisted_snapshot',
+            snapshotAvailable: true,
+            replayReady: true,
+            resumeReady: false,
+            preferredMode: 'mailbox_replay',
+          },
+          recoveryPlan: {
+            status: 'ready_for_replay',
+            mode: 'mailbox_replay',
+            steps: [],
+            blockers: [],
+            summary: ['recovery_plan:mailbox_replay'],
+          },
+        },
+        degradedMembers: [],
+        taskDiagnostics: {
+          pending: 0,
+          inProgress: 0,
+          completed: 0,
+          waiting: [
+            {
+              taskId: 'task-1',
+              subject: 'Review worker output',
+              blockedBy: ['task-upstream'],
+              owner: 'slot-member',
+            },
+          ],
+        },
+        timeline: [
+          {
+            id: 'event-1',
+            teamId: 'team-1',
+            at: 1000,
+            type: 'routing_selected',
+            level: 'info',
+            message: 'Runtime routing selected legacy_mailbox',
+            details: {
+              requestedEngine: 'legacy_mailbox',
+              routingMode: 'off',
+            },
+          },
+          {
+            id: 'event-2',
+            teamId: 'team-1',
+            at: 2000,
+            type: 'session_started',
+            level: 'info',
+            message: 'Execution session started in legacy_mailbox',
+            details: {
+              executionKind: 'legacy_mailbox',
+              orchestrationMode: 'legacy_mailbox',
+            },
+          },
+        ],
+        summary: ['execution_kind:legacy_mailbox'],
+      },
+    }),
+    prepareRecoverySession: vi.fn().mockResolvedValue({
+      success: true,
+      data: {
+        teamId: 'team-1',
+        executionInfo: {
+          teamId: 'team-1',
+          executionKind: 'legacy_mailbox',
+          orchestrationMode: 'legacy_mailbox',
+          state: 'stopped',
+        },
+        recoveryPlan: {
+          status: 'ready_for_replay',
+          mode: 'mailbox_replay',
+          steps: [],
+          blockers: [],
+          summary: ['recovery_plan:mailbox_replay'],
+        },
+        diagnostics: null,
+      },
+    }),
+    executeRecoveryPlan: vi.fn().mockResolvedValue({
+      success: true,
+      data: {
+        teamId: 'team-1',
+        status: 'executed',
+        executionInfo: {
+          teamId: 'team-1',
+          executionKind: 'legacy_mailbox',
+          orchestrationMode: 'legacy_mailbox',
+          state: 'running',
+        },
+        recoveryPlan: {
+          status: 'ready_for_replay',
+          mode: 'mailbox_replay',
+          steps: [],
+          blockers: [],
+          summary: ['recovery_plan:mailbox_replay'],
+        },
+        diagnostics: null,
+        actionsApplied: ['rebuild_mailbox_runtime', 'replay_mailbox_messages'],
+      },
+    }),
+  },
+  conversations: {
+    get: vi.fn((...args: unknown[]) => mockConversationGetInvoke(...args)),
+  },
+  events: {
+    subscribe: vi.fn(() => vi.fn()),
+  },
+}));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -82,10 +210,51 @@ vi.mock('@arco-design/web-react', () => {
     loading ? React.createElement('div', { 'data-testid': 'spin' }) : null;
   const Button = ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) =>
     React.createElement('button', { 'data-testid': 'arco-button', onClick }, children);
-  return { Button, Message, Modal, Spin };
+  const FormItem = ({ children }: { children?: React.ReactNode }) => React.createElement('div', null, children);
+  const Form = Object.assign(({ children }: { children?: React.ReactNode }) => React.createElement('form', null, children), {
+    Item: FormItem,
+  });
+  const Input = React.forwardRef<HTMLInputElement, { value?: string; onChange?: (value: string) => void; placeholder?: string }>(
+    ({ value, onChange, placeholder }, ref) =>
+      React.createElement('input', {
+        ref,
+        value,
+        placeholder,
+        onChange: (event: React.ChangeEvent<HTMLInputElement>) => onChange?.(event.target.value),
+      })
+  );
+  const SelectOption = ({ children, value }: { children?: React.ReactNode; value?: string }) =>
+    React.createElement('option', { value }, children);
+  const SelectOptGroup = ({ children, label }: { children?: React.ReactNode; label?: string }) =>
+    React.createElement('optgroup', { label }, children);
+  const Select = Object.assign(
+    ({
+      children,
+      value,
+      onChange,
+    }: {
+      children?: React.ReactNode;
+      value?: string;
+      onChange?: (value: string | undefined) => void;
+    }) =>
+      React.createElement(
+        'select',
+        {
+          value: value ?? '',
+          onChange: (event: React.ChangeEvent<HTMLSelectElement>) => onChange?.(event.target.value || undefined),
+        },
+        children
+      ),
+    {
+      Option: SelectOption,
+      OptGroup: SelectOptGroup,
+    }
+  );
+  return { Button, Form, Input, Message, Modal, Select, Spin };
 });
 
 vi.mock('@icon-park/react', () => ({
+  Close: (props: Record<string, unknown>) => React.createElement('span', { 'data-testid': 'close-modal-icon', ...props }),
   CloseSmall: (props: Record<string, unknown>) =>
     React.createElement('span', { 'data-testid': 'close-icon', ...props }),
   CloseOne: (props: Record<string, unknown>) =>
@@ -98,6 +267,8 @@ vi.mock('@icon-park/react', () => ({
     React.createElement('span', { 'data-testid': 'offscreen-icon', ...props }),
   Left: (props: Record<string, unknown>) => React.createElement('span', { 'data-testid': 'left-icon', ...props }),
   Right: (props: Record<string, unknown>) => React.createElement('span', { 'data-testid': 'right-icon', ...props }),
+  Down: (props: Record<string, unknown>) => React.createElement('span', { 'data-testid': 'down-icon', ...props }),
+  Up: (props: Record<string, unknown>) => React.createElement('span', { 'data-testid': 'up-icon', ...props }),
 }));
 
 vi.mock('@/renderer/styles/colors', () => ({
@@ -124,12 +295,42 @@ vi.mock('@/renderer/pages/conversation/hooks/useConversationAgents', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/components/ChatLayout', () => ({
-  default: ({ children, tabsSlot }: { children: React.ReactNode; tabsSlot?: React.ReactNode }) =>
-    React.createElement('div', { 'data-testid': 'chat-layout' }, tabsSlot, children),
+  default: ({
+    children,
+    tabsSlot,
+    headerExtra,
+  }: {
+    children: React.ReactNode;
+    tabsSlot?: React.ReactNode;
+    headerExtra?: React.ReactNode;
+  }) => React.createElement('div', { 'data-testid': 'chat-layout' }, headerExtra, tabsSlot, children),
 }));
 
 vi.mock('@/renderer/pages/conversation/components/ChatSider', () => ({
   default: () => React.createElement('div', { 'data-testid': 'chat-sider' }),
+}));
+
+vi.mock('@renderer/components/base/LokModal', () => ({
+  default: ({
+    visible,
+    children,
+    header,
+    footer,
+  }: {
+    visible?: boolean;
+    children?: React.ReactNode;
+    header?: { render?: () => React.ReactNode };
+    footer?: React.ReactNode;
+  }) =>
+    visible
+      ? React.createElement(
+          'div',
+          { 'data-testid': 'lok-modal' },
+          header?.render ? header.render() : null,
+          children,
+          footer
+        )
+      : null,
 }));
 
 vi.mock('@/renderer/pages/team/components/TeamChatView', () => ({
@@ -149,9 +350,21 @@ vi.mock('@/renderer/pages/conversation/platforms/lokcli/useLokCliModelSelection'
 }));
 
 vi.mock('@/renderer/pages/team/components/agentSelectUtils', () => ({
-  agentFromKey: () => undefined,
+  agentKey: (agent: { customAgentId?: string; backend: string }) =>
+    agent.customAgentId ? `preset::${agent.customAgentId}` : `cli::${agent.backend}`,
+  agentFromKey: (key: string, agents: Array<{ customAgentId?: string; backend: string }>) =>
+    agents.find((agent) => (agent.customAgentId ? `preset::${agent.customAgentId}` : `cli::${agent.backend}`) === key),
   resolveConversationType: () => 'acp',
-  resolveTeamAgentType: () => 'acp',
+  resolveTeamAgentType: (agent: { presetAgentType?: string; backend?: string } | undefined, fallback: string) =>
+    agent?.presetAgentType || agent?.backend || fallback,
+  partitionAgentsByTeamRole: (agents: unknown[]) => ({ selectable: agents, blocked: [] }),
+  getAgentTeamCapabilitySummary: () => ({
+    modeLabel: 'Protocol Team Mode',
+    recommendationLabel: 'Worker Recommended',
+  }),
+  getLeaderMixedBackendHint: () => 'leader hint',
+  getTeammateMixedBackendHint: () => 'teammate hint',
+  AgentOptionLabel: ({ agent }: { agent: { name: string } }) => React.createElement('span', null, agent.name),
 }));
 
 vi.mock('@/renderer/utils/workspace/workspaceEvents', () => ({
@@ -175,12 +388,17 @@ vi.mock('@/renderer/pages/team/hooks/useTeamSession', () => ({
   useTeamSession: () => mockUseTeamSessionReturn,
 }));
 
+vi.mock('@/common/coreClient', () => ({
+  getRendererCoreClient: vi.fn(() => coreClientMock),
+}));
+
 // ---------------------------------------------------------------------------
 // Imports under test
 // ---------------------------------------------------------------------------
 
 import { TeamTabsProvider, useTeamTabs } from '@renderer/pages/team/hooks/TeamTabsContext';
 import type { TeamAgent, TTeam } from '@/common/types/teamTypes';
+import { getRendererCoreClient } from '@/common/coreClient';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -215,6 +433,17 @@ function makeTeam(): TTeam {
     name: 'Test Team',
     leaderAgentId: 'slot-lead',
     agents: makeAgents(),
+    createdAt: 1,
+    updatedAt: 1,
+  } as TTeam;
+}
+
+function makeSingleLeaderTeam(): TTeam {
+  return {
+    id: 'team-1',
+    name: 'Test Team',
+    leaderAgentId: 'slot-lead',
+    agents: [makeAgents()[0]],
     createdAt: 1,
     updatedAt: 1,
   } as TTeam;
@@ -484,6 +713,7 @@ describe('TeamPage remove agent', () => {
     vi.clearAllMocks();
     localStorage.clear();
     mockRemoveAgentInvoke.mockResolvedValue(undefined);
+    coreClientMock.teams.ensureSession.mockResolvedValue({ success: true });
   });
 
   afterEach(() => {
@@ -578,5 +808,42 @@ describe('TeamPage remove agent', () => {
     await waitFor(() => {
       expect(Message.success).toHaveBeenCalled();
     });
+  });
+
+  it('renders runtime diagnostics actions and triggers recovery flow', async () => {
+    const TeamPage = (await import('@renderer/pages/team/TeamPage')).default;
+
+    render(React.createElement(TeamPage, { team: makeTeam() }));
+
+    expect(screen.getByText('team.runtime.executionOverviewToggle')).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId('team-execution-overview-toggle'));
+
+    expect(screen.getByText('team.runtime.executionOverviewTitle')).toBeTruthy();
+    expect(screen.getByTestId('team-execution-overview')).toBeTruthy();
+    expect(screen.getByText('team.runtime.executionOverviewOwnershipTitle')).toBeTruthy();
+    expect(screen.getByText('team.runtime.executionOverviewRecoveryTitle')).toBeTruthy();
+    expect(screen.queryByText('team.runtime.statusStripTitle')).toBeNull();
+    expect(screen.queryByTestId('team-execution-lane-leader-slot-lead')).toBeNull();
+    expect(screen.queryByTestId('team-execution-lane-worker-slot-member')).toBeNull();
+  });
+
+  it('opens add member modal from the team header', async () => {
+    const TeamPage = (await import('@renderer/pages/team/TeamPage')).default;
+
+    render(React.createElement(TeamPage, { team: makeTeam() }));
+
+    fireEvent.click(screen.getByTestId('team-add-member-toggle'));
+
+    expect(screen.getByText('team.memberAdd.title')).toBeTruthy();
+  });
+
+  it('hides team tabs when the team only has a leader', async () => {
+    const TeamPage = (await import('@renderer/pages/team/TeamPage')).default;
+
+    render(React.createElement(TeamPage, { team: makeSingleLeaderTeam() }));
+
+    expect(screen.queryByTestId('team-tab-bar')).toBeNull();
+    expect(screen.getAllByTestId('agent-identity').length).toBe(1);
   });
 });

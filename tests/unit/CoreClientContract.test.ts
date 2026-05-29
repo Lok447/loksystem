@@ -35,6 +35,9 @@ describe('createInProcessCoreClient', () => {
       create: vi.fn(),
       list: vi.fn(),
       get: vi.fn(),
+      getRuntimeDiagnostics: vi.fn(),
+      prepareRecoverySession: vi.fn(),
+      executeRecoveryPlan: vi.fn(),
       remove: vi.fn(),
       addAgent: vi.fn(),
       removeAgent: vi.fn(),
@@ -197,6 +200,9 @@ describe('createInProcessCoreClient', () => {
     vi.mocked(services.teams.sendMessageToAgent).mockResolvedValue({ success: true } as never);
     vi.mocked(services.teams.stop).mockResolvedValue({ success: true } as never);
     vi.mocked(services.teams.ensureSession).mockResolvedValue({ success: true } as never);
+    vi.mocked(services.teams.getRuntimeDiagnostics).mockResolvedValue({ success: true, data: { teamId: 'team-1' } } as never);
+    vi.mocked(services.teams.prepareRecoverySession).mockResolvedValue({ success: true, data: { teamId: 'team-1' } } as never);
+    vi.mocked(services.teams.executeRecoveryPlan).mockResolvedValue({ success: true, data: { teamId: 'team-1' } } as never);
 
     const client = createInProcessCoreClient(services);
 
@@ -234,6 +240,9 @@ describe('createInProcessCoreClient', () => {
     ).resolves.toMatchObject({ success: true });
     await expect(client.teams.stop('team-1')).resolves.toMatchObject({ success: true });
     await expect(client.teams.ensureSession('team-1')).resolves.toMatchObject({ success: true });
+    await expect(client.teams.getRuntimeDiagnostics('team-1')).resolves.toMatchObject({ success: true });
+    await expect(client.teams.prepareRecoverySession('team-1')).resolves.toMatchObject({ success: true });
+    await expect(client.teams.executeRecoveryPlan('team-1')).resolves.toMatchObject({ success: true });
     expect(services.teams.sendMessage).toHaveBeenCalledWith({ teamId: 'team-1', content: 'hello', files: ['a.txt'] });
     expect(services.teams.sendMessageToAgent).toHaveBeenCalledWith({
       teamId: 'team-1',
@@ -242,6 +251,9 @@ describe('createInProcessCoreClient', () => {
     });
     expect(services.teams.stop).toHaveBeenCalledWith('team-1');
     expect(services.teams.ensureSession).toHaveBeenCalledWith('team-1');
+    expect(services.teams.getRuntimeDiagnostics).toHaveBeenCalledWith('team-1');
+    expect(services.teams.prepareRecoverySession).toHaveBeenCalledWith('team-1');
+    expect(services.teams.executeRecoveryPlan).toHaveBeenCalledWith('team-1');
   });
 
   it('delegates upload file creation to core services', async () => {

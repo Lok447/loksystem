@@ -54,6 +54,9 @@ vi.mock('@/common', () => ({
         create: makeProvider('teams.create'),
         list: makeProvider('teams.list'),
         get: makeProvider('teams.get'),
+        getRuntimeDiagnostics: makeProvider('teams.getRuntimeDiagnostics'),
+        prepareRecoverySession: makeProvider('teams.prepareRecoverySession'),
+        executeRecoveryPlan: makeProvider('teams.executeRecoveryPlan'),
         remove: makeProvider('teams.remove'),
         addAgent: makeProvider('teams.addAgent'),
         removeAgent: makeProvider('teams.removeAgent'),
@@ -128,6 +131,9 @@ describe('CoreElectronClientAdapter', () => {
         create: vi.fn(async (params) => ({ success: true, data: { id: 'team-1', ...params } }) as never),
         list: vi.fn(async (userId: string) => [{ id: 'team-1', userId }] as never),
         get: vi.fn(async (id: string) => ({ id }) as never),
+        getRuntimeDiagnostics: vi.fn(async (teamId: string) => ({ success: true, data: { teamId } }) as never),
+        prepareRecoverySession: vi.fn(async (teamId: string) => ({ success: true, data: { teamId } }) as never),
+        executeRecoveryPlan: vi.fn(async (teamId: string) => ({ success: true, data: { teamId, status: 'executed' } }) as never),
         remove: vi.fn(async (id: string) => ({ success: true, data: { id } }) as never),
         addAgent: vi.fn(async (params) => ({ success: true, data: params.agent }) as never),
         removeAgent: vi.fn(async (teamId: string, slotId: string) => ({ success: true, data: { teamId, slotId } }) as never),
@@ -235,6 +241,18 @@ describe('CoreElectronClientAdapter', () => {
       { id: 'team-1', userId: 'user-1' },
     ]);
     await expect(handlers['teams.get']({ id: 'team-1' } as never)).resolves.toMatchObject({ id: 'team-1' });
+    await expect(handlers['teams.getRuntimeDiagnostics']({ teamId: 'team-1' } as never)).resolves.toMatchObject({
+      success: true,
+      data: { teamId: 'team-1' },
+    });
+    await expect(handlers['teams.prepareRecoverySession']({ teamId: 'team-1' } as never)).resolves.toMatchObject({
+      success: true,
+      data: { teamId: 'team-1' },
+    });
+    await expect(handlers['teams.executeRecoveryPlan']({ teamId: 'team-1' } as never)).resolves.toMatchObject({
+      success: true,
+      data: { teamId: 'team-1', status: 'executed' },
+    });
     await expect(handlers['teams.remove']({ id: 'team-1' } as never)).resolves.toMatchObject({ success: true });
     await expect(
       handlers['teams.addAgent']({ teamId: 'team-1', agent: { agentName: 'A' } } as never)

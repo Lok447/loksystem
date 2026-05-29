@@ -90,9 +90,9 @@ vi.mock('../../src/process/utils/initStorage', () => ({
   },
 }));
 
-// Mock acpDetector for getTeamCapableBackends error message
-vi.mock('../../src/process/agent/acp/AcpDetector', () => ({
-  acpDetector: {
+// Mock agent registry for supported backend catalog in TeamMcpServer error messages
+vi.mock('../../src/process/agent/AgentRegistry', () => ({
+  agentRegistry: {
     getDetectedAgents: vi.fn(() => [
       { backend: 'qwen', name: 'Qwen' },
       { backend: 'codex', name: 'Codex' },
@@ -211,6 +211,9 @@ describe('TeamMcpServer agent type capability check', () => {
     await expect(
       (server as any).handleSpawnAgent({ name: 'bad-agent', agent_type: 'unknown-backend' })
     ).rejects.toThrow('not supported in team mode');
+    await expect(
+      (server as any).handleSpawnAgent({ name: 'bad-agent', agent_type: 'unknown-backend' })
+    ).rejects.toThrow('Supported now: qwen (worker recommended), codex (worker recommended).');
     expect(spawnAgent).not.toHaveBeenCalled();
   });
 });

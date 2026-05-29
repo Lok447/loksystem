@@ -4,15 +4,78 @@ import { buildLeaderPrompt } from '@process/team/prompts/leadPrompt';
 describe('buildLeaderPrompt', () => {
   it('asks the leader to propose teammates and recommended agent types before spawning', () => {
     const prompt = buildLeaderPrompt({
+      leaderCapabilities: {
+        backend: 'hermes',
+        executionKind: 'hermes',
+        supportsMcpStdio: true,
+        supportsSessionFork: true,
+        supportsNativeDelegation: true,
+        supportsSharedWorkspace: true,
+        supportsStructuredTasks: true,
+        supportsDirectPeerMessaging: true,
+        supportsInterrupt: true,
+        supportsResume: true,
+        supportsModelSelection: true,
+        recommendedTeamMode: 'native_orchestrator',
+        maturity: 'high',
+        leaderRecommended: true,
+        workerRecommended: true,
+        currentlySupported: true,
+        caveats: [],
+      },
       teammates: [],
-      tasks: [],
-      unreadMessages: [],
       availableAgentTypes: [
-        { type: 'claude', name: 'Claude Code' },
-        { type: 'gemini', name: 'Lok CLI' },
+        {
+          type: 'codex',
+          name: 'Codex',
+          capabilities: {
+            backend: 'codex',
+            executionKind: 'acp',
+            supportsMcpStdio: true,
+            supportsSessionFork: false,
+            supportsNativeDelegation: false,
+            supportsSharedWorkspace: true,
+            supportsStructuredTasks: true,
+            supportsDirectPeerMessaging: true,
+            supportsInterrupt: true,
+            supportsResume: false,
+            supportsModelSelection: true,
+            recommendedTeamMode: 'protocol_coordinated',
+            maturity: 'high',
+            leaderRecommended: false,
+            workerRecommended: true,
+            currentlySupported: true,
+            caveats: ['worker_preferred'],
+          },
+        },
+        {
+          type: 'hermes',
+          name: 'Lok CLI',
+          capabilities: {
+            backend: 'hermes',
+            executionKind: 'hermes',
+            supportsMcpStdio: true,
+            supportsSessionFork: true,
+            supportsNativeDelegation: true,
+            supportsSharedWorkspace: true,
+            supportsStructuredTasks: true,
+            supportsDirectPeerMessaging: true,
+            supportsInterrupt: true,
+            supportsResume: true,
+            supportsModelSelection: true,
+            recommendedTeamMode: 'native_orchestrator',
+            maturity: 'high',
+            leaderRecommended: true,
+            workerRecommended: true,
+            currentlySupported: true,
+            caveats: [],
+          },
+        },
       ],
     });
 
+    expect(prompt).toContain('## Your Runtime Fit');
+    expect(prompt).toContain('leader recommended');
     expect(prompt).toContain('reply in text with a staffing proposal');
     expect(prompt).toContain('one short sentence explaining why more teammates would help');
     expect(prompt).toContain('Present the proposed lineup as a table');
@@ -28,8 +91,6 @@ describe('buildLeaderPrompt', () => {
   it('prevents immediate spawning when the teammate lineup is not finalized yet', () => {
     const prompt = buildLeaderPrompt({
       teammates: [],
-      tasks: [],
-      unreadMessages: [],
     });
 
     expect(prompt).not.toContain('call team_spawn_agent immediately, do NOT just reply in text');
@@ -99,8 +160,6 @@ describe('buildLeaderPrompt', () => {
   it('keeps greeting replies friendly and avoids staffing details before a real task appears', () => {
     const prompt = buildLeaderPrompt({
       teammates: [],
-      tasks: [],
-      unreadMessages: [],
     });
 
     expect(prompt).toContain('If the user greets you, starts a new chat, or asks what you can do');

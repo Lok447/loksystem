@@ -37,6 +37,8 @@ import type { TeamAgent } from '@process/team/types';
 import type { Mailbox } from '@process/team/Mailbox';
 import type { TaskManager } from '@process/team/TaskManager';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import type { ProtocolEventSink } from '@process/team-runtime/protocol';
+import type { GatewayEventSink } from '@process/team-runtime/gateway';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -86,24 +88,41 @@ function makeTaskManager(): TaskManager {
 function makeWorkerTaskManager(): IWorkerTaskManager {
   const mockSendMessage = vi.fn().mockResolvedValue(undefined);
   return {
+    getTask: vi.fn(),
     getOrBuildTask: vi.fn().mockResolvedValue({ sendMessage: mockSendMessage }),
     kill: vi.fn(),
   } as unknown as IWorkerTaskManager;
+}
+
+function makeProtocolEventSink(): ProtocolEventSink {
+  return {
+    emit: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+function makeGatewayEventSink(): GatewayEventSink {
+  return {
+    emit: vi.fn().mockResolvedValue(undefined),
+  };
 }
 
 function makeTeammateManager(agents: TeamAgent[] = [], overrides: Record<string, unknown> = {}) {
   const mailbox = makeMailbox();
   const taskManager = makeTaskManager();
   const workerTaskManager = makeWorkerTaskManager();
+  const protocolEventSink = makeProtocolEventSink();
+  const gatewayEventSink = makeGatewayEventSink();
   const mgr = new TeammateManager({
     teamId: 'team-1',
     agents,
     mailbox,
     taskManager,
     workerTaskManager,
+    protocolEventSink,
+    gatewayEventSink,
     ...overrides,
   });
-  return { mgr, mailbox, taskManager, workerTaskManager };
+  return { mgr, mailbox, taskManager, workerTaskManager, protocolEventSink, gatewayEventSink };
 }
 
 // ---------------------------------------------------------------------------
@@ -743,6 +762,54 @@ describe('TeammateManager', () => {
       }
     });
 
+    it('emits structured protocol fail event when a teammate stalls past the watchdog', async () => {
+      vi.useFakeTimers();
+      try {
+        const leadAgent = makeAgent({
+          slotId: 'slot-lead',
+          conversationId: 'conv-lead',
+          role: 'leader',
+          status: 'idle',
+          agentName: 'Leader',
+        });
+        const teammate = makeAgent({
+          slotId: 'slot-member',
+          conversationId: 'conv-member',
+          role: 'teammate',
+          status: 'idle',
+          agentName: 'Codex',
+          agentType: 'codex',
+        });
+        const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+        const { mgr, workerTaskManager, protocolEventSink } = makeTeammateManager([leadAgent, teammate]);
+        vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+          sendMessage: mockSendMessage,
+        } as never);
+
+        await mgr.wake('slot-member');
+        await vi.advanceTimersByTimeAsync(61_000);
+
+        expect(protocolEventSink.emit).toHaveBeenCalledWith(
+          'fail',
+          expect.objectContaining({
+            slotId: 'slot-member',
+            owner: 'slot-member',
+            workerBackend: 'codex',
+            leaderSummary: expect.stringContaining('stopped responding'),
+            recoveryHint: expect.stringContaining('retry the worker'),
+            details: expect.objectContaining({
+              reason: expect.stringContaining('60s'),
+            }),
+            level: 'warning',
+          })
+        );
+
+        mgr.dispose();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('does not fire the watchdog if streaming activity keeps resetting it (heartbeat)', async () => {
       vi.useFakeTimers();
       try {
@@ -1160,7 +1227,7 @@ describe('TeammateManager', () => {
         conversationType: 'acp',
       });
       const mockSendMessage = vi.fn().mockResolvedValue(undefined);
-      const { mgr, mailbox, workerTaskManager } = makeTeammateManager([leader, member]);
+      const { mgr, mailbox, workerTaskManager, protocolEventSink } = makeTeammateManager([leader, member]);
       vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
         sendMessage: mockSendMessage,
       } as never);
@@ -1218,7 +1285,7 @@ describe('TeammateManager', () => {
         agentName: 'Worker',
         conversationType: 'acp',
       });
-      const { mgr, mailbox, workerTaskManager } = makeTeammateManager([leader, member]);
+      const { mgr, mailbox, workerTaskManager, protocolEventSink } = makeTeammateManager([leader, member]);
 
       // Simulate leader crash
       teamEventBus.emit('responseStream', {
@@ -1243,6 +1310,21 @@ describe('TeammateManager', () => {
 
       // Member still exists
       expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')).toBeDefined();
+
+      expect(protocolEventSink.emit).toHaveBeenCalledWith(
+        'fail',
+        expect.objectContaining({
+          slotId: 'slot-lead',
+          owner: 'slot-lead',
+          workerBackend: 'acp',
+          leaderSummary: expect.stringContaining('protocol run needs intervention'),
+          recoveryHint: expect.stringContaining('rebuild the leader runtime'),
+          details: expect.objectContaining({
+            reason: expect.stringContaining('SIGTERM'),
+          }),
+          level: 'error',
+        })
+      );
 
       mgr.dispose();
     });
@@ -1644,6 +1726,150 @@ describe('TeammateManager', () => {
         'member_crashed'
       );
       expect(workerTaskManager.getOrBuildTask).toHaveBeenCalledWith('conv-lead');
+
+      mgr.dispose();
+    });
+
+    it('emits protocol fail details when a worker crashes and tasks are handed back to the leader', async () => {
+      const leader = makeAgent({
+        slotId: 'slot-lead',
+        conversationId: 'conv-lead',
+        role: 'leader',
+        agentName: 'Leader',
+        status: 'idle',
+      });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        agentType: 'codex',
+        conversationType: 'acp',
+      });
+      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+      const { mgr, taskManager, workerTaskManager, protocolEventSink } = makeTeammateManager([leader, member]);
+      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+        sendMessage: mockSendMessage,
+      } as never);
+      vi.mocked(taskManager.reassignOpenTasks).mockResolvedValue([
+        {
+          id: 'task-1',
+          teamId: 'team-1',
+          subject: 'Investigate crash',
+          status: 'pending',
+          owner: 'slot-lead',
+          blockedBy: [],
+          blocks: [],
+          metadata: {},
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      ] as never);
+
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-member',
+        msg_id: 'crash-protocol-1',
+        data: { error: 'Process exited unexpectedly', agentCrash: true },
+      });
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(protocolEventSink.emit).toHaveBeenCalledWith(
+        'fail',
+        expect.objectContaining({
+          slotId: 'slot-member',
+          owner: 'slot-member',
+          workerBackend: 'codex',
+          leaderSummary: expect.stringContaining('handed back to the leader'),
+          recoveryHint: expect.stringContaining('replay or re-dispatch'),
+          details: expect.objectContaining({
+            reason: expect.stringContaining('Process exited unexpectedly'),
+          }),
+          level: 'error',
+        })
+      );
+
+      mgr.dispose();
+    });
+
+    it('emits gateway recovery details when an openclaw worker crashes with a saved session', async () => {
+      const leader = makeAgent({
+        slotId: 'slot-lead',
+        conversationId: 'conv-lead',
+        role: 'leader',
+        agentName: 'Leader',
+        status: 'idle',
+      });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'OpenClaw Worker',
+        agentType: 'openclaw-gateway',
+        conversationType: 'openclaw-gateway',
+      });
+      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+      const { mgr, taskManager, workerTaskManager, gatewayEventSink } = makeTeammateManager([leader, member]);
+      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+        sendMessage: mockSendMessage,
+      } as never);
+      vi.mocked(workerTaskManager.getTask).mockReturnValue({
+        type: 'openclaw-gateway',
+        status: 'running',
+        workspace: '/tmp',
+        conversation_id: 'conv-member',
+        lastActivityAt: Date.now(),
+        sendMessage: vi.fn(),
+        stop: vi.fn(),
+        confirm: vi.fn(),
+        getConfirmations: vi.fn(() => []),
+        kill: vi.fn(),
+        getDiagnostics: () => ({
+          cliPath: 'openclaw',
+          isConnected: false,
+          hasActiveSession: false,
+          sessionKey: 'sess-reconnect',
+        }),
+      } as never);
+      vi.mocked(taskManager.reassignOpenTasks).mockResolvedValue([
+        {
+          id: 'task-1',
+          teamId: 'team-1',
+          subject: 'Recover session',
+          status: 'pending',
+          owner: 'slot-lead',
+          blockedBy: [],
+          blocks: [],
+          metadata: {},
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      ] as never);
+
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-member',
+        msg_id: 'crash-gateway-1',
+        data: { error: 'Process exited unexpectedly', agentCrash: true },
+      });
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(gatewayEventSink.emit).toHaveBeenCalledWith(
+        'recover',
+        expect.objectContaining({
+          slotId: 'slot-member',
+          gatewaySessionId: 'sess-reconnect',
+          lifecycleState: 'reconnecting',
+          runtimeStatus: 'reconnecting',
+          recoveryAction: 'replay_gateway_session',
+          recoveryMode: 'gateway_replay',
+          details: expect.objectContaining({
+            statusReason: 'gateway_reconnecting_saved_session',
+          }),
+        })
+      );
 
       mgr.dispose();
     });

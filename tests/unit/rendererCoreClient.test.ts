@@ -37,6 +37,9 @@ const { ipcBridgeMock } = vi.hoisted(() => ({
         create: { invoke: vi.fn() },
         list: { invoke: vi.fn() },
         get: { invoke: vi.fn() },
+        getRuntimeDiagnostics: { invoke: vi.fn() },
+        prepareRecoverySession: { invoke: vi.fn() },
+        executeRecoveryPlan: { invoke: vi.fn() },
         remove: { invoke: vi.fn() },
         addAgent: { invoke: vi.fn() },
         removeAgent: { invoke: vi.fn() },
@@ -162,6 +165,9 @@ describe('getRendererCoreClient', () => {
     ipcBridgeMock.core.teams.create.invoke.mockResolvedValue({ success: true, data: { id: 'team-1' } });
     ipcBridgeMock.core.teams.list.invoke.mockResolvedValue([{ id: 'team-1' }]);
     ipcBridgeMock.core.teams.get.invoke.mockResolvedValue({ id: 'team-1' });
+    ipcBridgeMock.core.teams.getRuntimeDiagnostics.invoke.mockResolvedValue({ success: true, data: { teamId: 'team-1' } });
+    ipcBridgeMock.core.teams.prepareRecoverySession.invoke.mockResolvedValue({ success: true, data: { teamId: 'team-1' } });
+    ipcBridgeMock.core.teams.executeRecoveryPlan.invoke.mockResolvedValue({ success: true, data: { teamId: 'team-1' } });
     ipcBridgeMock.core.teams.remove.invoke.mockResolvedValue({ success: true });
     ipcBridgeMock.core.teams.addAgent.invoke.mockResolvedValue({ success: true, data: { slotId: 'slot-1' } });
     ipcBridgeMock.core.teams.removeAgent.invoke.mockResolvedValue({ success: true });
@@ -189,6 +195,9 @@ describe('getRendererCoreClient', () => {
     ).resolves.toMatchObject({ success: true });
     await expect(client.teams.list('user-1')).resolves.toEqual([{ id: 'team-1' }]);
     await expect(client.teams.get('team-1')).resolves.toMatchObject({ id: 'team-1' });
+    await expect(client.teams.getRuntimeDiagnostics('team-1')).resolves.toMatchObject({ success: true });
+    await expect(client.teams.prepareRecoverySession('team-1')).resolves.toMatchObject({ success: true });
+    await expect(client.teams.executeRecoveryPlan('team-1')).resolves.toMatchObject({ success: true });
     await expect(client.teams.remove('team-1')).resolves.toMatchObject({ success: true });
     await expect(client.teams.addAgent({ teamId: 'team-1', agent: { agentName: 'A' } as never })).resolves.toMatchObject({
       success: true,
@@ -226,6 +235,9 @@ describe('getRendererCoreClient', () => {
       slotId: 'slot-1',
       content: 'hello',
     });
+    expect(ipcBridgeMock.core.teams.getRuntimeDiagnostics.invoke).toHaveBeenCalledWith({ teamId: 'team-1' });
+    expect(ipcBridgeMock.core.teams.prepareRecoverySession.invoke).toHaveBeenCalledWith({ teamId: 'team-1' });
+    expect(ipcBridgeMock.core.teams.executeRecoveryPlan.invoke).toHaveBeenCalledWith({ teamId: 'team-1' });
     expect(ipcBridgeMock.core.teams.stop.invoke).toHaveBeenCalledWith({ teamId: 'team-1' });
     expect(ipcBridgeMock.core.teams.ensureSession.invoke).toHaveBeenCalledWith({ teamId: 'team-1' });
     expect(ipcBridgeMock.core.uploads.createFile.invoke).toHaveBeenCalledWith({
@@ -396,6 +408,9 @@ describe('getRendererCoreClient', () => {
     await client.teams.create({ userId: 'user-1', name: 'Team', workspace: '', workspaceMode: 'shared', agents: [] });
     await client.teams.list('user-1');
     await client.teams.get('team-1');
+    await client.teams.getRuntimeDiagnostics('team-1');
+    await client.teams.prepareRecoverySession('team-1');
+    await client.teams.executeRecoveryPlan('team-1');
     await client.teams.remove('team-1');
     await client.teams.addAgent({ teamId: 'team-1', agent: { agentName: 'A' } as never });
     await client.teams.removeAgent('team-1', 'slot-1');
@@ -422,6 +437,25 @@ describe('getRendererCoreClient', () => {
     });
     expect(globalThis.fetch).toHaveBeenCalledWith('/api/core/teams/team-1', {
       credentials: 'include',
+    });
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/core/teams/team-1/runtime-diagnostics', {
+      credentials: 'include',
+    });
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/core/teams/team-1/recovery/prepare', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    });
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/core/teams/team-1/recovery/execute', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
     });
     expect(globalThis.fetch).toHaveBeenCalledWith('/api/core/teams/team-1/delete', {
       method: 'POST',

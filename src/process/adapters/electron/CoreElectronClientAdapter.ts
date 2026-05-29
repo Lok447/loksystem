@@ -92,6 +92,18 @@ export function initCoreElectronClientAdapter(client: CoreClientContract): () =>
     return client.teams.get(id);
   });
 
+  ipcBridge.core.teams.getRuntimeDiagnostics.provider(({ teamId }) => {
+    return client.teams.getRuntimeDiagnostics(teamId);
+  });
+
+  ipcBridge.core.teams.prepareRecoverySession.provider(({ teamId }) => {
+    return client.teams.prepareRecoverySession(teamId);
+  });
+
+  ipcBridge.core.teams.executeRecoveryPlan.provider(({ teamId }) => {
+    return client.teams.executeRecoveryPlan(teamId);
+  });
+
   ipcBridge.core.teams.remove.provider(({ id }) => {
     return client.teams.remove(id);
   });

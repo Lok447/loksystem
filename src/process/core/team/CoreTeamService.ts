@@ -14,6 +14,9 @@ import type {
   CoreTeamDto,
   CoreTeamRenameAgentDto,
   CoreTeamRenameDto,
+  CoreTeamRecoveryExecutionDto,
+  CoreTeamRecoveryPreparationDto,
+  CoreTeamRuntimeDiagnosticsDto,
   CoreTeamSendMessageDto,
   CoreTeamSendMessageToAgentDto,
   CoreTeamSetSessionModeDto,
@@ -53,6 +56,46 @@ export class CoreTeamService {
       return null;
     }
     return this.teamSessionService.getTeam(id);
+  }
+
+  public async getRuntimeDiagnostics(teamId: string): Promise<CoreServiceResponse<CoreTeamRuntimeDiagnosticsDto>> {
+    if (!this.teamSessionService) {
+      return { success: false, msg: 'Team service is not available in this runtime' };
+    }
+
+    try {
+      const diagnostics = await this.teamSessionService.getRuntimeDiagnostics(teamId);
+      return { success: true, data: diagnostics };
+    } catch (error) {
+      return this.toErrorResponse<CoreTeamRuntimeDiagnosticsDto>(error);
+    }
+  }
+
+  public async prepareRecoverySession(teamId: string): Promise<CoreServiceResponse<CoreTeamRecoveryPreparationDto>> {
+    if (!this.teamSessionService) {
+      return { success: false, msg: 'Team service is not available in this runtime' };
+    }
+
+    try {
+      const preparation = await this.teamSessionService.prepareRecoverySession(teamId);
+      return { success: true, data: preparation };
+    } catch (error) {
+      return this.toErrorResponse<CoreTeamRecoveryPreparationDto>(error);
+    }
+  }
+
+  public async executeRecoveryPlan(teamId: string): Promise<CoreServiceResponse<CoreTeamRecoveryExecutionDto>> {
+    if (!this.teamSessionService) {
+      return { success: false, msg: 'Team service is not available in this runtime' };
+    }
+
+    try {
+      const result = await this.teamSessionService.executeRecoveryPlan(teamId);
+      this.emitRuntimeUpdate({ action: 'recovery_executed', teamId });
+      return { success: true, data: result };
+    } catch (error) {
+      return this.toErrorResponse<CoreTeamRecoveryExecutionDto>(error);
+    }
   }
 
   public async remove(id: string): Promise<CoreServiceResponse> {
@@ -232,6 +275,7 @@ export class CoreTeamService {
       | 'workspace_updated'
       | 'message_sent'
       | 'message_sent_to_agent'
+      | 'recovery_executed'
       | 'stopped'
       | 'session_ensured';
     teamId: string;

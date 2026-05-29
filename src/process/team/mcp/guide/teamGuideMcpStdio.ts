@@ -15,7 +15,11 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { sendTcpRequest } from '../tcpHelpers';
-import { getCreateTeamToolDescription } from '@process/team/prompts/teamGuidePrompt.ts';
+import {
+  getCreateTeamToolDescription,
+  getExecuteRecoveryToolDescription,
+  getPrepareRecoveryToolDescription,
+} from '@process/team/prompts/teamGuidePrompt.ts';
 
 const LOK_MCP_TOKEN = process.env.LOK_MCP_TOKEN || undefined;
 /** Backend type of the agent that owns this stdio bridge (e.g. 'claude', 'codex', 'gemini'). */
@@ -115,6 +119,30 @@ Pass agent_type to query a specific backend, or omit it to see all.`,
       .string()
       .optional()
       .describe('Agent type/backend to query (e.g. "gemini", "claude", "codex"). Shows all when omitted.'),
+  },
+  LOK_MCP_PORT,
+  LOK_MCP_TOKEN
+);
+
+// ---- aion_prepare_team_recovery ----
+createLokTool(
+  server,
+  'aion_prepare_team_recovery',
+  getPrepareRecoveryToolDescription(),
+  {
+    team_id: z.string().min(1).describe('Target team ID to inspect and prepare a recovery plan for.'),
+  },
+  LOK_MCP_PORT,
+  LOK_MCP_TOKEN
+);
+
+// ---- aion_execute_team_recovery ----
+createLokTool(
+  server,
+  'aion_execute_team_recovery',
+  getExecuteRecoveryToolDescription(),
+  {
+    team_id: z.string().min(1).describe('Target team ID to execute the prepared recovery plan for.'),
   },
   LOK_MCP_PORT,
   LOK_MCP_TOKEN

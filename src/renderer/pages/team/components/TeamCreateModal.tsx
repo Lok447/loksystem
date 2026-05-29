@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { getRendererCoreClient } from '@/common/coreClient';
 import { configService } from '@/common/config/configService';
 import type { AcpInitializeResult } from '@/common/types/acpTypes';
+import type { TeamCapabilityOverrides } from '@/common/types/teamTypes';
 import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
@@ -17,7 +18,9 @@ import {
   agentFromKey,
   resolveConversationType,
   resolveTeamAgentType,
-  filterTeamSupportedAgents,
+  partitionAgentsByTeamRole,
+  getAgentTeamCapabilitySummary,
+  getLeaderMixedBackendHint,
   AgentOptionLabel,
 } from './agentSelectUtils';
 
@@ -40,14 +43,16 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const [loading, setLoading] = useState(false);
   const nameInputRef = useRef<RefInputType | null>(null);
   const [cachedInitResults, setCachedInitResults] = useState<Record<string, AcpInitializeResult> | null>(null);
+  const [capabilityOverrides, setCapabilityOverrides] = useState<TeamCapabilityOverrides | null>(null);
 
   useEffect(() => {
     if (!visible) return;
     let active = true;
-    configService
-      .get('acp.cachedInitializeResult')
-      .then((data) => {
-        if (active) setCachedInitResults(data ?? null);
+    Promise.all([configService.get('acp.cachedInitializeResult'), configService.get('team.capabilityOverrides')])
+      .then(([cachedData, overrideData]) => {
+        if (!active) return;
+        setCachedInitResults(cachedData ?? null);
+        setCapabilityOverrides((overrideData as TeamCapabilityOverrides | null | undefined) ?? null);
       })
       .catch(() => {});
     return () => {
@@ -55,15 +60,28 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     };
   }, [visible]);
 
-  const allAgents = filterTeamSupportedAgents([...cliAgents, ...presetAssistants], cachedInitResults);
+  const allAgents = useMemo(() => [...cliAgents, ...presetAssistants], [cliAgents, presetAssistants]);
 
-  const { supportedCliAgents, supportedPresetAssistants } = useMemo(() => {
-    const supportedKeys = new Set(allAgents.map(agentKey));
+  const { supportedCliAgents, supportedPresetAssistants, blockedLeaderAgents } = useMemo(() => {
+    const { selectable, blocked } = partitionAgentsByTeamRole(allAgents, cachedInitResults, 'leader', capabilityOverrides);
+    const supportedKeys = new Set(selectable.map(agentKey));
+    const blockedKeys = new Set(blocked.map(agentKey));
     return {
       supportedCliAgents: cliAgents.filter((a) => supportedKeys.has(agentKey(a))),
       supportedPresetAssistants: presetAssistants.filter((a) => supportedKeys.has(agentKey(a))),
+      blockedLeaderAgents: allAgents.filter((a) => blockedKeys.has(agentKey(a))),
     };
-  }, [allAgents, cliAgents, presetAssistants]);
+  }, [allAgents, cachedInitResults, capabilityOverrides, cliAgents, presetAssistants]);
+
+  const leaderOptions = useMemo(() => [...supportedCliAgents, ...supportedPresetAssistants], [supportedCliAgents, supportedPresetAssistants]);
+  const selectedLeader = useMemo(
+    () => (dispatchAgentKey ? agentFromKey(dispatchAgentKey, leaderOptions) : undefined),
+    [dispatchAgentKey, leaderOptions]
+  );
+  const leaderMixedBackendHint = useMemo(() => {
+    if (!selectedLeader) return undefined;
+    return getLeaderMixedBackendHint(selectedLeader, cachedInitResults, capabilityOverrides);
+  }, [selectedLeader, cachedInitResults, capabilityOverrides]);
 
   useEffect(() => {
     if (visible) {
@@ -93,7 +111,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     try {
       const agents: TeamAgent[] = [];
 
-      const dispatchAgent = dispatchAgentKey ? agentFromKey(dispatchAgentKey, allAgents) : undefined;
+      const dispatchAgent = dispatchAgentKey ? agentFromKey(dispatchAgentKey, leaderOptions) : undefined;
       const dispatchAgentType = resolveTeamAgentType(dispatchAgent, 'acp');
       agents.push({
         slotId: '',
@@ -196,60 +214,96 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                   defaultValue: 'Receives your instructions, breaks down the task, and assigns work to team agents',
                 })}
               </span>
-              {allAgents.length === 0 ? (
+              {leaderOptions.length === 0 ? (
                 <div className='flex items-center justify-center rounded-12px border border-dashed border-border-2 bg-fill-1 py-20px text-12px text-t-secondary'>
                   {t('team.create.noSupportedAgents', { defaultValue: 'No supported agents installed' })}
                 </div>
               ) : (
-                <LokSelect
-                  data-testid='team-create-leader-select'
-                  showSearch
-                  allowClear
-                  placeholder={t('team.create.dispatchAgentPlaceholder', { defaultValue: 'Select team leader' })}
-                  value={dispatchAgentKey}
-                  onChange={(value) => setDispatchAgentKey(value as string | undefined)}
-                  filterOption={(inputValue, option) => {
-                    const optionValue = (option as React.ReactElement<{ value?: string }>)?.props?.value;
-                    if (!optionValue) return false;
-                    const agent = agentFromKey(optionValue, allAgents);
-                    if (!agent) return false;
-                    return agent.name.toLowerCase().includes(inputValue.toLowerCase());
-                  }}
-                  renderFormat={(_option, value) => {
-                    const strVal = value as unknown as string;
-                    if (!strVal) return '';
-                    const agent = agentFromKey(strVal, allAgents);
-                    if (!agent) return strVal;
-                    return <AgentOptionLabel agent={agent} />;
-                  }}
-                >
-                  {supportedCliAgents.length > 0 && (
-                    <OptGroup label={t('conversation.dropdown.cliAgents', { defaultValue: 'CLI Agents' })}>
-                      {supportedCliAgents.map((agent) => {
-                        const key = agentKey(agent);
-                        return (
-                          <Option key={key} value={key} data-testid={`team-create-agent-option-${key}`}>
-                            <AgentOptionLabel agent={agent} />
-                          </Option>
-                        );
+                <div className='flex flex-col gap-8px'>
+                  <LokSelect
+                    data-testid='team-create-leader-select'
+                    showSearch
+                    allowClear
+                    placeholder={t('team.create.dispatchAgentPlaceholder', { defaultValue: 'Select team leader' })}
+                    value={dispatchAgentKey}
+                    onChange={(value) => setDispatchAgentKey(value as string | undefined)}
+                    filterOption={(inputValue, option) => {
+                      const optionValue = (option as React.ReactElement<{ value?: string }>)?.props?.value;
+                      if (!optionValue) return false;
+                      const agent = agentFromKey(optionValue, leaderOptions);
+                      if (!agent) return false;
+                      return agent.name.toLowerCase().includes(inputValue.toLowerCase());
+                    }}
+                    renderFormat={(_option, value) => {
+                      const strVal = value as unknown as string;
+                      if (!strVal) return '';
+                      const agent = agentFromKey(strVal, leaderOptions);
+                      if (!agent) return strVal;
+                      return (
+                        <AgentOptionLabel
+                          agent={agent}
+                          capabilitySummary={getAgentTeamCapabilitySummary(agent, cachedInitResults, capabilityOverrides)}
+                        />
+                      );
+                    }}
+                  >
+                    {supportedCliAgents.length > 0 && (
+                      <OptGroup label={t('conversation.dropdown.cliAgents', { defaultValue: 'CLI Agents' })}>
+                        {supportedCliAgents.map((agent) => {
+                          const key = agentKey(agent);
+                          return (
+                            <Option key={key} value={key} data-testid={`team-create-agent-option-${key}`}>
+                              <AgentOptionLabel
+                                agent={agent}
+                                capabilitySummary={getAgentTeamCapabilitySummary(
+                                  agent,
+                                  cachedInitResults,
+                                  capabilityOverrides
+                                )}
+                              />
+                            </Option>
+                          );
+                        })}
+                      </OptGroup>
+                    )}
+                    {supportedPresetAssistants.length > 0 && (
+                      <OptGroup
+                        label={t('conversation.dropdown.presetAssistants', { defaultValue: 'Preset Assistants' })}
+                      >
+                        {supportedPresetAssistants.map((agent) => {
+                          const key = agentKey(agent);
+                          return (
+                            <Option key={key} value={key} data-testid={`team-create-agent-option-${key}`}>
+                              <AgentOptionLabel
+                                agent={agent}
+                                capabilitySummary={getAgentTeamCapabilitySummary(
+                                  agent,
+                                  cachedInitResults,
+                                  capabilityOverrides
+                                )}
+                              />
+                            </Option>
+                          );
+                        })}
+                      </OptGroup>
+                    )}
+                  </LokSelect>
+                  <div className='rounded-12px border border-border-1 bg-fill-1 px-12px py-10px text-12px leading-18px text-t-secondary'>
+                    {leaderMixedBackendHint ||
+                      t('team.create.supportedAgentsHint', {
+                        defaultValue:
+                          'Choose a leader-capable runtime first. Later teammates must also be worker-capable in the current team runtime.',
                       })}
-                    </OptGroup>
-                  )}
-                  {supportedPresetAssistants.length > 0 && (
-                    <OptGroup
-                      label={t('conversation.dropdown.presetAssistants', { defaultValue: 'Preset Assistants' })}
-                    >
-                      {supportedPresetAssistants.map((agent) => {
-                        const key = agentKey(agent);
-                        return (
-                          <Option key={key} value={key} data-testid={`team-create-agent-option-${key}`}>
-                            <AgentOptionLabel agent={agent} />
-                          </Option>
-                        );
+                  </div>
+                  {blockedLeaderAgents.length > 0 && (
+                    <div className='rounded-12px border border-dashed border-border-2 bg-fill-0 px-12px py-10px text-12px leading-18px text-t-tertiary'>
+                      {t('team.create.leaderBlockedHint', {
+                        defaultValue:
+                          'Some installed runtimes are hidden here because they are worker-only, unsupported, or require a capability override before they can act as team leader.',
                       })}
-                    </OptGroup>
+                    </div>
                   )}
-                </LokSelect>
+                </div>
               )}
             </div>
           </FormItem>

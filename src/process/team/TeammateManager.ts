@@ -6,7 +6,7 @@ import { addMessage } from '@process/utils/message';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TeamAgent, TeamTask, TeammateStatus } from './types';
-import { isTeamCapableBackend } from '@/common/types/teamTypes';
+import { TeamCapabilityResolver } from '@/common/team/TeamCapabilityResolver';
 import { ProcessConfig } from '@process/utils/initStorage';
 import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
@@ -20,6 +20,10 @@ import {
   mirrorTeamAgentSpawned,
   mirrorTeamAgentStatusChanged,
 } from '@process/core/team';
+import type { ProtocolEventSink } from '@process/team-runtime/protocol';
+import type { GatewayEventSink } from '@process/team-runtime/gateway';
+import { resolveGatewayRuntimeSnapshot } from '@process/team-runtime/gateway';
+import type { GatewayLifecycleState } from '@process/team-runtime/gateway';
 
 type TeammateManagerParams = {
   teamId: string;
@@ -29,6 +33,8 @@ type TeammateManagerParams = {
   workerTaskManager: IWorkerTaskManager;
   hasMcpTools?: boolean;
   teamWorkspace?: string;
+  protocolEventSink?: ProtocolEventSink;
+  gatewayEventSink?: GatewayEventSink;
   /** Called after an agent is removed from in-memory list, so the caller can persist the change (e.g. update DB) */
   onAgentRemoved?: (teamId: string, agents: TeamAgent[]) => void;
 };
@@ -46,6 +52,8 @@ export class TeammateManager extends EventEmitter {
   private readonly onAgentRemovedFn?: (teamId: string, agents: TeamAgent[]) => void;
   /** Shared team workspace path (leader's working directory) */
   private readonly teamWorkspace: string | undefined;
+  private readonly protocolEventSink?: ProtocolEventSink;
+  private readonly gatewayEventSink?: GatewayEventSink;
 
   /** Tracks which slotIds currently have an in-progress wake to avoid loops */
   private readonly activeWakes = new Set<string>();
@@ -72,6 +80,8 @@ export class TeammateManager extends EventEmitter {
     this.workerTaskManager = params.workerTaskManager;
     this.onAgentRemovedFn = params.onAgentRemoved;
     this.teamWorkspace = params.teamWorkspace;
+    this.protocolEventSink = params.protocolEventSink;
+    this.gatewayEventSink = params.gatewayEventSink;
 
     for (const agent of this.agents) {
       this.ownedConversationIds.add(agent.conversationId);
@@ -134,7 +144,7 @@ export class TeammateManager extends EventEmitter {
 
       this.setStatus(slotId, 'active');
 
-      const mailboxMessages = await this.mailbox.readUnread(this.teamId, slotId);
+      const mailboxMessages = (await this.mailbox.readUnread(this.teamId, slotId)) ?? [];
       const teammates = this.agents.filter((a) => a.slotId !== slotId);
 
       // Write each mailbox message into agent's conversation as user bubble
@@ -183,18 +193,37 @@ export class TeammateManager extends EventEmitter {
       let message: string;
       if (needsFullPrompt) {
         // Compute availableAgentTypes + availableAssistants only for leader's first prompt
-        let availableAgentTypes: Array<{ type: string; name: string }> | undefined;
-        let availableAssistants:
-          | Array<{ customAgentId: string; name: string; backend: string; description?: string; skills?: string[] }>
+        let availableAgentTypes:
+          | Array<{
+              type: string;
+              name: string;
+              capabilities?: ReturnType<typeof TeamCapabilityResolver.resolve>;
+            }>
           | undefined;
+        let availableAssistants:
+          | Array<{
+              customAgentId: string;
+              name: string;
+              backend: string;
+              description?: string;
+              skills?: string[];
+              capabilities?: ReturnType<typeof TeamCapabilityResolver.resolve>;
+            }>
+          | undefined;
+        const agentCapabilities = TeamCapabilityResolver.resolve(agent.agentType, await ProcessConfig.get('acp.cachedInitializeResult'));
         if (agent.role === 'leader') {
           const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
           availableAgentTypes = agentRegistry
             .getDetectedAgents()
-            .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults))
+            .map((a) => ({
+              ...a,
+              teamCapabilities: TeamCapabilityResolver.resolve(a.backend, cachedInitResults),
+            }))
+            .filter((a) => a.teamCapabilities.currentlySupported)
             .map((a) => ({
               type: a.backend,
               name: a.name,
+              capabilities: a.teamCapabilities,
             }));
 
           const assistants = (await ProcessConfig.get('assistants')) ?? [];
@@ -206,13 +235,15 @@ export class TeammateManager extends EventEmitter {
               backend: a.presetAgentType || 'hermes',
               description: a.description,
               skills: a.enabledSkills,
+              capabilities: TeamCapabilityResolver.resolve(a.presetAgentType || 'hermes', cachedInitResults),
             }))
-            .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults));
+            .filter((a) => TeamCapabilityResolver.resolve(a.backend, cachedInitResults).currentlySupported);
         }
 
         const staticPrompt = buildRolePrompt({
           agent,
           teammates,
+          agentCapabilities,
           availableAgentTypes,
           availableAssistants,
           renamedAgents: this.renamedAgents,
@@ -291,6 +322,87 @@ export class TeammateManager extends EventEmitter {
     this.wakeTimeouts.clear();
     this.activeWakes.clear();
     this.removeAllListeners();
+  }
+
+  private isGatewayAgent(agent: TeamAgent): boolean {
+    return agent.agentType === 'openclaw-gateway' || agent.conversationType === 'openclaw-gateway';
+  }
+
+  private getGatewayRuntime(agent: TeamAgent) {
+    return resolveGatewayRuntimeSnapshot(this.workerTaskManager, agent);
+  }
+
+  private toGatewayFailureLifecycleState(
+    lifecycleState: GatewayLifecycleState | undefined,
+    fallback: 'degraded' | 'failed' | 'recovering'
+  ): 'degraded' | 'failed' | 'recovering' {
+    if (lifecycleState === 'recovering' || lifecycleState === 'reconnecting') {
+      return 'recovering';
+    }
+    if (lifecycleState === 'failed') {
+      return 'failed';
+    }
+    if (lifecycleState === 'degraded' || lifecycleState === 'disconnected') {
+      return 'degraded';
+    }
+    return fallback;
+  }
+
+  private async emitWorkerFailureEvent(
+    agent: TeamAgent,
+    params: {
+      message: string;
+      reason: string;
+      lifecycleState: 'degraded' | 'failed' | 'recovering';
+      recoveryHint: string;
+      recoveryAction?: 'replay_gateway_session' | 'rebuild_protocol_runtime' | 'replay_protocol_coordination';
+      recoveryMode?: 'gateway_replay' | 'protocol_replay';
+      level: 'warning' | 'error';
+      ownershipStatus?: 'blocked' | 'returned_to_leader';
+      taskStatus?: 'failed';
+      leaderSummary?: string;
+    }
+  ): Promise<void> {
+    if (this.isGatewayAgent(agent)) {
+      const runtime = this.getGatewayRuntime(agent);
+      await this.gatewayEventSink?.emit(params.lifecycleState === 'recovering' ? 'recover' : params.lifecycleState === 'degraded' ? 'degrade' : 'fail', {
+        slotId: agent.slotId,
+        owner: agent.slotId,
+        workerBackend: agent.agentType,
+        gatewaySessionId: runtime?.gatewaySessionId,
+        lifecycleState: runtime?.lifecycleState ?? params.lifecycleState,
+        runtimeStatus: runtime?.runtimeStatus,
+        degradedReason: params.reason,
+        recoveryAction: params.recoveryAction === 'replay_gateway_session' ? params.recoveryAction : 'replay_gateway_session',
+        recoveryMode: params.recoveryMode === 'gateway_replay' ? params.recoveryMode : 'gateway_replay',
+        recoveryHint: params.recoveryHint,
+        message: params.message,
+        level: params.level,
+        details: {
+          managerStatus: runtime?.managerStatus,
+          statusReason: runtime?.statusReason,
+        },
+      });
+      return;
+    }
+
+    await this.protocolEventSink?.emit('fail', {
+      slotId: agent.slotId,
+      owner: agent.slotId,
+      workerBackend: agent.agentType,
+      ownershipStatus: params.ownershipStatus ?? 'blocked',
+      taskStatus: params.taskStatus ?? 'failed',
+      recoveryAction: params.recoveryAction,
+      recoveryMode: params.recoveryMode,
+      message: params.message,
+      leaderSummary: params.leaderSummary,
+      recoveryHint: params.recoveryHint,
+      details: {
+        backend: agent.agentType,
+        reason: params.reason,
+      },
+      level: params.level,
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -377,6 +489,19 @@ export class TeammateManager extends EventEmitter {
 
     console.warn(`[TeammateManager] ${agent.agentName} (${agent.slotId}) ${reason}`);
     this.setStatus(agent.slotId, 'failed', reason);
+    const runtime = this.isGatewayAgent(agent) ? this.getGatewayRuntime(agent) : null;
+    await this.emitWorkerFailureEvent(agent, {
+      message: `Worker failed: ${agent.agentName}`,
+      reason: runtime?.statusReason ? `${reason} (${runtime.statusReason})` : reason,
+      lifecycleState: runtime?.lifecycleState === 'reconnecting' ? 'recovering' : 'degraded',
+      recoveryHint: 'Leader should decide whether to retry the worker, replace it, or absorb the task.',
+      level: 'warning',
+      ownershipStatus: 'blocked',
+      taskStatus: 'failed',
+      recoveryAction: this.isGatewayAgent(agent) ? 'replay_gateway_session' : 'replay_protocol_coordination',
+      recoveryMode: this.isGatewayAgent(agent) ? 'gateway_replay' : 'protocol_replay',
+      leaderSummary: `${agent.agentName} stopped responding and was marked failed.`,
+    });
 
     // Don't escalate to leader if the stuck agent IS the leader — nobody to notify.
     if (agent.role === 'leader') return;
@@ -432,6 +557,17 @@ export class TeammateManager extends EventEmitter {
 
     if (agent.status === 'active') {
       this.setStatus(agent.slotId, 'idle');
+      await this.protocolEventSink?.emit('complete', {
+        slotId: agent.slotId,
+        owner: agent.slotId,
+        workerBackend: agent.agentType,
+        ownershipStatus: 'assigned',
+        message: `Worker turn completed: ${agent.agentName}`,
+        leaderSummary: `${agent.agentName} finished a protocol turn and returned control to the leader.`,
+        details: {
+          backend: agent.agentType,
+        },
+      });
     }
 
     // Auto-send idle notification to leader.
@@ -500,6 +636,19 @@ export class TeammateManager extends EventEmitter {
       this.activeWakes.delete(agent.slotId);
 
       this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
+      const runtime = this.isGatewayAgent(agent) ? this.getGatewayRuntime(agent) : null;
+      await this.emitWorkerFailureEvent(agent, {
+        message: `Leader failed: ${agent.agentName}`,
+        reason: runtime?.statusReason ? `${errorMessage} (${runtime.statusReason})` : errorMessage,
+        lifecycleState: this.toGatewayFailureLifecycleState(runtime?.lifecycleState, 'failed'),
+        recoveryHint: 'Recovery should rebuild the leader runtime before continuing protocol coordination.',
+        level: 'error',
+        ownershipStatus: 'blocked',
+        taskStatus: 'failed',
+        recoveryAction: 'rebuild_protocol_runtime',
+        recoveryMode: 'protocol_replay',
+        leaderSummary: `Leader ${agent.agentName} crashed and the protocol run needs intervention.`,
+      });
       return;
     }
 
@@ -521,6 +670,19 @@ export class TeammateManager extends EventEmitter {
 
       // 3. Mark as failed (frontend shows error status, tab stays)
       this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
+      const runtime = this.isGatewayAgent(agent) ? this.getGatewayRuntime(agent) : null;
+      await this.emitWorkerFailureEvent(agent, {
+        message: `Worker crashed without leader recovery: ${agent.agentName}`,
+        reason: runtime?.statusReason ? `${errorMessage} (${runtime.statusReason})` : errorMessage,
+        lifecycleState: this.toGatewayFailureLifecycleState(runtime?.lifecycleState, 'failed'),
+        recoveryHint: 'Inspect the failed worker session and decide whether to rebuild or replace it.',
+        level: 'error',
+        ownershipStatus: 'blocked',
+        taskStatus: 'failed',
+        recoveryAction: this.isGatewayAgent(agent) ? 'replay_gateway_session' : 'rebuild_protocol_runtime',
+        recoveryMode: this.isGatewayAgent(agent) ? 'gateway_replay' : 'protocol_replay',
+        leaderSummary: `${agent.agentName} crashed before the leader could recover the task.`,
+      });
       return;
     }
 
@@ -562,6 +724,22 @@ export class TeammateManager extends EventEmitter {
 
     // 4. Mark as failed (frontend shows error status, tab stays)
     this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
+    const runtime = this.isGatewayAgent(agent) ? this.getGatewayRuntime(agent) : null;
+    await this.emitWorkerFailureEvent(agent, {
+      message: `Worker crashed: ${agent.agentName}`,
+      reason: runtime?.statusReason ? `${errorMessage} (${runtime.statusReason})` : errorMessage,
+      lifecycleState: this.toGatewayFailureLifecycleState(
+        runtime?.lifecycleState,
+        this.isGatewayAgent(agent) ? 'recovering' : 'failed'
+      ),
+      recoveryHint: 'Leader should inspect reassigned tasks and decide whether to replay or re-dispatch them.',
+      level: 'error',
+      ownershipStatus: 'returned_to_leader',
+      taskStatus: 'failed',
+      recoveryAction: this.isGatewayAgent(agent) ? 'replay_gateway_session' : 'replay_protocol_coordination',
+      recoveryMode: this.isGatewayAgent(agent) ? 'gateway_replay' : 'protocol_replay',
+      leaderSummary: `${agent.agentName} crashed and its open work was handed back to the leader.`,
+    });
 
     // 5. Wake leader to process the testament
     void this.wake(leadAgent.slotId);

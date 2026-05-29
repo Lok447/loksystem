@@ -20,8 +20,11 @@ import type {
   CoreTeamAgentDto,
   CoreTeamCreateDto,
   CoreTeamDto,
+  CoreTeamRecoveryExecutionDto,
+  CoreTeamRecoveryPreparationDto,
   CoreTeamRenameAgentDto,
   CoreTeamRenameDto,
+  CoreTeamRuntimeDiagnosticsDto,
   CoreTeamSendMessageDto,
   CoreTeamSendMessageToAgentDto,
   CoreTeamSetSessionModeDto,
@@ -74,6 +77,9 @@ export type RendererCoreClient = {
     create(params: CoreTeamCreateDto): Promise<CoreServiceResponse<CoreTeamDto>>;
     list(userId: string): Promise<CoreTeamDto[]>;
     get(id: string): Promise<CoreTeamDto | null>;
+    getRuntimeDiagnostics(teamId: string): Promise<CoreServiceResponse<CoreTeamRuntimeDiagnosticsDto>>;
+    prepareRecoverySession(teamId: string): Promise<CoreServiceResponse<CoreTeamRecoveryPreparationDto>>;
+    executeRecoveryPlan(teamId: string): Promise<CoreServiceResponse<CoreTeamRecoveryExecutionDto>>;
     remove(id: string): Promise<CoreServiceResponse>;
     addAgent(params: CoreTeamAddAgentDto): Promise<CoreServiceResponse<CoreTeamAgentDto>>;
     removeAgent(teamId: string, slotId: string): Promise<CoreServiceResponse>;
@@ -212,6 +218,15 @@ function createElectronCoreClient(): RendererCoreClient {
       get(id) {
         return ipcBridge.core.teams.get.invoke({ id });
       },
+      getRuntimeDiagnostics(teamId) {
+        return ipcBridge.core.teams.getRuntimeDiagnostics.invoke({ teamId });
+      },
+      prepareRecoverySession(teamId) {
+        return ipcBridge.core.teams.prepareRecoverySession.invoke({ teamId });
+      },
+      executeRecoveryPlan(teamId) {
+        return ipcBridge.core.teams.executeRecoveryPlan.invoke({ teamId });
+      },
       remove(id) {
         return ipcBridge.core.teams.remove.invoke({ id });
       },
@@ -345,6 +360,15 @@ function createHttpCoreClient(): RendererCoreClient {
       },
       get(id) {
         return fetchCore(`/api/core/teams/${encodePathSegment(id)}`);
+      },
+      getRuntimeDiagnostics(teamId) {
+        return fetchCore(`/api/core/teams/${encodePathSegment(teamId)}/runtime-diagnostics`);
+      },
+      prepareRecoverySession(teamId) {
+        return postCore(`/api/core/teams/${encodePathSegment(teamId)}/recovery/prepare`, {});
+      },
+      executeRecoveryPlan(teamId) {
+        return postCore(`/api/core/teams/${encodePathSegment(teamId)}/recovery/execute`, {});
       },
       remove(id) {
         return postCore(`/api/core/teams/${encodePathSegment(id)}/delete`, {});

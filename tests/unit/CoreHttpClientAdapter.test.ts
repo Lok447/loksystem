@@ -73,6 +73,9 @@ describe('registerCoreHttpClientAdapter', () => {
         create: vi.fn(async (params) => ({ success: true, data: { id: 'team-1', ...params } }) as never),
         list: vi.fn(async (userId: string) => [{ id: 'team-1', userId }] as never),
         get: vi.fn(async (id: string) => ({ id }) as never),
+        getRuntimeDiagnostics: vi.fn(async (teamId: string) => ({ success: true, data: { teamId } }) as never),
+        prepareRecoverySession: vi.fn(async (teamId: string) => ({ success: true, data: { teamId } }) as never),
+        executeRecoveryPlan: vi.fn(async (teamId: string) => ({ success: true, data: { teamId, status: 'executed' } }) as never),
         remove: vi.fn(async (id: string) => ({ success: true, data: { id } }) as never),
         addAgent: vi.fn(async (params) => ({ success: true, data: params.agent }) as never),
         removeAgent: vi.fn(async (teamId: string, slotId: string) => ({ success: true, data: { teamId, slotId } }) as never),
@@ -281,6 +284,18 @@ describe('registerCoreHttpClientAdapter', () => {
       { params: { teamId: 'team-1' }, query: {} } as unknown as Request,
       makeResponse()
     );
+    await routes.get.get('/api/core/teams/:teamId/runtime-diagnostics')?.(
+      { params: { teamId: 'team-1' }, query: {} } as unknown as Request,
+      makeResponse()
+    );
+    await routes.post.get('/api/core/teams/:teamId/recovery/prepare')?.(
+      { params: { teamId: 'team-1' }, body: {} } as unknown as Request,
+      makeResponse()
+    );
+    await routes.post.get('/api/core/teams/:teamId/recovery/execute')?.(
+      { params: { teamId: 'team-1' }, body: {} } as unknown as Request,
+      makeResponse()
+    );
     await routes.post.get('/api/core/teams/:teamId/delete')?.(
       { params: { teamId: 'team-1' }, body: {} } as unknown as Request,
       makeResponse()
@@ -355,6 +370,9 @@ describe('registerCoreHttpClientAdapter', () => {
     });
     expect(client.teams.list).toHaveBeenCalledWith('user-1');
     expect(client.teams.get).toHaveBeenCalledWith('team-1');
+    expect(client.teams.getRuntimeDiagnostics).toHaveBeenCalledWith('team-1');
+    expect(client.teams.prepareRecoverySession).toHaveBeenCalledWith('team-1');
+    expect(client.teams.executeRecoveryPlan).toHaveBeenCalledWith('team-1');
     expect(client.teams.remove).toHaveBeenCalledWith('team-1');
     expect(client.teams.addAgent).toHaveBeenCalledWith({ teamId: 'team-1', agent: { agentName: 'A' } });
     expect(client.teams.removeAgent).toHaveBeenCalledWith('team-1', 'slot-1');

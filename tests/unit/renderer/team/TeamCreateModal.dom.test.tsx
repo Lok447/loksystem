@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
@@ -176,6 +176,8 @@ describe('TeamCreateModal', () => {
     expect(screen.getByText('Preset Assistants')).toBeInTheDocument();
     expect(screen.getByText('Lok CLI')).toBeInTheDocument();
     expect(screen.getByText('Writing Buddy')).toBeInTheDocument();
+    expect(screen.getAllByText(/Leader Recommended/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Native Team Mode/i).length).toBeGreaterThan(0);
   });
 
   it('filters options by typed query against agent names', () => {
@@ -198,6 +200,10 @@ describe('TeamCreateModal', () => {
     const onCreated = vi.fn();
 
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={onCreated} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('team-create-leader-select')).toBeInTheDocument();
+    });
 
     openLeaderDropdown();
     const option = document.querySelector(
@@ -222,7 +228,7 @@ describe('TeamCreateModal', () => {
     expect(payload.agents[0]).toMatchObject({
       role: 'leader',
       agentType: 'hermes',
-      conversationType: 'acp',
+      conversationType: 'lokcli',
       customAgentId: 'builtin-writing-buddy',
     });
     expect(onCreated).toHaveBeenCalledWith({ id: 'team-created' });

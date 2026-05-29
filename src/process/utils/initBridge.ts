@@ -12,6 +12,11 @@ import { ConversationServiceImpl } from '@process/services/ConversationServiceIm
 import { cronService } from '@process/services/cron/cronServiceSingleton';
 import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 import { TeamSessionService, SqliteTeamRepository } from '@process/team';
+import {
+  SqliteTeamEventStore,
+  SqliteTeamRuntimeSnapshotStore,
+  TeamDiagnosticsService,
+} from '@process/team-runtime/diagnostics';
 import { initTeamGuideService } from '@process/team/mcp/guide/teamGuideSingleton';
 
 logger.config({ print: true });
@@ -20,9 +25,33 @@ const repo = new SqliteConversationRepository();
 const conversationServiceImpl = new ConversationServiceImpl(repo);
 const channelRepo = new SqliteChannelRepository();
 const teamRepo = new SqliteTeamRepository();
-const teamSessionService = new TeamSessionService(teamRepo, workerTaskManager, conversationServiceImpl);
+const teamDiagnosticsService = new TeamDiagnosticsService({
+  repo: teamRepo,
+  eventStore: new SqliteTeamEventStore(),
+  snapshotStore: new SqliteTeamRuntimeSnapshotStore(),
+});
+const teamSessionService = new TeamSessionService(teamRepo, workerTaskManager, conversationServiceImpl, {
+  diagnosticsService: teamDiagnosticsService,
+});
 
-// 初始化所有IPC桥接
+void (async () => {
+  try {
+    const teams = await teamRepo.findAll('system_default_user');
+    await Promise.all(
+      teams.map(async (team) => {
+        try {
+          await teamSessionService.warmDiagnosticsRecovery(team.id);
+        } catch (error) {
+          console.warn(`[initBridge] Failed to warm team diagnostics recovery for ${team.id}:`, error);
+        }
+      })
+    );
+  } catch (error) {
+    console.warn('[initBridge] Failed to warm persisted team diagnostics recovery:', error);
+  }
+})();
+
+// Initialize all IPC bridges
 initAllBridges({
   conversationService: conversationServiceImpl,
   conversationRepo: repo,

@@ -15,7 +15,8 @@ import { mirrorTeamMcpStatus } from '@process/core/team';
 import type { Mailbox } from '../../Mailbox.ts';
 import type { TaskManager } from '../../TaskManager.ts';
 import type { TeamAgent } from '../../types.ts';
-import { isTeamCapableBackend, getTeamCapableBackends } from '@/common/types/teamTypes.ts';
+import { TeamCapabilityResolver } from '@/common/team/TeamCapabilityResolver';
+import type { TeamCapabilityOverrides } from '@/common/team/TeamCapabilityResolver';
 import { ProcessConfig } from '@process/utils/initStorage.ts';
 import { agentRegistry } from '@process/agent/AgentRegistry';
 import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
@@ -23,6 +24,9 @@ import { resolveLocaleKey } from '@/common/utils';
 import { handleListModels } from '../modelListHandler.ts';
 import { notifyMcpReady } from '../../mcpReadiness.ts';
 import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers.ts';
+import type { ProtocolEventSink } from '@process/team-runtime/protocol';
+import type { GatewayEventSink } from '@process/team-runtime/gateway';
+import type { GatewayRuntimeSnapshot } from '@process/team-runtime/gateway';
 
 type SpawnAgentFn = (
   agentName: string,
@@ -36,6 +40,9 @@ type TeamMcpServerParams = {
   getAgents: () => TeamAgent[];
   mailbox: Mailbox;
   taskManager: TaskManager;
+  protocolEventSink?: ProtocolEventSink;
+  gatewayEventSink?: GatewayEventSink;
+  resolveGatewayRuntime?: (slotId?: string) => GatewayRuntimeSnapshot | null;
   spawnAgent?: SpawnAgentFn;
   renameAgent?: (slotId: string, newName: string) => void;
   removeAgent?: (slotId: string) => void;
@@ -171,6 +178,26 @@ export class TeamMcpServer {
     this.params.wakeAgent(slotId).catch((err) => {
       console.error(`[TeamMcpServer] wake(${slotId}) failed during ${context}:`, err);
     });
+  }
+
+  private async getSupportedBackendCatalog(): Promise<string> {
+    const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
+    const capabilityOverrides =
+      ((await ProcessConfig.get('team.capabilityOverrides')) as TeamCapabilityOverrides | null | undefined) ?? null;
+    const supported = agentRegistry
+      .getDetectedAgents()
+      .map((agent) => TeamCapabilityResolver.resolve(agent.backend, cachedInitResults, capabilityOverrides))
+      .filter((capabilities) => capabilities.currentlySupported)
+      .map((capabilities) => {
+        const suffix = capabilities.leaderRecommended
+          ? 'leader recommended'
+          : capabilities.workerRecommended
+            ? 'worker recommended'
+            : 'supported';
+        return `${capabilities.backend} (${suffix})`;
+      });
+
+    return supported.join(', ');
   }
 
   // ── TCP connection handler ──────────────────────────────────────────────────
@@ -371,6 +398,39 @@ export class TeamMcpServer {
       summary,
     });
     this.safeWake(targetSlotId, `send_message to ${to}`);
+    const targetAgent = agents.find((agent) => agent.slotId === targetSlotId);
+    if (targetAgent?.agentType === 'openclaw-gateway' || targetAgent?.conversationType === 'openclaw-gateway') {
+      const runtime = this.params.resolveGatewayRuntime?.(targetSlotId) ?? null;
+      await this.params.gatewayEventSink?.emit('progress', {
+        slotId: targetSlotId,
+        owner: targetSlotId,
+        workerBackend: targetAgent.agentType,
+        gatewaySessionId: runtime?.gatewaySessionId,
+        lifecycleState: runtime?.lifecycleState ?? (runtime?.hasActiveSession ? 'session_active' : 'connected'),
+        runtimeStatus: runtime?.runtimeStatus,
+        message: `Gateway worker message sent to ${to}`,
+        recoveryHint: summary ? `Leader summary: ${summary}` : undefined,
+        details: {
+          fromSlotId,
+          targetSlotId,
+          summary,
+          statusReason: runtime?.statusReason,
+        },
+      });
+    } else {
+      await this.params.protocolEventSink?.emit('progress', {
+        slotId: targetSlotId,
+        owner: targetSlotId,
+        ownershipStatus: 'assigned',
+        message: `Protocol worker message sent to ${to}`,
+        leaderSummary: `Leader routed a protocol message to ${to}.`,
+        details: {
+          fromSlotId,
+          targetSlotId,
+          summary,
+        },
+      });
+    }
 
     return `Message sent to ${to}'s inbox. They will process it shortly.`;
   }
@@ -413,12 +473,24 @@ export class TeamMcpServer {
     // Team mode validation: only backends with confirmed ACP MCP stdio support
     if (agentType) {
       const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
-      if (!isTeamCapableBackend(agentType, cachedInitResults)) {
-        const capable = getTeamCapableBackends(
-          agentRegistry.getDetectedAgents().map((a) => a.backend),
-          cachedInitResults
+      const capabilityOverrides =
+        ((await ProcessConfig.get('team.capabilityOverrides')) as TeamCapabilityOverrides | null | undefined) ?? null;
+      const capabilities = TeamCapabilityResolver.resolve(agentType, cachedInitResults, capabilityOverrides);
+      if (!capabilities.currentlySupported) {
+        const supportedCatalog = await this.getSupportedBackendCatalog();
+        const supportHint = TeamCapabilityResolver.formatSupportHint(capabilities);
+        throw new Error(
+          `Agent type "${agentType}" is not supported in team mode. ${supportHint}${
+            supportedCatalog ? ` Supported now: ${supportedCatalog}.` : ''
+          }`
         );
-        throw new Error(`Agent type "${agentType}" is not supported in team mode. Supported: ${capable.join(', ')}.`);
+      }
+      if (!capabilities.workerRecommended) {
+        throw new Error(
+          `Agent type "${agentType}" cannot be spawned as a teammate worker. ${TeamCapabilityResolver.formatSupportHint(
+            capabilities
+          )}`
+        );
       }
     }
 

@@ -3,11 +3,16 @@ import { describe, it, expect } from 'vitest';
 import {
   resolveConversationType,
   filterTeamSupportedAgents,
+  partitionAgentsByTeamRole,
   agentKey,
   agentFromKey,
   resolveTeamAgentType,
+  getAgentTeamCapabilitySummary,
+  getAgentTeamEligibility,
+  getLeaderMixedBackendHint,
+  getTeammateMixedBackendHint,
 } from '@renderer/pages/team/components/agentSelectUtils';
-import { isTeamCapableBackend, getTeamCapableBackends } from '@/common/types/teamTypes';
+import { isTeamCapableBackend, getTeamCapableBackends, getTeamBackendCapabilities } from '@/common/types/teamTypes';
 import { buildTeamMcpServer } from '@process/agent/acp/mcpSessionConfig';
 import type { AvailableAgent } from '@renderer/utils/model/agentTypes';
 import type { AcpInitializeResult } from '@/common/types/acpTypes';
@@ -36,15 +41,15 @@ function makeCachedInit(backends: string[]): Record<string, AcpInitializeResult>
 // resolveConversationType
 // ---------------------------------------------------------------------------
 describe('resolveConversationType', () => {
-  it('maps gemini to aionrs', () => {
-    expect(resolveConversationType('gemini')).toBe('aionrs');
+  it('maps gemini to lokcli', () => {
+    expect(resolveConversationType('gemini')).toBe('lokcli');
   });
 
-  it('maps aionrs to aionrs', () => {
-    expect(resolveConversationType('aionrs')).toBe('aionrs');
+  it('maps aionrs to lokcli', () => {
+    expect(resolveConversationType('aionrs')).toBe('lokcli');
   });
 
-  it('maps codex to acp (MCP injectable)', () => {
+  it('maps codex to acp', () => {
     expect(resolveConversationType('codex')).toBe('acp');
   });
 
@@ -94,6 +99,46 @@ describe('isTeamCapableBackend', () => {
 
   it('returns false for unknown backend when cached data is undefined', () => {
     expect(isTeamCapableBackend('qwen', undefined)).toBe(false);
+  });
+});
+
+describe('getTeamBackendCapabilities', () => {
+  const cached = makeCachedInit(['qwen']);
+
+  it('describes hermes as native orchestrator and leader recommended', () => {
+    expect(getTeamBackendCapabilities('hermes', cached)).toMatchObject({
+      recommendedTeamMode: 'native_orchestrator',
+      leaderRecommended: true,
+      workerRecommended: true,
+      currentlySupported: true,
+      supportsNativeDelegation: true,
+    });
+  });
+
+  it('describes codex as protocol worker preferred', () => {
+    expect(getTeamBackendCapabilities('codex', cached)).toMatchObject({
+      recommendedTeamMode: 'protocol_coordinated',
+      leaderRecommended: false,
+      workerRecommended: true,
+      currentlySupported: true,
+    });
+  });
+
+  it('describes openclaw gateway as future gateway mode but not yet currently supported', () => {
+    expect(getTeamBackendCapabilities('openclaw-gateway', cached)).toMatchObject({
+      recommendedTeamMode: 'gateway_coordinated',
+      workerRecommended: true,
+      currentlySupported: true,
+    });
+  });
+
+  it('uses cached stdio support to mark ACP workers as protocol-coordinated', () => {
+    expect(getTeamBackendCapabilities('qwen', cached)).toMatchObject({
+      recommendedTeamMode: 'protocol_coordinated',
+      workerRecommended: true,
+      currentlySupported: true,
+      supportsMcpStdio: true,
+    });
   });
 });
 
@@ -156,6 +201,121 @@ describe('filterTeamSupportedAgents', () => {
   it('returns all agents when all have cached init results', () => {
     const agents = [makeAgent('qwen'), makeAgent('codex')];
     expect(filterTeamSupportedAgents(agents, cached)).toHaveLength(2);
+  });
+
+  it('filters leader options by leader eligibility when role is leader', () => {
+    const agents = [makeAgent('hermes'), makeAgent('codex'), makeAgent('qwen')];
+    const result = filterTeamSupportedAgents(agents, cached, null, 'leader');
+    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['hermes']);
+  });
+
+  it('allows override-enabled custom workers when role is teammate', () => {
+    const agents = [makeAgent('custom')];
+    const result = filterTeamSupportedAgents(
+      agents,
+      cached,
+      {
+        custom: {
+          currentlySupported: true,
+          workerRecommended: true,
+          leaderRecommended: false,
+          recommendedTeamMode: 'managed_mailbox',
+        },
+      },
+      'teammate'
+    );
+
+    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['custom']);
+  });
+});
+
+describe('getAgentTeamEligibility', () => {
+  const cached = makeCachedInit(['qwen']);
+
+  it('marks codex as blocked for leader role', () => {
+    const result = getAgentTeamEligibility({ backend: 'codex', name: 'Codex' } as AvailableAgent, cached, 'leader');
+    expect(result.selectable).toBe(false);
+    expect(result.capabilities.leaderRecommended).toBe(false);
+  });
+
+  it('marks qwen as selectable teammate when cached stdio exists', () => {
+    const result = getAgentTeamEligibility({ backend: 'qwen', name: 'Qwen' } as AvailableAgent, cached, 'teammate');
+    expect(result.selectable).toBe(true);
+    expect(result.capabilities.workerRecommended).toBe(true);
+  });
+});
+
+describe('partitionAgentsByTeamRole', () => {
+  const cached = makeCachedInit(['qwen']);
+  const makeAgent = (backend: string): AvailableAgent => ({ backend, name: backend, conversationType: 'acp' }) as AvailableAgent;
+
+  it('splits leader-selectable and blocked agents', () => {
+    const result = partitionAgentsByTeamRole([makeAgent('hermes'), makeAgent('codex'), makeAgent('qwen')], cached, 'leader');
+    expect(result.selectable.map((agent) => agent.backend)).toEqual(['hermes']);
+    expect(result.blocked.map((agent) => agent.backend)).toEqual(['codex', 'qwen']);
+  });
+});
+
+describe('getAgentTeamCapabilitySummary', () => {
+  const cached = makeCachedInit(['qwen']);
+
+  it('returns native leader summary for hermes', () => {
+    expect(getAgentTeamCapabilitySummary({ backend: 'hermes', name: 'LokCLI' } as AvailableAgent, cached)).toEqual({
+      modeLabel: 'Native Team Mode',
+      recommendationLabel: 'Leader Recommended',
+    });
+  });
+
+  it('returns protocol worker summary for qwen', () => {
+    expect(getAgentTeamCapabilitySummary({ backend: 'qwen', name: 'Qwen' } as AvailableAgent, cached)).toEqual({
+      modeLabel: 'Protocol Team Mode',
+      recommendationLabel: 'Worker Recommended',
+      caveatLabel: 'Best used as a worker',
+    });
+  });
+});
+
+describe('getLeaderMixedBackendHint', () => {
+  const cached = makeCachedInit(['qwen']);
+
+  it('returns native hint for hermes leaders', () => {
+    expect(getLeaderMixedBackendHint({ backend: 'hermes', name: 'Hermes' } as AvailableAgent, cached)).toContain(
+      'Hermes-native leaders'
+    );
+  });
+
+  it('returns worker-only hint for codex leaders', () => {
+    expect(getLeaderMixedBackendHint({ backend: 'codex', name: 'Codex' } as AvailableAgent, cached)).toContain(
+      'worker-capable but not recommended as the team leader'
+    );
+  });
+});
+
+describe('getTeammateMixedBackendHint', () => {
+  const cached = makeCachedInit(['qwen']);
+
+  it('returns compatibility hint when qwen joins a hermes-led team', () => {
+    expect(
+      getTeammateMixedBackendHint({ backend: 'qwen', name: 'Qwen' } as AvailableAgent, 'hermes', cached)
+    ).toContain('compatibility path');
+  });
+
+  it('returns managed hint for override-enabled custom worker', () => {
+    expect(
+      getTeammateMixedBackendHint(
+        { backend: 'custom', name: 'Custom Worker' } as AvailableAgent,
+        'custom',
+        cached,
+        {
+          custom: {
+            currentlySupported: true,
+            workerRecommended: true,
+            leaderRecommended: true,
+            recommendedTeamMode: 'managed_mailbox',
+          },
+        }
+      )
+    ).toContain('managed mailbox path');
   });
 });
 

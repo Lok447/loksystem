@@ -602,6 +602,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
 
       expect(resp.error).toContain('not supported');
       expect(resp.error).toContain('unsupported-type');
+      expect(resp.error).toContain('Supported now: hermes (leader recommended), codex (worker recommended).');
     });
 
     it('allows hermes and codex agent types', async () => {
